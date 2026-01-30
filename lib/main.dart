@@ -92,7 +92,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; 
   File? _profileImage;
-  final List<AppTone> _tabTones = [AppTone.white, AppTone.white, AppTone.white, AppTone.black];
+  final List<AppTone> _tabTones = [AppTone.white, AppTone.blue, AppTone.white, AppTone.black];
 
   late List<Task> _tasks;
   late List<JournalEntry> _journals;
@@ -141,10 +141,10 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: isBlack ? Colors.white : Colors.black87)),
+        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.bold, color: isBlack ? Colors.white : Colors.black87)),
         actions: [
           IconButton(
-            icon: Icon(Icons.palette_rounded, color: isBlack ? Colors.blueAccent : const Color(0xFF2563EB)),
+            icon: Icon(Icons.palette_outlined, color: isBlack ? Colors.blueAccent : const Color(0xFF2563EB)),
             onPressed: () => _showTonePicker(),
           ),
           const SizedBox(width: 8),
@@ -225,7 +225,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// --- Home Tab ---
 class HomeTab extends StatelessWidget {
   final File? profileImage;
   final VoidCallback onProfileTap;
@@ -297,7 +296,6 @@ class HomeTab extends StatelessWidget {
   Widget _card(String t, String c, Color bg, Color tx) => Expanded(child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(28)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: tx)), const SizedBox(height: 4), Text(t, style: TextStyle(color: tx.withOpacity(0.7), fontSize: 13))])));
 }
 
-// --- Team Task Tab ---
 class TeamTaskTab extends StatefulWidget {
   final List<Task> tasks;
   final List<TeamMember> members;
@@ -316,6 +314,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   String _statusFilter = '전체';
   String _memberId = 'all';
   DateFilter _dateFilter = DateFilter.all;
+  TaskPriority? _priorityFilter; // 중요도 필터 상태
 
   void _showTaskNoteDialog(Task task) {
     final noteController = TextEditingController();
@@ -409,6 +408,10 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     var list = widget.tasks.where((t) {
       if (_statusFilter == '진행 중') if (t.isDone) return false;
       if (_statusFilter == '완료됨') if (!t.isDone) return false;
+      
+      // 중요도 필터 로직
+      if (_priorityFilter != null && t.priority != _priorityFilter) return false;
+
       if (_dateFilter == DateFilter.today) {
         final due = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
         return due.isAtSameMomentAs(today);
@@ -441,9 +444,20 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           ),
         ),
       ),
+      // 중요도 필터 추가
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(children: [
+          _priorityChip("중요도: 전체", null, Colors.grey),
+          _priorityChip("중요도: 상", TaskPriority.high, Colors.red),
+          _priorityChip("중요도: 중", TaskPriority.medium, Colors.orange),
+          _priorityChip("중요도: 하", TaskPriority.low, Colors.blue),
+        ]),
+      ),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(children: [
           _dateChip("전체기간", DateFilter.all),
           _dateChip("오늘 할 일", DateFilter.today),
@@ -481,7 +495,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           itemBuilder: (ctx, i) => Dismissible(
             key: Key(filteredList[i].id),
             onDismissed: (dir) => widget.onDeleteTask(filteredList[i].id),
-            background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 24), color: Colors.red.shade50, child: const Icon(Icons.delete_outline, color: Colors.red)),
+            background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 24), color: Colors.red.shade100, child: const Icon(Icons.delete_outline, color: Colors.red)),
             child: GestureDetector(
               onTap: () => _showTaskNoteDialog(filteredList[i]),
               child: _TaskCard(task: filteredList[i], tone: widget.tone, myProfileImage: widget.myProfileImage, onToggle: (v) { setState(() { filteredList[i].isDone = v!; filteredList[i].completedAt = v ? DateTime.now() : null; }); widget.onStateChange(); }, onPriority: () { setState(() { filteredList[i].priority = TaskPriority.values[(filteredList[i].priority.index+1)%4]; }); widget.onStateChange(); }),
@@ -513,6 +527,19 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       ),
     );
   }
+
+  Widget _priorityChip(String label, TaskPriority? priority, Color color) {
+    final isS = _priorityFilter == priority;
+    return GestureDetector(
+      onTap: () => setState(() => _priorityFilter = priority),
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(color: isS ? color.withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: isS ? color : Colors.grey.shade300)),
+        child: Text(label, style: TextStyle(fontSize: 11, fontWeight: isS ? FontWeight.bold : FontWeight.normal, color: isS ? color : Colors.grey)),
+      ),
+    );
+  }
 }
 
 class _TaskCard extends StatelessWidget {
@@ -532,7 +559,6 @@ class _TaskCard extends StatelessWidget {
     return Card(
       elevation: 0, color: isDark ? Colors.white.withOpacity(0.05) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)), margin: const EdgeInsets.only(bottom: 16),
       child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [
-        // 왼쪽 영역: 체크박스 + 긴급도 배지 (사이즈 확대 및 정렬)
         SizedBox(width: 48, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Transform.scale(
             scale: 1.2,
@@ -542,15 +568,14 @@ class _TaskCard extends StatelessWidget {
           GestureDetector(
             onTap: onPriority,
             child: Container(
-              width: 32, height: 32,
+              width: 36, height: 36,
               alignment: Alignment.center,
-              decoration: BoxDecoration(color: _pColor(task.priority).withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 1.5)),
-              child: Text(_pText(task.priority), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _pColor(task.priority))),
+              decoration: BoxDecoration(color: _pColor(task.priority).withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 2)),
+              child: Text(_pText(task.priority), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _pColor(task.priority))),
             ),
           ),
         ])),
         const SizedBox(width: 16),
-        // 본문 영역
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.center, children: [
             Expanded(child: Text(task.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: isDark ? Colors.white : Colors.black87, decoration: task.isDone ? TextDecoration.lineThrough : null))),
@@ -575,7 +600,6 @@ class _TaskCard extends StatelessWidget {
   String _pText(TaskPriority p) { switch (p) { case TaskPriority.high: return "상"; case TaskPriority.medium: return "중"; case TaskPriority.low: return "하"; default: return "-"; } }
 }
 
-// --- Journal Tab ---
 class JournalTab extends StatefulWidget {
   final List<Task> tasks;
   final List<TeamMember> members;
@@ -603,7 +627,6 @@ class _JournalTabState extends State<JournalTab> {
   }
 }
 
-// --- Gallery Tab ---
 class GalleryTab extends StatefulWidget {
   final List<JournalEntry> journals;
   final List<TeamMember> members;
