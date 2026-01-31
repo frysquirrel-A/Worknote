@@ -1,51 +1,7 @@
 <html class="dark" lang="ko"><head>
-
-<script class="injected-ffc2e83d85">
-(function(){'use strict';function m(a){var c=0;return function(){return c<a.length?{done:!1,value:a[c++]}:{done:!0}}}function r(a){var c=typeof Symbol!="undefined"&&Symbol.iterator&&a[Symbol.iterator];if(c)return c.call(a);if(typeof a.length=="number")return{next:m(a)};throw Error(String(a)+" is not an iterable or ArrayLike");}var t=typeof Object.defineProperties=="function"?Object.defineProperty:function(a,c,g){if(a==Array.prototype||a==Object.prototype)return a;a[c]=g.value;return a};
-function u(a){a=["object"==typeof globalThis&&globalThis,a,"object"==typeof window&&window,"object"==typeof self&&self,"object"==typeof global&&global];for(var c=0;c<a.length;++c){var g=a[c];if(g&&g.Math==Math)return g}throw Error("Cannot find global object");}var v=u(this);function x(a,c){if(c)a:{var g=v;a=a.split(".");for(var h=0;h<a.length-1;h++){var l=a[h];if(!(l in g))break a;g=g[l]}a=a[a.length-1];h=g[a];c=c(h);c!=h&&c!=null&&t(g,a,{configurable:!0,writable:!0,value:c})}}
-function y(a){if(!(a instanceof Object))throw new TypeError("Iterator result "+a+" is not an object");}function z(){this.o=!1;this.j=null;this.u=void 0;this.g=1;this.i=this.l=0;this.C=this.h=null}function A(a){if(a.o)throw new TypeError("Generator is already running");a.o=!0}z.prototype.v=function(a){this.u=a};function B(a,c){a.h={K:c,L:!0};a.g=a.l||a.i}z.prototype.getNextAddressJsc=function(){return this.g};z.prototype.getYieldResultJsc=function(){return this.u};
-z.prototype.return=function(a){this.h={return:a};this.g=this.i};z.prototype["return"]=z.prototype.return;z.prototype.N=function(a){this.h={B:a};this.g=this.i};z.prototype.jumpThroughFinallyBlocks=z.prototype.N;z.prototype.A=function(a,c){this.g=c;return{value:a}};z.prototype.yield=z.prototype.A;z.prototype.R=function(a,c){a=r(a);var g=a.next();y(g);if(g.done)this.u=g.value,this.g=c;else return this.j=a,this.A(g.value,c)};z.prototype.yieldAll=z.prototype.R;z.prototype.B=function(a){this.g=a};
-z.prototype.jumpTo=z.prototype.B;z.prototype.F=function(){this.g=0};z.prototype.jumpToEnd=z.prototype.F;z.prototype.H=function(a,c){this.l=a;c!=void 0&&(this.i=c)};z.prototype.setCatchFinallyBlocks=z.prototype.H;z.prototype.P=function(a){this.l=0;this.i=a||0};z.prototype.setFinallyBlock=z.prototype.P;z.prototype.G=function(a,c){this.g=a;this.l=c||0};z.prototype.leaveTryBlock=z.prototype.G;z.prototype.D=function(a){this.l=a||0;a=this.h.K;this.h=null;return a};z.prototype.enterCatchBlock=z.prototype.D;
-z.prototype.J=function(a,c,g){g?this.C[g]=this.h:this.C=[this.h];this.l=a||0;this.i=c||0};z.prototype.enterFinallyBlock=z.prototype.J;z.prototype.O=function(a,c){c=this.C.splice(c||0)[0];(c=this.h=this.h||c)?c.L?this.g=this.l||this.i:c.B!=void 0&&this.i<c.B?(this.g=c.B,this.h=null):this.g=this.i:this.g=a};z.prototype.leaveFinallyBlock=z.prototype.O;z.prototype.M=function(a){return new C(a)};z.prototype.forIn=z.prototype.M;
-function C(a){this.i=a;this.g=[];for(var c in a)this.g.push(c);this.g.reverse()}C.prototype.h=function(){for(;this.g.length>0;){var a=this.g.pop();if(a in this.i)return a}return null};C.prototype.getNext=C.prototype.h;function F(a){this.g=new z;this.h=a}function G(a,c){A(a.g);var g=a.g.j;if(g)return H(a,"return"in g?g["return"]:function(h){return{value:h,done:!0}},c,a.g.return);a.g.return(c);return I(a)}
-function H(a,c,g,h){try{var l=c.call(a.g.j,g);y(l);if(!l.done)return a.g.o=!1,l;var n=l.value}catch(f){return a.g.j=null,B(a.g,f),I(a)}a.g.j=null;h.call(a.g,n);return I(a)}function I(a){for(;a.g.g;)try{var c=a.h(a.g);if(c)return a.g.o=!1,{value:c.value,done:!1}}catch(g){a.g.u=void 0,B(a.g,g)}a.g.o=!1;if(a.g.h){c=a.g.h;a.g.h=null;if(c.L)throw c.K;return{value:c.return,done:!0}}return{value:void 0,done:!0}}
-function J(a){this.next=function(c){A(a.g);a.g.j?c=H(a,a.g.j.next,c,a.g.v):(a.g.v(c),c=I(a));return c};this.throw=function(c){A(a.g);a.g.j?c=H(a,a.g.j["throw"],c,a.g.v):(B(a.g,c),c=I(a));return c};this.return=function(c){return G(a,c)};this[Symbol.iterator]=function(){return this}}function K(a){function c(h){return a.next(h)}function g(h){return a.throw(h)}return new Promise(function(h,l){function n(f){f.done?h(f.value):Promise.resolve(f.value).then(c,g).then(n,l)}n(a.next())})}
-x("Symbol",function(a){function c(n){if(this instanceof c)throw new TypeError("Symbol is not a constructor");return new g(h+(n||"")+"_"+l++,n)}function g(n,f){this.g=n;t(this,"description",{configurable:!0,writable:!0,value:f})}if(a)return a;g.prototype.toString=function(){return this.g};var h="jscomp_symbol_"+(Math.random()*1E9>>>0)+"_",l=0;return c});
-x("Symbol.iterator",function(a){if(a)return a;a=Symbol("Symbol.iterator");t(Array.prototype,a,{configurable:!0,writable:!0,value:function(){return L(m(this))}});return a});function L(a){a={next:a};a[Symbol.iterator]=function(){return this};return a}
-x("Promise",function(a){function c(f){this.h=0;this.i=void 0;this.g=[];this.u=!1;var b=this.j();try{f(b.resolve,b.reject)}catch(d){b.reject(d)}}function g(){this.g=null}function h(f){return f instanceof c?f:new c(function(b){b(f)})}if(a)return a;g.prototype.h=function(f){if(this.g==null){this.g=[];var b=this;this.i(function(){b.l()})}this.g.push(f)};var l=v.setTimeout;g.prototype.i=function(f){l(f,0)};g.prototype.l=function(){for(;this.g&&this.g.length;){var f=this.g;this.g=[];for(var b=0;b<f.length;++b){var d=
-f[b];f[b]=null;try{d()}catch(e){this.j(e)}}}this.g=null};g.prototype.j=function(f){this.i(function(){throw f;})};c.prototype.j=function(){function f(e){return function(k){d||(d=!0,e.call(b,k))}}var b=this,d=!1;return{resolve:f(this.F),reject:f(this.l)}};c.prototype.F=function(f){if(f===this)this.l(new TypeError("A Promise cannot resolve to itself"));else if(f instanceof c)this.H(f);else{a:switch(typeof f){case "object":var b=f!=null;break a;case "function":b=!0;break a;default:b=!1}b?this.D(f):this.o(f)}};
-c.prototype.D=function(f){var b=void 0;try{b=f.then}catch(d){this.l(d);return}typeof b=="function"?this.J(b,f):this.o(f)};c.prototype.l=function(f){this.v(2,f)};c.prototype.o=function(f){this.v(1,f)};c.prototype.v=function(f,b){if(this.h!=0)throw Error("Cannot settle("+f+", "+b+"): Promise already settled in state"+this.h);this.h=f;this.i=b;this.h===2&&this.G();this.C()};c.prototype.G=function(){var f=this;l(function(){if(f.A()){var b=v.console;typeof b!=="undefined"&&b.error(f.i)}},1)};c.prototype.A=
-function(){if(this.u)return!1;var f=v.CustomEvent,b=v.Event,d=v.dispatchEvent;if(typeof d==="undefined")return!0;typeof f==="function"?f=new f("unhandledrejection",{cancelable:!0}):typeof b==="function"?f=new b("unhandledrejection",{cancelable:!0}):(f=v.document.createEvent("CustomEvent"),f.initCustomEvent("unhandledrejection",!1,!0,f));f.promise=this;f.reason=this.i;return d(f)};c.prototype.C=function(){if(this.g!=null){for(var f=0;f<this.g.length;++f)n.h(this.g[f]);this.g=null}};var n=new g;c.prototype.H=
-function(f){var b=this.j();f.I(b.resolve,b.reject)};c.prototype.J=function(f,b){var d=this.j();try{f.call(b,d.resolve,d.reject)}catch(e){d.reject(e)}};c.prototype.then=function(f,b){function d(p,w){return typeof p=="function"?function(D){try{e(p(D))}catch(E){k(E)}}:w}var e,k,q=new c(function(p,w){e=p;k=w});this.I(d(f,e),d(b,k));return q};c.prototype.catch=function(f){return this.then(void 0,f)};c.prototype.I=function(f,b){function d(){switch(e.h){case 1:f(e.i);break;case 2:b(e.i);break;default:throw Error("Unexpected state: "+
-e.h);}}var e=this;this.g==null?n.h(d):this.g.push(d);this.u=!0};c.resolve=h;c.reject=function(f){return new c(function(b,d){d(f)})};c.race=function(f){return new c(function(b,d){for(var e=r(f),k=e.next();!k.done;k=e.next())h(k.value).I(b,d)})};c.all=function(f){var b=r(f),d=b.next();return d.done?h([]):new c(function(e,k){function q(D){return function(E){p[D]=E;w--;w==0&&e(p)}}var p=[],w=0;do p.push(void 0),w++,h(d.value).I(q(p.length-1),k),d=b.next();while(!d.done)})};return c});
-function M(a,c){return Object.prototype.hasOwnProperty.call(a,c)}x("Object.is",function(a){return a?a:function(c,g){return c===g?c!==0||1/c===1/g:c!==c&&g!==g}});x("Array.prototype.includes",function(a){return a?a:function(c,g){var h=this;h instanceof String&&(h=String(h));var l=h.length;g=g||0;for(g<0&&(g=Math.max(g+l,0));g<l;g++){var n=h[g];if(n===c||Object.is(n,c))return!0}return!1}});
-x("String.prototype.includes",function(a){return a?a:function(c,g){if(this==null)throw new TypeError("The 'this' value for String.prototype.includes must not be null or undefined");if(c instanceof RegExp)throw new TypeError("First argument to String.prototype.includes must not be a regular expression");return this.indexOf(c,g||0)!==-1}});
-x("WeakMap",function(a){function c(d){this.g=(b+=Math.random()+1).toString();if(d){d=r(d);for(var e;!(e=d.next()).done;)e=e.value,this.set(e[0],e[1])}}function g(){}function h(d){var e=typeof d;return e==="object"&&d!==null||e==="function"}function l(d){if(!M(d,f)){var e=new g;t(d,f,{value:e})}}function n(d){var e=Object[d];e&&(Object[d]=function(k){if(k instanceof g)return k;Object.isExtensible(k)&&l(k);return e(k)})}if(function(){if(!a||!Object.seal)return!1;try{var d=Object.seal({}),e=Object.seal({}),
-k=new a([[d,2],[e,3]]);if(k.get(d)!=2||k.get(e)!=3)return!1;k.delete(d);k.set(e,4);return!k.has(d)&&k.get(e)==4}catch(q){return!1}}())return a;var f="$jscomp_hidden_"+Math.random();n("freeze");n("preventExtensions");n("seal");var b=0;c.prototype.set=function(d,e){if(!h(d))throw Error("Invalid WeakMap key");l(d);if(!M(d,f))throw Error("WeakMap key fail: "+d);d[f][this.g]=e;return this};c.prototype.get=function(d){return h(d)&&M(d,f)?d[f][this.g]:void 0};c.prototype.has=function(d){return h(d)&&M(d,
-f)&&M(d[f],this.g)};c.prototype.delete=function(d){return h(d)&&M(d,f)&&M(d[f],this.g)?delete d[f][this.g]:!1};return c});
-x("Map",function(a){function c(){var b={};return b.m=b.next=b.head=b}function g(b,d){var e=b[1];return L(function(){if(e){for(;e.head!=b[1];)e=e.m;for(;e.next!=e.head;)return e=e.next,{done:!1,value:d(e)};e=null}return{done:!0,value:void 0}})}function h(b,d){var e=d&&typeof d;e=="object"||e=="function"?n.has(d)?e=n.get(d):(e=""+ ++f,n.set(d,e)):e="p_"+d;var k=b[0][e];if(k&&M(b[0],e))for(b=0;b<k.length;b++){var q=k[b];if(d!==d&&q.key!==q.key||d===q.key)return{id:e,list:k,index:b,entry:q}}return{id:e,
-list:k,index:-1,entry:void 0}}function l(b){this[0]={};this[1]=c();this.size=0;if(b){b=r(b);for(var d;!(d=b.next()).done;)d=d.value,this.set(d[0],d[1])}}if(function(){if(!a||typeof a!="function"||!a.prototype.entries||typeof Object.seal!="function")return!1;try{var b=Object.seal({x:4}),d=new a(r([[b,"s"]]));if(d.get(b)!="s"||d.size!=1||d.get({x:4})||d.set({x:4},"t")!=d||d.size!=2)return!1;var e=d.entries(),k=e.next();if(k.done||k.value[0]!=b||k.value[1]!="s")return!1;k=e.next();return k.done||k.value[0].x!=
-4||k.value[1]!="t"||!e.next().done?!1:!0}catch(q){return!1}}())return a;var n=new WeakMap;l.prototype.set=function(b,d){b=b===0?0:b;var e=h(this,b);e.list||(e.list=this[0][e.id]=[]);e.entry?e.entry.value=d:(e.entry={next:this[1],m:this[1].m,head:this[1],key:b,value:d},e.list.push(e.entry),this[1].m.next=e.entry,this[1].m=e.entry,this.size++);return this};l.prototype.delete=function(b){b=h(this,b);return b.entry&&b.list?(b.list.splice(b.index,1),b.list.length||delete this[0][b.id],b.entry.m.next=b.entry.next,
-b.entry.next.m=b.entry.m,b.entry.head=null,this.size--,!0):!1};l.prototype.clear=function(){this[0]={};this[1]=this[1].m=c();this.size=0};l.prototype.has=function(b){return!!h(this,b).entry};l.prototype.get=function(b){return(b=h(this,b).entry)&&b.value};l.prototype.entries=function(){return g(this,function(b){return[b.key,b.value]})};l.prototype.keys=function(){return g(this,function(b){return b.key})};l.prototype.values=function(){return g(this,function(b){return b.value})};l.prototype.forEach=
-function(b,d){for(var e=this.entries(),k;!(k=e.next()).done;)k=k.value,b.call(d,k[1],k[0],this)};l.prototype[Symbol.iterator]=l.prototype.entries;var f=0;return l});
-x("Set",function(a){function c(g){this.g=new Map;if(g){g=r(g);for(var h;!(h=g.next()).done;)this.add(h.value)}this.size=this.g.size}if(function(){if(!a||typeof a!="function"||!a.prototype.entries||typeof Object.seal!="function")return!1;try{var g=Object.seal({x:4}),h=new a(r([g]));if(!h.has(g)||h.size!=1||h.add(g)!=h||h.size!=1||h.add({x:4})!=h||h.size!=2)return!1;var l=h.entries(),n=l.next();if(n.done||n.value[0]!=g||n.value[1]!=g)return!1;n=l.next();return n.done||n.value[0]==g||n.value[0].x!=4||
-n.value[1]!=n.value[0]?!1:l.next().done}catch(f){return!1}}())return a;c.prototype.add=function(g){g=g===0?0:g;this.g.set(g,g);this.size=this.g.size;return this};c.prototype.delete=function(g){g=this.g.delete(g);this.size=this.g.size;return g};c.prototype.clear=function(){this.g.clear();this.size=0};c.prototype.has=function(g){return this.g.has(g)};c.prototype.entries=function(){return this.g.entries()};c.prototype.values=function(){return this.g.values()};c.prototype.keys=c.prototype.values;c.prototype[Symbol.iterator]=
-c.prototype.values;c.prototype.forEach=function(g,h){var l=this;this.g.forEach(function(n){return g.call(h,n,n,l)})};return c});(function(){function a(){return n?Promise.resolve(n):f?f:f=fetch("https://www.gstatic.com/bard-maui/resources/material-design-icon-names.804824289.json").then(function(b){if(!b.ok)throw Error("HTTP error! status: "+b.status+" fetching https://www.gstatic.com/bard-maui/resources/material-design-icon-names.804824289.json");return b.json()}).then(function(b){if(!Array.isArray(b))throw new TypeError("Fetched icon names from https://www.gstatic.com/bard-maui/resources/material-design-icon-names.804824289.json is not an array.");
-return n=b}).catch(function(b){console.error("IconChecker: Failed to load valid icon names from https://www.gstatic.com/bard-maui/resources/material-design-icon-names.804824289.json.",b);f=null;throw b;})}function c(b){var d,e,k,q;return K(new J(new F(function(p){switch(p.g){case 1:d=(b.textContent||"").trim();if(!d||b.classList.contains("js-replaced-missing-icon")&&d==="radio_button_unchecked")return p.return();e=window.getComputedStyle(b);if(e.display==="none"||e.visibility==="hidden")return p.return();
-p.H(2);return p.A(a(),4);case 4:k=p.u;p.G(3);break;case 2:return p.D(),console.warn('IconChecker: Skipping check for icon "'+d+'" as valid names could not be loaded.'),p.return();case 3:(q=k.includes(d))?b.classList.contains("js-replaced-missing-icon")&&b.classList.remove("js-replaced-missing-icon"):d==="radio_button_unchecked"&&b.classList.contains("js-replaced-missing-icon")||(b.textContent="radio_button_unchecked",b.classList.add("js-replaced-missing-icon")),p.F()}})))}function g(b){b=b===void 0?
-document.body:b;b.querySelectorAll(l).forEach(function(d){c(d)})}function h(){a().catch(function(){});document.fonts.ready.then(function(){requestAnimationFrame(function(){g(document.body);(new MutationObserver(function(b){var d=new Set;b=r(b);for(var e=b.next();!e.done;e=b.next())if(e=e.value,e.type==="childList")e.addedNodes.forEach(function(q){q.nodeType===Node.ELEMENT_NODE&&(q.matches(l)&&d.add(q),q.querySelectorAll(l).forEach(function(p){d.add(p)}))});else if(e.type==="attributes"&&e.attributeName===
-"class"){var k=e.target;e.target.nodeType===Node.ELEMENT_NODE&&k.matches(l)&&d.add(k)}else e.type==="characterData"&&e.target.parentNode&&(e=e.target.parentNode,e.nodeType===Node.ELEMENT_NODE&&e.matches(l)&&d.add(e));d.size>0&&setTimeout(function(){d.forEach(function(q){c(q)})},500)})).observe(document.body,{childList:!0,subtree:!0,attributes:!0,attributeFilter:["class"],characterData:!0})})}).catch(function(b){console.error("IconChecker: Font loading error. Scanning icons anyway.",b);requestAnimationFrame(function(){g(document.body)})})}
-var l=["material-icons","material-symbols-outlined","material-symbols-rounded","material-symbols-sharp"].map(function(b){return"."+b}).join(","),n=null,f=null;document.readyState==="loading"?document.addEventListener("DOMContentLoaded",function(){h()}):h()})();}).call(this);
-
-
-</script>
-
-<meta name="surface-hint" content="desktop-responsive" data-hint="injected-ffc2e83d85">
-
-
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>WorkNote Architecture v6 (Ultimate)</title>
+<title>WorkNote Project Workspace v9.5</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -53,339 +9,302 @@ var l=["material-icons","material-symbols-outlined","material-symbols-rounded","
       theme: {
         extend: {
           colors: {
-            layer1: '#3b82f6', 
-            layer2: '#8b5cf6', 
-            layer3: '#f59e0b', 
-            layer4: '#10b981', 
+            brand: '#2563EB',
+            home: '#3b82f6',
+            task: '#8b5cf6',
+            journal: '#f59e0b',
+            gallery: '#10b981',
           }
         }
       }
     }
   </script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
-    body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+    body { font-family: 'Inter', sans-serif; transition: all 0.3s; background-color: #020617; color: #f1f5f9; scroll-behavior: smooth; }
+    .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+    .feature-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border: 1px solid rgba(255,255,255,0.08); position: relative; }
+    .feature-card:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-8px); background: rgba(255,255,255,0.04); }
+    .feature-card.active { background: rgba(37, 99, 235, 0.15); border-color: #2563EB; box-shadow: 0 0 40px rgba(37, 99, 235, 0.25); }
     
-    /* Node Styles */
-    .node {
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      cursor: default; position: relative; z-index: 10; /* Changed cursor to default as sub-items are clickable */
-    }
-    .node:hover { transform: translateY(-4px) scale(1.02); }
+    .comment-box { background: rgba(0, 0, 0, 0.4); border-left: 10px solid #2563EB; box-shadow: inset 0 2px 30px rgba(0,0,0,0.7); }
+    .nav-btn { transition: all 0.3s; opacity: 0.5; font-weight: 900; font-size: 14px; padding: 8px 0; }
+    .nav-btn.active { opacity: 1; color: #2563EB; border-bottom: 3px solid #2563EB; }
     
-    .light .node { background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .dark .node { background: #1e293b; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-    
-    .dark .node:hover { border-color: var(--hover-color); box-shadow: 0 0 0 1px var(--hover-color); }
-    .light .node:hover { border-color: var(--hover-color); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .inner-tab { transition: all 0.2s; opacity: 0.4; font-weight: 800; cursor: pointer; padding-bottom: 10px; border-bottom: 2px solid transparent; }
+    .inner-tab.active { opacity: 1; color: #2563EB; border-color: #2563EB; }
 
-    /* Interactive Sub-items (Unified Design) */
-    .sub-item {
-        transition: all 0.2s; cursor: pointer; padding: 6px 10px; border-radius: 6px;
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 2px;
-    }
-    .sub-item:hover { background-color: rgba(255,255,255,0.1); transform: translateX(2px); }
-    .light .sub-item:hover { background-color: rgba(0,0,0,0.05); }
-    
-    /* Tags inside sub-items */
-    .tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; font-weight: bold; opacity: 0.8; border: 1px solid currentColor; }
+    .arch-item { transition: all 0.2s; cursor: pointer; padding: 16px; rounded: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+    .arch-item:hover { background: rgba(37, 99, 235, 0.1); border-color: #2563EB; transform: translateX(10px); }
 
-    /* Detail Panel */
-    .detail-panel {
-      transform: translateX(100%);
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    .detail-panel { transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); z-index: 200; }
     .detail-panel.open { transform: translateX(0); }
 
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    .dark ::-webkit-scrollbar-thumb { background: #475569; }
-  </style>
-<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.absolute{position:absolute}.relative{position:relative}.inset-y-0{top:0px;bottom:0px}.right-0{right:0px}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.my-2{margin-top:0.5rem;margin-bottom:0.5rem}.mb-1{margin-bottom:0.25rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.inline-block{display:inline-block}.flex{display:flex}.grid{display:grid}.h-12{height:3rem}.h-16{height:4rem}.h-8{height:2rem}.h-full{height:100%}.h-px{height:1px}.h-screen{height:100vh}.w-8{width:2rem}.w-\[480px\]{width:480px}.w-full{width:100%}.w-px{width:1px}.max-w-4xl{max-width:56rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.overflow-x-hidden{overflow-x:hidden}.whitespace-pre-wrap{white-space:pre-wrap}.rounded{border-radius:0.25rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-l{border-left-width:1px}.border-l-4{border-left-width:4px}.border-t-4{border-top-width:4px}.border-amber-500\/30{border-color:rgb(245 158 11 / 0.3)}.border-blue-500{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.border-emerald-500{--tw-border-opacity:1;border-color:rgb(16 185 129 / var(--tw-border-opacity, 1))}.border-purple-500{--tw-border-opacity:1;border-color:rgb(168 85 247 / var(--tw-border-opacity, 1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240 / var(--tw-border-opacity, 1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.bg-amber-100{--tw-bg-opacity:1;background-color:rgb(254 243 199 / var(--tw-bg-opacity, 1))}.bg-amber-500\/10{background-color:rgb(245 158 11 / 0.1)}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.bg-blue-500\/10{background-color:rgb(59 130 246 / 0.1)}.bg-emerald-100{--tw-bg-opacity:1;background-color:rgb(209 250 229 / var(--tw-bg-opacity, 1))}.bg-emerald-500\/10{background-color:rgb(16 185 129 / 0.1)}.bg-purple-100{--tw-bg-opacity:1;background-color:rgb(243 232 255 / var(--tw-bg-opacity, 1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.bg-slate-300{--tw-bg-opacity:1;background-color:rgb(203 213 225 / var(--tw-bg-opacity, 1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.bg-slate-50\/80{background-color:rgb(248 250 252 / 0.8)}.bg-slate-500\/10{background-color:rgb(100 116 139 / 0.1)}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-purple-600{--tw-bg-opacity:1;background-color:rgb(147 51 234 / var(--tw-bg-opacity, 1))}.bg-amber-600{--tw-bg-opacity:1;background-color:rgb(217 119 6 / var(--tw-bg-opacity, 1))}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.bg-gradient-to-br{background-image:linear-gradient(to bottom right, var(--tw-gradient-stops))}.from-blue-500{--tw-gradient-from:#3b82f6 var(--tw-gradient-from-position);--tw-gradient-to:rgb(59 130 246 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.to-purple-600{--tw-gradient-to:#9333ea var(--tw-gradient-to-position)}.p-1{padding:0.25rem}.p-10{padding:2.5rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.p-5{padding:1.25rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-8{padding-left:2rem;padding-right:2rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.pb-20{padding-bottom:5rem}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-6xl{font-size:3.75rem;line-height:1}.text-\[10px\]{font-size:10px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-light{font-weight:300}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.text-amber-500{--tw-text-opacity:1;color:rgb(245 158 11 / var(--tw-text-opacity, 1))}.text-amber-700{--tw-text-opacity:1;color:rgb(180 83 9 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-emerald-500{--tw-text-opacity:1;color:rgb(16 185 129 / var(--tw-text-opacity, 1))}.text-emerald-700{--tw-text-opacity:1;color:rgb(4 120 87 / var(--tw-text-opacity, 1))}.text-purple-500{--tw-text-opacity:1;color:rgb(168 85 247 / var(--tw-text-opacity, 1))}.text-purple-700{--tw-text-opacity:1;color:rgb(126 34 206 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.text-green-400{--tw-text-opacity:1;color:rgb(74 222 128 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.opacity-50{opacity:0.5}.opacity-60{opacity:0.6}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur{--tw-backdrop-blur:blur(8px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.hover\:bg-slate-100:hover{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.hover\:opacity-90:hover{opacity:0.9}.dark\:border-slate-700:is(.dark *){--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.dark\:border-slate-800:is(.dark *){--tw-border-opacity:1;border-color:rgb(30 41 59 / var(--tw-border-opacity, 1))}.dark\:bg-amber-900\/30:is(.dark *){background-color:rgb(120 53 15 / 0.3)}.dark\:bg-blue-900\/30:is(.dark *){background-color:rgb(30 58 138 / 0.3)}.dark\:bg-emerald-900\/30:is(.dark *){background-color:rgb(6 78 59 / 0.3)}.dark\:bg-purple-900\/30:is(.dark *){background-color:rgb(88 28 135 / 0.3)}.dark\:bg-slate-700:is(.dark *){--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.dark\:bg-slate-800:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.dark\:bg-slate-900:is(.dark *){--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.dark\:bg-slate-900\/80:is(.dark *){background-color:rgb(15 23 42 / 0.8)}.dark\:bg-white:is(.dark *){--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.dark\:bg-slate-800\/50:is(.dark *){background-color:rgb(30 41 59 / 0.5)}.dark\:text-amber-300:is(.dark *){--tw-text-opacity:1;color:rgb(252 211 77 / var(--tw-text-opacity, 1))}.dark\:text-blue-300:is(.dark *){--tw-text-opacity:1;color:rgb(147 197 253 / var(--tw-text-opacity, 1))}.dark\:text-emerald-300:is(.dark *){--tw-text-opacity:1;color:rgb(110 231 183 / var(--tw-text-opacity, 1))}.dark\:text-purple-300:is(.dark *){--tw-text-opacity:1;color:rgb(216 180 254 / var(--tw-text-opacity, 1))}.dark\:text-slate-100:is(.dark *){--tw-text-opacity:1;color:rgb(241 245 249 / var(--tw-text-opacity, 1))}.dark\:text-slate-900:is(.dark *){--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}.dark\:text-slate-200:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.dark\:text-slate-300:is(.dark *){--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.dark\:hover\:bg-slate-700:hover:is(.dark *){--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}</style></head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 h-screen flex flex-col overflow-hidden transition-colors duration-300">
-<!-- HEADER -->
-<header class="h-16 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center px-8 shrink-0 z-50 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-<span class="material-symbols-outlined text-lg">account_tree</span>
-</div>
-<div><h1 class="font-bold text-lg tracking-tight">WorkNote <span class="font-light opacity-60">Architecture v6.0</span></h1></div>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex bg-slate-200 dark:bg-slate-800 rounded-full p-1 transition-colors">
-<button class="w-8 h-8 rounded-full flex items-center justify-center transition-all" id="btn-light" onclick="setTheme('light')"><span class="material-symbols-outlined text-sm">light_mode</span></button>
-<button class="w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white dark:bg-slate-700 shadow-sm" id="btn-dark" onclick="setTheme('dark')"><span class="material-symbols-outlined text-sm">dark_mode</span></button>
-</div>
-<button class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition" onclick="downloadPRD()">HTML 저장</button>
-</div>
-</header>
-<div class="flex flex-1 overflow-hidden relative">
-<!-- LEFT: DIAGRAM AREA -->
-<div class="flex-1 overflow-y-auto overflow-x-hidden relative p-10 flex flex-col items-center">
-<!-- 1. Presentation Layer -->
-<div class="w-full max-w-4xl relative z-10">
-<div class="flex items-center gap-4 mb-4">
-<span class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Layer 1. Presentation</span>
-<div class="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-</div>
-<div class="grid grid-cols-4 gap-4">
-<!-- UI 1: Main -->
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border-t-4 border-blue-500" style="--hover-color: #3b82f6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-blue-500 text-xl">smartphone</span><h3 class="font-bold text-sm">Main</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('ui-main-nav')"><span class="text-xs">Bottom Nav</span><span class="tag text-blue-500 bg-blue-500/10">Shell</span></div>
-<div class="sub-item" onclick="showSubDetail('ui-main-state')"><span class="text-xs">IndexedStack</span><span class="tag text-blue-500 bg-blue-500/10">Keep</span></div>
-</div>
-</div>
-<!-- UI 2: Task -->
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border-t-4 border-blue-500" style="--hover-color: #3b82f6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-blue-500 text-xl">check_circle</span><h3 class="font-bold text-sm">Task UI</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('ui-task-list')"><span class="text-xs">Task List</span><span class="tag text-blue-500 bg-blue-500/10">View</span></div>
-<div class="sub-item" onclick="showSubDetail('ui-task-filter')"><span class="text-xs">Filters</span><span class="tag text-blue-500 bg-blue-500/10">Chip</span></div>
-</div>
-</div>
-<!-- UI 3: Journal -->
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border-t-4 border-blue-500" style="--hover-color: #3b82f6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-blue-500 text-xl">edit_note</span><h3 class="font-bold text-sm">Journal UI</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('ui-jour-write')"><span class="text-xs">Write</span><span class="tag text-blue-500 bg-blue-500/10">Input</span></div>
-<div class="sub-item" onclick="showSubDetail('ui-jour-modal')"><span class="text-xs">Link Modal</span><span class="tag text-blue-500 bg-blue-500/10">Sheet</span></div>
-</div>
-</div>
-<!-- UI 4: Calendar -->
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border-t-4 border-blue-500" style="--hover-color: #3b82f6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-blue-500 text-xl">calendar_month</span><h3 class="font-bold text-sm">Schedule</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('ui-cal-grid')"><span class="text-xs">Month Grid</span><span class="tag text-blue-500 bg-blue-500/10">Grid</span></div>
-<div class="sub-item" onclick="showSubDetail('ui-cal-event')"><span class="text-xs">Event List</span><span class="tag text-blue-500 bg-blue-500/10">List</span></div>
-</div>
-</div>
-</div>
-</div>
-<!-- Connector -->
-<div class="h-12 w-px bg-slate-300 dark:bg-slate-700 my-2"></div>
-<!-- 2. State Management Layer -->
-<div class="w-full max-w-4xl relative z-10">
-<div class="flex items-center gap-4 mb-4">
-<span class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Layer 2. State</span>
-<div class="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-</div>
-<div class="grid grid-cols-2 gap-6">
-<div class="node rounded-2xl p-4 flex flex-col gap-2 border-l-4 border-purple-500" style="--hover-color: #8b5cf6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-purple-500 text-xl">tune</span><h3 class="font-bold text-sm">Task Controller</h3></div>
-<div class="grid grid-cols-2 gap-2">
-<div class="sub-item" onclick="showSubDetail('st-filter')"><span class="text-xs">Filter State</span></div>
-<div class="sub-item" onclick="showSubDetail('st-sort')"><span class="text-xs">Sort State</span></div>
-</div>
-</div>
-<div class="node rounded-2xl p-4 flex flex-col gap-2 border-l-4 border-purple-500" style="--hover-color: #8b5cf6">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-purple-500 text-xl">hub</span><h3 class="font-bold text-sm">Global Provider</h3></div>
-<div class="grid grid-cols-2 gap-2">
-<div class="sub-item" onclick="showSubDetail('st-user')"><span class="text-xs">User Profile</span></div>
-<div class="sub-item" onclick="showSubDetail('st-tasks')"><span class="text-xs">Task Stream</span></div>
-</div>
-</div>
-</div>
-</div>
-<!-- Connector -->
-<div class="h-12 w-px bg-slate-300 dark:bg-slate-700 my-2"></div>
-<!-- 3. Domain Layer -->
-<div class="w-full max-w-4xl relative z-10">
-<div class="flex items-center gap-4 mb-4">
-<span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Layer 3. Domain</span>
-<div class="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-</div>
-<div class="grid grid-cols-4 gap-4">
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border border-amber-500/30" style="--hover-color: #f59e0b">
-<div class="flex items-center gap-2 justify-center mb-1"><span class="material-symbols-outlined text-xl text-amber-500">sort</span><h3 class="font-bold text-xs">Sorting</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('sort-due')"><span class="text-[10px]">Due Date</span><span class="tag text-amber-500 bg-amber-500/10">ASC</span></div>
-<div class="sub-item" onclick="showSubDetail('sort-created')"><span class="text-[10px]">Created</span><span class="tag text-amber-500 bg-amber-500/10">DESC</span></div>
-</div>
-</div>
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border border-amber-500/30" style="--hover-color: #f59e0b">
-<div class="flex items-center gap-2 justify-center mb-1"><span class="material-symbols-outlined text-xl text-amber-500">flag</span><h3 class="font-bold text-xs">Priority</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('pri-cycle')"><span class="text-[10px]">Cycle Logic</span></div>
-<div class="sub-item" onclick="showSubDetail('pri-color')"><span class="text-[10px]">Color Map</span></div>
-</div>
-</div>
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border border-amber-500/30" style="--hover-color: #f59e0b">
-<div class="flex items-center gap-2 justify-center mb-1"><span class="material-symbols-outlined text-xl text-amber-500">date_range</span><h3 class="font-bold text-xs">D-Day</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('date-diff')"><span class="text-[10px]">Diff Calc</span></div>
-<div class="sub-item" onclick="showSubDetail('date-overdue')"><span class="text-[10px]">Overdue</span></div>
-</div>
-</div>
-<div class="node rounded-2xl p-3 flex flex-col gap-2 border border-amber-500/30" style="--hover-color: #f59e0b">
-<div class="flex items-center gap-2 justify-center mb-1"><span class="material-symbols-outlined text-xl text-amber-500">link</span><h3 class="font-bold text-xs">Sync</h3></div>
-<div class="flex flex-col">
-<div class="sub-item" onclick="showSubDetail('sync-import')"><span class="text-[10px]">Import</span></div>
-<div class="sub-item" onclick="showSubDetail('sync-export')"><span class="text-[10px]">Export</span></div>
-</div>
-</div>
-</div>
-</div>
-<!-- Connector -->
-<div class="h-12 w-px bg-slate-300 dark:bg-slate-700 my-2"></div>
-<!-- 4. Data Layer -->
-<div class="w-full max-w-4xl relative z-10 pb-20">
-<div class="flex items-center gap-4 mb-4">
-<span class="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Layer 4. Data</span>
-<div class="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-</div>
-<div class="grid grid-cols-2 gap-6">
-<div class="node rounded-2xl p-4 flex flex-col gap-3 border-t-4 border-emerald-500" style="--hover-color: #10b981">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-emerald-500 text-2xl">dataset</span><h3 class="font-bold text-sm">Data Models</h3></div>
-<div class="grid grid-cols-2 gap-2 w-full">
-<div class="sub-item" onclick="showSubDetail('model-task')"><span class="text-xs">Task</span><span class="tag text-emerald-500 bg-emerald-500/10">DTO</span></div>
-<div class="sub-item" onclick="showSubDetail('model-journal')"><span class="text-xs">Journal</span><span class="tag text-emerald-500 bg-emerald-500/10">DTO</span></div>
-<div class="sub-item" onclick="showSubDetail('model-member')"><span class="text-xs">Member</span><span class="tag text-emerald-500 bg-emerald-500/10">DTO</span></div>
-<div class="sub-item" onclick="showSubDetail('model-enum')"><span class="text-xs">Priority</span><span class="tag text-emerald-500 bg-emerald-500/10">Enum</span></div>
-</div>
-</div>
-<div class="node rounded-2xl p-4 flex flex-col gap-3 border-t-4 border-emerald-500" style="--hover-color: #10b981">
-<div class="flex items-center gap-2 mb-1"><span class="material-symbols-outlined text-emerald-500 text-2xl">storage</span><h3 class="font-bold text-sm">Repository</h3></div>
-<div class="grid grid-cols-1 gap-2 w-full">
-<div class="sub-item" onclick="showSubDetail('repo-db')"><span class="text-xs">Local DB</span><span class="tag text-emerald-500 bg-emerald-500/10">Isar</span></div>
-<div class="sub-item" onclick="showSubDetail('repo-file')"><span class="text-xs">File System</span><span class="tag text-blue-500 bg-blue-500/10">Secure</span></div>
-<div class="sub-item" onclick="showSubDetail('repo-mock')"><span class="text-xs">Mock Data</span><span class="tag text-slate-500 bg-slate-500/10">Test</span></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- RIGHT: DETAIL PANEL -->
-<div class="absolute inset-y-0 right-0 w-[480px] bg-white dark:bg-slate-800 shadow-2xl border-l border-slate-200 dark:border-slate-700 detail-panel flex flex-col z-40 open" id="detail-panel">
-<div class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start">
-<div>
-<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded mb-2 inline-block text-white bg-emerald-600" id="panel-badge">Technical Detail</span>
-<h2 class="text-2xl font-bold" id="panel-title">Model: Member</h2>
-</div>
-<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition" onclick="closeDetail()"><span class="material-symbols-outlined">close</span></button>
-</div>
-<div class="flex-1 overflow-y-auto p-8" id="panel-content">
-        <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl">
-            <p class="text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Description</p>
-            <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">팀원 정보 구조입니다.</p>
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; border: 3px solid #020617; }
+</style>
+</head>
+<body class="overflow-x-hidden">
+
+<!-- TOP NAVIGATION -->
+<nav class="fixed top-0 w-full z-[150] glass border-b border-white/5 px-12 py-6 flex justify-between items-center">
+    <div class="flex items-center gap-5 cursor-pointer" onclick="location.reload()">
+        <div class="w-12 h-12 rounded-2xl bg-brand flex items-center justify-center shadow-2xl shadow-blue-500/40">
+            <span class="material-symbols-outlined text-white text-3xl font-bold">account_tree</span>
         </div>
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-700">
-            <h4 class="text-blue-400 font-bold mb-2 uppercase text-xs flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">code</span> Code Snippet / Schema
-            </h4>
-            <pre class="text-green-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed">class Member {
- id, name, avatar
-}</pre>
-        </div></div>
-</div>
-</div>
+        <span class="text-2xl font-black tracking-tighter uppercase italic">WorkNote <span class="font-light text-slate-500">Master Workspace</span></span>
+    </div>
+    <div class="flex gap-12">
+        <button onclick="showMainSection('hub')" id="nav-hub" class="nav-btn active uppercase">Feature Hub</button>
+        <button onclick="showMainSection('arch')" id="nav-arch" class="nav-btn uppercase">Total Blueprint</button>
+    </div>
+</nav>
+
+<main class="pt-36 pb-24 px-10 max-w-[1700px] mx-auto">
+
+    <!-- SECTION 1: FEATURE HUB -->
+    <div id="section-hub" class="animate-fade-in">
+        <!-- TOP MODULE CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+            <div id="card-home" onclick="toggleFeature('home')" class="feature-card glass p-10 rounded-[48px] flex flex-col gap-6">
+                <div class="flex items-center gap-5">
+                    <span class="material-symbols-outlined text-home text-5xl font-bold">home</span>
+                    <span class="text-2xl font-black uppercase italic tracking-tighter">Home</span>
+                </div>
+                <p class="text-lg text-slate-300 font-bold leading-snug">프로젝트별 달성률 리포트 및 팀원 현황 대시보드</p>
+            </div>
+            <div id="card-task" onclick="toggleFeature('task')" class="feature-card glass p-10 rounded-[48px] flex flex-col gap-6">
+                <div class="flex items-center gap-5">
+                    <span class="material-symbols-outlined text-task text-5xl font-bold">assignment</span>
+                    <span class="text-2xl font-black uppercase italic tracking-tighter">Task</span>
+                </div>
+                <p class="text-lg text-slate-300 font-bold leading-snug">표 형식 복합 필터 및 #프로젝트 자동완성 시스템</p>
+            </div>
+            <div id="card-journal" onclick="toggleFeature('journal')" class="feature-card glass p-10 rounded-[48px] flex flex-col gap-6">
+                <div class="flex items-center gap-5">
+                    <span class="material-symbols-outlined text-journal text-5xl font-bold">edit_note</span>
+                    <span class="text-2xl font-black uppercase italic tracking-tighter">Journal</span>
+                </div>
+                <p class="text-lg text-slate-300 font-bold leading-snug">게시판형 일지, 다중 그룹화 및 비공개 보안 모드</p>
+            </div>
+            <div id="card-gallery" onclick="toggleFeature('gallery')" class="feature-card glass p-10 rounded-[48px] flex flex-col gap-6">
+                <div class="flex items-center gap-5">
+                    <span class="material-symbols-outlined text-gallery text-5xl font-bold">photo_library</span>
+                    <span class="text-2xl font-black uppercase italic tracking-tighter">Gallery</span>
+                </div>
+                <p class="text-lg text-slate-300 font-bold leading-snug">스마트 점프 네비게이션 및 날짜별 사진 인덱싱</p>
+            </div>
+        </div>
+
+        <!-- DYNAMIC CONTENT (EXPANDS HERE) -->
+        <div id="feature-content" class="glass rounded-[60px] p-16 animate-slide-down hidden border-t-8 border-brand/40 shadow-[0_50px_100px_rgba(0,0,0,0.6)]">
+            <!-- FEATURE HEADER -->
+            <div class="flex justify-between items-start mb-16 border-b border-white/5 pb-10">
+                <div class="flex items-center gap-8">
+                    <div id="feat-icon-bg" class="w-24 h-24 rounded-[32px] flex items-center justify-center shadow-2xl">
+                        <span id="feat-icon" class="material-symbols-outlined text-white text-6xl"></span>
+                    </div>
+                    <div>
+                        <h2 id="feat-title" class="text-7xl font-black italic tracking-tighter uppercase leading-none"></h2>
+                        <p id="feat-subtitle" class="text-slate-400 text-3xl mt-4 font-bold"></p>
+                    </div>
+                </div>
+                <button onclick="closeFeature()" class="p-4 hover:bg-white/10 rounded-full transition text-slate-500 hover:text-white"><span class="material-symbols-outlined text-5xl">close</span></button>
+            </div>
+
+            <!-- INNER TABS (Overview / Architecture) -->
+            <div class="flex gap-12 mb-12 px-2">
+                <div id="tab-overview" onclick="switchInnerTab('overview')" class="inner-tab active text-xl uppercase tracking-widest">01. Overview & Feedback</div>
+                <div id="tab-arch" onclick="switchInnerTab('arch')" class="inner-tab text-xl uppercase tracking-widest">02. Technical Architecture</div>
+            </div>
+
+            <!-- CONTENT SECTION 1: OVERVIEW & FEEDBACK -->
+            <div id="content-overview" class="grid grid-cols-1 xl:grid-cols-2 gap-20">
+                <div class="space-y-12">
+                    <h3 class="text-lg font-black text-slate-500 uppercase tracking-[0.4em] flex items-center gap-4">
+                        <span class="w-3 h-3 rounded-full bg-brand"></span> Implemented Features
+                    </h3>
+                    <div id="feat-list" class="space-y-6"></div>
+                </div>
+
+                <div class="flex flex-col gap-8">
+                    <div class="flex justify-between items-end px-4">
+                        <h3 class="text-2xl font-black text-brand uppercase tracking-[0.2em] italic underline decoration-4 underline-offset-8">User Feedback</h3>
+                        <span id="save-status" class="text-sm text-emerald-400 font-black opacity-0">● CHANGES SYNCED</span>
+                    </div>
+                    <div class="comment-box p-12 rounded-[56px] min-h-[500px] relative border border-white/5 shadow-2xl bg-black/40">
+                        <p class="text-sm text-brand/60 font-black mb-8 uppercase tracking-[0.2em] flex items-center gap-3">
+                            <span class="material-symbols-outlined text-2xl font-bold">history_edu</span> Write instructions here (Directly editable)
+                        </p>
+                        <div id="feat-comment" class="text-3xl text-slate-100 leading-relaxed whitespace-pre-wrap outline-none min-h-[350px] font-bold" contenteditable="true" oninput="showSaving()" onblur="saveComment()">
+                            <!-- 사용자가 적는 공간 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENT SECTION 2: ARCHITECTURE (MODULE SPECIFIC) -->
+            <div id="content-arch" class="hidden animate-fade-in">
+                <h3 class="text-lg font-black text-slate-500 uppercase tracking-[0.4em] mb-12">Architecture Blueprint & Source</h3>
+                <div id="feat-arch-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                    <!-- 모듈별 설계도 항목이 동적으로 들어감 -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="hub-empty" class="h-[600px] flex flex-col items-center justify-center text-slate-800 border-4 border-dashed border-white/5 rounded-[60px] bg-white/[0.01]">
+            <span class="material-symbols-outlined text-9xl mb-10 opacity-10">center_focus_strong</span>
+            <p class="font-black uppercase tracking-[0.6em] text-2xl opacity-20">Expand a module to manage</p>
+        </div>
+    </div>
+
+    <!-- SECTION 2: TOTAL BLUEPRINT (ALL LAYERS) -->
+    <div id="section-arch" class="animate-fade-in hidden pb-40">
+        <h2 class="text-7xl font-black italic tracking-tighter uppercase mb-16">Global <span class="text-brand">Infrastructure</span></h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="glass p-12 rounded-[48px] border-l-8 border-home">
+                <h4 class="text-2xl font-black uppercase text-home mb-6 italic">UI Components</h4>
+                <p class="text-slate-400 leading-relaxed">Material 3, Custom Cupertino Engines, Board-style Lists</p>
+            </div>
+            <div class="glass p-12 rounded-[48px] border-l-8 border-task">
+                <h4 class="text-2xl font-black uppercase text-task mb-6 italic">State Flow</h4>
+                <p class="text-slate-400 leading-relaxed">Global Lifting, Sync Controllers, Filter Persistence</p>
+            </div>
+            <div class="glass p-12 rounded-[48px] border-l-8 border-journal">
+                <h4 class="text-2xl font-black uppercase text-journal mb-6 italic">Data Core</h4>
+                <p class="text-slate-400 leading-relaxed">DTO Modeling, Security Encryption, Grouping Engines</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL SIDE PANEL (DEEP DIVE) -->
+    <div id="detail-panel" class="fixed inset-y-0 right-0 w-[700px] bg-[#010409] border-l border-slate-800 detail-panel flex flex-col shadow-[-100px_0_150px_rgba(0,0,0,0.9)]">
+        <div class="p-16 border-b border-slate-800 flex justify-between items-center bg-black/20">
+            <h2 class="text-5xl font-black italic tracking-tighter uppercase" id="panel-title">DETAIL</h2>
+            <button onclick="closeArchDetail()" class="hover:rotate-90 transition p-4 text-slate-500 hover:text-white"><span class="material-symbols-outlined text-6xl">close</span></button>
+        </div>
+        <div class="p-16 overflow-y-auto flex-1" id="panel-content"></div>
+    </div>
+
+</main>
+
 <script>
-    // --- Data Source ---
-    const subDetails = {
-      // UI
-      'ui-main-nav': { title: "Bottom Navigation", desc: "4개의 탭(홈, 업무, 일지, 갤러리)을 관리하는 메인 네비게이터입니다.", code: "BottomNavigationBar(\n  items: [Home, Task, Journal, Gallery]\n)" },
-      'ui-main-state': { title: "IndexedStack", desc: "탭 전환 시 각 화면의 스크롤 위치와 입력 상태를 보존합니다.", code: "IndexedStack(index: _index, children: [...])" },
-      'ui-task-list': { title: "Task ListView", desc: "필터링 및 정렬된 업무 목록을 표시합니다.", code: "ListView.builder(\n  itemBuilder: (ctx, i) => TaskCard(...)\n)" },
-      'ui-task-filter': { title: "Segmented Control", desc: "전체/진행중/완료됨 상태를 전환하는 필터바입니다.", code: "SegmentedButton(segments: [...])" },
-      'ui-jour-write': { title: "Journal Editor", desc: "업무 일지 내용을 작성하는 텍스트 필드입니다.", code: "TextField(maxLines: null, ...)" },
-      'ui-jour-modal': { title: "Import Modal", desc: "완료된 업무를 선택하여 일지에 추가하는 바텀 시트입니다.", code: "showModalBottomSheet(builder: ...)" },
-      'ui-cal-grid': { title: "Calendar Grid", desc: "월별 일정을 표시하는 그리드 뷰입니다.", code: "GridView.builder(gridDelegate: ...)" },
-      'ui-cal-event': { title: "Event List", desc: "선택된 날짜의 상세 일정 목록입니다.", code: "ListView(children: [EventCard(...)])" },
-      
-      // State
-      'st-filter': { title: "Filter State", desc: "현재 선택된 탭(Active/Done)과 멤버 ID를 저장합니다.", code: "String _statusFilter = 'active';\nString _memberFilter = 'all';" },
-      'st-sort': { title: "Sort State", desc: "현재 선택된 정렬 기준을 저장합니다.", code: "String _sortBy = 'created';" },
-      'st-user': { title: "User Profile", desc: "로그인한 사용자의 프로필 정보입니다.", code: "String _profileImage = '...';" },
-      'st-tasks': { title: "Task List Stream", desc: "앱 전역에서 공유되는 업무 데이터 리스트입니다.", code: "List<TeamTask> _tasks = [...];" },
-
-      // Logic (Domain)
-      'sort-due': { title: "Sort: Due Date", desc: "마감일이 임박한 순서로 정렬합니다.", code: "list.sort((a,b) => a.due.compareTo(b.due))" },
-      'sort-created': { title: "Sort: Created", desc: "최신 작성일 순서로 정렬합니다.", code: "list.sort((a,b) => b.created.compareTo(a.created))" },
-      'sort-priority': { title: "Sort: Priority", desc: "중요도가 높은 순서(High->Low)로 정렬합니다.", code: "list.sort((a,b) => a.priority.index.compareTo(b.priority.index))" },
-      'pri-cycle': { title: "Priority Cycle", desc: "플래그 클릭 시 중요도를 순환 변경합니다.", code: "High -> Med -> Low -> None -> High" },
-      'pri-color': { title: "Color Map", desc: "중요도에 따른 UI 색상 매핑입니다.", code: "High: Red, Med: Amber, Low: Blue, None: Grey" },
-      'date-diff': { title: "D-Day Calc", desc: "오늘 날짜 기준 D-Day를 계산합니다.", code: "diff = due.difference(now).inDays" },
-      'date-overdue': { title: "Overdue Check", desc: "마감일 초과 여부를 판단합니다.", code: "isOverdue = !isDone && now.isAfter(due)" },
-      'sync-import': { title: "Import Logic", desc: "Task 데이터를 Journal 텍스트 포맷으로 변환합니다.", code: "journal.text += '- [Done] \${task.title}'" },
-      'sync-export': { title: "Create Logic", desc: "Journal 텍스트를 파싱하여 Task 객체를 생성합니다.", code: "tasks.add(TeamTask(title: journal.title))" },
-
-      // Data
-      'model-task': { title: "Model: TeamTask", desc: "업무 데이터 구조입니다.", code: "class TeamTask {\n id, title, dates, priority\n}" },
-      'model-journal': { title: "Model: Journal", desc: "일지 데이터 구조입니다.", code: "class Journal {\n id, content, photos\n}" },
-      'model-member': { title: "Model: Member", desc: "팀원 정보 구조입니다.", code: "class Member {\n id, name, avatar\n}" },
-      'model-enum': { title: "Enum: Priority", desc: "중요도 상수 정의입니다.", code: "enum Priority { high, medium, low, none }" },
-      'repo-db': { title: "Local DB (Isar)", desc: "기기 내부 NoSQL 데이터베이스입니다.", code: "Isar.open([TaskSchema])" },
-      'repo-file': { title: "Secure Storage", desc: "보안이 필요한 파일을 샌드박스에 저장합니다.", code: "getApplicationDocumentsDirectory()" },
-      'repo-mock': { title: "Mock Generator", desc: "테스트용 더미 데이터를 생성합니다.", code: "List.generate(10, (i) => Task(...))" }
+    const featureData = {
+        'home': {
+            title: "Home Dashboard", subtitle: "성과 지표 통합 관제", icon: "home", color: "bg-home",
+            functions: ["프로젝트 독립형 달성률 관리", "실시간 투입 인원 현황 브리핑", "UI 테마 통합 관리"],
+            arch: [
+                { key: 'ui-progress', title: "Progress Engine", desc: "개별 프로젝트 업무 데이터를 전역에서 필터링하여 실시간 진행률 산출", code: "pTasks = tasks.where((t) => t.projectId == p.id);\nprogress = done / total;" }
+            ]
+        },
+        'task': {
+            title: "Task Engine", subtitle: "복합 필터 및 지능형 입력", icon: "assignment", color: "bg-task",
+            functions: ["#프로젝트 자동완성 (제목 보존 로직)", "4단 표 형식 복합 필터바", "신규 프로젝트 즉시 생성"],
+            arch: [
+                { key: 'ui-title-safe', title: "Title Preservation", desc: "Autocomplete 선택 시 기존에 쓴 제목이 유실되지 않도록 커스텀 컨트롤러 동기화", code: "onSelected: (val) => {\n  titleController.text = currentPrefix.trim();\n}" },
+                { key: 'ui-filter-table', title: "Filter Table UI", desc: "상태/중요도/프로젝트/기한을 가로 4단 표로 구성하여 원터치 조작 구현", code: "IntrinsicHeight(child: Row(children: [ ..._filterCell(...) ]))" }
+            ]
+        },
+        'journal': {
+            title: "Smart Journal", subtitle: "보안 기반 지능형 게시판", icon: "edit_note", color: "bg-journal",
+            functions: ["주/월/분기별 유연한 그룹화", "비공개 보안 필터링", "실시간 단어 검색"],
+            arch: [
+                { key: 'dt-privacy', title: "Privacy Security", desc: "본인 외 비공개 글 원천 차단 필터", code: "journals.where((j) => !j.isPrivate || j.userId == 'me')" }
+            ]
+        },
+        'gallery': {
+            title: "Visual Hub", subtitle: "시계열 이미지 아카이빙", icon: "photo_library", color: "bg-gallery",
+            functions: ["스마트 점프 네비게이션", "날짜별 인덱싱 목록", "팀원별 사진 필터"],
+            arch: [
+                { key: 'ui-jump', title: "Smart Jump Nav", desc: "외부 링크로부터 특정 날짜의 GlobalKey를 찾아 스크롤 자동 이동", code: "Scrollable.ensureVisible(dateKeys[targetDate].context)" }
+            ]
+        }
     };
 
-    function setTheme(theme) {
-      const html = document.querySelector('html');
-      const btnLight = document.getElementById('btn-light');
-      const btnDark = document.getElementById('btn-dark');
-      if (theme === 'dark') {
-        html.classList.add('dark');
-        btnDark.classList.add('bg-slate-700', 'shadow-sm', 'text-white');
-        btnLight.classList.remove('bg-white', 'shadow-sm');
-      } else {
-        html.classList.remove('dark');
-        btnLight.classList.add('bg-white', 'shadow-sm');
-        btnDark.classList.remove('bg-slate-700', 'shadow-sm', 'text-white');
-      }
+    let activeFeature = null;
+
+    function showMainSection(id) {
+        document.getElementById('section-hub').classList.add('hidden');
+        document.getElementById('section-arch').classList.add('hidden');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('section-' + id).classList.remove('hidden');
+        document.getElementById('nav-' + id).classList.add('active');
     }
 
-    function showSubDetail(key) {
-      const sub = subDetails[key];
-      const panel = document.getElementById('detail-panel');
-      const content = document.getElementById('panel-content');
-      const badge = document.getElementById('panel-badge');
-      const title = document.getElementById('panel-title');
+    function toggleFeature(id) {
+        if (activeFeature === id) { closeFeature(); return; }
+        activeFeature = id;
+        const data = featureData[id];
+        
+        document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('card-' + id).classList.add('active');
+        
+        document.getElementById('feat-title').innerText = data.title;
+        document.getElementById('feat-subtitle').innerText = data.subtitle;
+        document.getElementById('feat-icon').innerText = data.icon;
+        document.getElementById('feat-icon-bg').className = `w-24 h-24 rounded-[32px] flex items-center justify-center shadow-lg ${data.color}`;
+        
+        document.getElementById('feat-list').innerHTML = data.functions.map(f => `
+            <div class="flex items-start gap-6 p-8 glass rounded-[40px] border-white/5 shadow-xl">
+                <span class="material-symbols-outlined text-4xl ${data.color.replace('bg-', 'text-')}">verified</span>
+                <span class="text-xl font-bold text-slate-200">${f}</span>
+            </div>
+        `).join('');
 
-      // Determine Layer Color based on key prefix
-      let colorClass = 'bg-slate-600';
-      if (key.startsWith('ui')) colorClass = 'bg-blue-600';
-      else if (key.startsWith('st')) colorClass = 'bg-purple-600';
-      else if (key.startsWith('sort') || key.startsWith('pri') || key.startsWith('date') || key.startsWith('sync')) colorClass = 'bg-amber-600';
-      else if (key.startsWith('model') || key.startsWith('repo')) colorClass = 'bg-emerald-600';
-
-      badge.innerText = "Technical Detail";
-      badge.className = `text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded mb-2 inline-block text-white ${colorClass}`;
-      title.innerText = sub.title;
-
-      content.innerHTML = `
-        <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl">
-            <p class="text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Description</p>
-            <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">${sub.desc}</p>
-        </div>
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-700">
-            <h4 class="text-blue-400 font-bold mb-2 uppercase text-xs flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">code</span> Code Snippet / Schema
-            </h4>
-            <pre class="text-green-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed">${sub.code}</pre>
-        </div>`;
-
-      panel.classList.add('open');
+        document.getElementById('feat-arch-list').innerHTML = data.arch.map(a => `
+            <div class="arch-item p-10 rounded-[40px]" onclick="openDeepDive('${a.title}', '${a.desc}', '${a.code.replace(/\n/g, '\\n')}')">
+                <h4 class="text-2xl font-black mb-4 uppercase tracking-tighter">${a.title}</h4>
+                <p class="text-sm text-slate-400 font-bold mb-6">${a.desc.substring(0, 50)}...</p>
+                <div class="flex items-center text-brand font-black text-xs gap-2">VIEW BLUEPRINT <span class="material-symbols-outlined text-sm">arrow_forward</span></div>
+            </div>
+        `).join('');
+        
+        document.getElementById('feat-comment').innerText = localStorage.getItem('comment-' + id) || "";
+        
+        document.getElementById('hub-empty').classList.add('hidden');
+        document.getElementById('feature-content').classList.remove('hidden');
+        switchInnerTab('overview');
+        document.getElementById('feature-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function closeDetail() {
-      document.getElementById('detail-panel').classList.remove('open');
+    function closeFeature() {
+        document.getElementById('feature-content').classList.add('hidden');
+        document.getElementById('hub-empty').classList.remove('hidden');
+        document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
+        activeFeature = null;
     }
 
-    function downloadPRD() {
-      const htmlContent = document.documentElement.outerHTML;
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'WorkNote_Architecture_Final.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    function switchInnerTab(tab) {
+        document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('content-overview').className = tab === 'overview' ? 'grid grid-cols-1 xl:grid-cols-2 gap-20' : 'hidden';
+        document.getElementById('content-arch').className = tab === 'arch' ? 'animate-fade-in' : 'hidden';
+    }
+
+    function openDeepDive(title, desc, code) {
+        document.getElementById('panel-title').innerText = title;
+        document.getElementById('panel-content').innerHTML = `
+            <div class="mb-12 p-12 glass rounded-[56px]">
+                <p class="text-xs font-black text-slate-500 uppercase mb-6 tracking-[0.3em]">Logical Blueprint</p>
+                <p class="text-3xl text-slate-100 leading-tight font-black">${desc}</p>
+            </div>
+            <div class="bg-black p-12 rounded-[56px] border border-white/5 shadow-inner">
+                <p class="text-xs font-black text-brand uppercase mb-10 flex items-center gap-4">
+                    <span class="material-symbols-outlined text-2xl">terminal</span> Implementation Code
+                </p>
+                <pre class="text-green-400 text-lg font-mono leading-relaxed overflow-x-auto">${code.replace(/\\n/g, '\n')}</pre>
+            </div>
+        `;
+        document.getElementById('detail-panel').classList.add('open');
+    }
+
+    function closeArchDetail() { document.getElementById('detail-panel').classList.remove('open'); }
+    function showSaving() { document.getElementById('save-status').style.opacity = '1'; }
+    function saveComment() {
+        if (!activeFeature) return;
+        localStorage.setItem('comment-' + activeFeature, document.getElementById('feat-comment').innerText);
+        setTimeout(() => { document.getElementById('save-status').style.opacity = '0'; }, 1000);
     }
 </script>
-
 </body></html>
