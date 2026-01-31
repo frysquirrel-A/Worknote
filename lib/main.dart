@@ -35,7 +35,8 @@ class Task {
   DateTime? completedAt;
   bool isDone;
   TaskPriority priority;
-  List<String> taskNotes;
+  List<String> taskNotes; 
+  String? completionReport; 
 
   Task({
     required this.id,
@@ -49,6 +50,7 @@ class Task {
     this.isDone = false,
     this.priority = TaskPriority.none,
     List<String>? taskNotes,
+    this.completionReport,
   }) : taskNotes = taskNotes ?? [];
 }
 
@@ -90,7 +92,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 1; 
+  int _selectedIndex = 0;
   File? _profileImage;
   final List<AppTone> _tabTones = [AppTone.white, AppTone.blue, AppTone.white, AppTone.black];
 
@@ -109,7 +111,7 @@ class _MainScreenState extends State<MainScreen> {
     final now = DateTime.now();
     _tasks = [
       Task(id: '1', title: '302호 배관 긴급 누수 점검', assigneeId: 'me', assigneeName: '나', assigneeEmoji: '👩‍💻', createdAt: now.subtract(const Duration(days: 3)), dueDate: now, priority: TaskPriority.high),
-      Task(id: '2', title: '안전 교육 일지 작성', assigneeId: 'kim', assigneeName: '김반장', assigneeEmoji: '👨‍💼', createdAt: now.subtract(const Duration(days: 1)), dueDate: now.add(const Duration(days: 2)), priority: TaskPriority.medium),
+      Task(id: '2', title: '안전 교육 일지 작성', assigneeId: 'kim', assigneeName: '김반장', assigneeEmoji: '👨‍💼', createdAt: now.subtract(const Duration(days: 1)), dueDate: now.add(const Duration(days: 1)), priority: TaskPriority.medium),
     ];
     _journals = [];
   }
@@ -117,6 +119,14 @@ class _MainScreenState extends State<MainScreen> {
   void _addTask(Task task) => setState(() => _tasks.add(task));
   void _deleteTask(String id) => setState(() => _tasks.removeWhere((t) => t.id == id));
   void _addJournal(JournalEntry journal) => setState(() => _journals.insert(0, journal));
+
+  Color _getBgColor(AppTone tone) {
+    switch (tone) {
+      case AppTone.white: return const Color(0xFFF8FAFC);
+      case AppTone.blue: return const Color(0xFFE0F2FE);
+      case AppTone.black: return const Color(0xFF0F172A);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -141,10 +151,10 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.bold, color: isBlack ? Colors.white : Colors.black87)),
+        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: isBlack ? Colors.white : Colors.black87)),
         actions: [
           IconButton(
-            icon: Icon(Icons.palette_outlined, color: isBlack ? Colors.blueAccent : const Color(0xFF2563EB)),
+            icon: Icon(Icons.palette_rounded, color: isBlack ? const Color(0xFF448AFF) : const Color(0xFF2563EB)),
             onPressed: () => _showTonePicker(),
           ),
           const SizedBox(width: 8),
@@ -152,29 +162,21 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
           backgroundColor: isBlack ? const Color(0xFF1E293B) : Colors.white,
-          indicatorColor: const Color(0xFF2563EB).withOpacity(0.1),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), label: '홈'),
-            NavigationDestination(icon: Icon(Icons.assignment_outlined), label: '팀 업무'),
-            NavigationDestination(icon: Icon(Icons.edit_note_rounded), label: '일지'),
-            NavigationDestination(icon: Icon(Icons.grid_view_outlined), label: '갤러리'),
+          indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
+          destinations: [
+            NavigationDestination(icon: Icon(Icons.home_outlined, color: isBlack ? Colors.white70 : null), selectedIcon: const Icon(Icons.home, color: Color(0xFF2563EB)), label: '홈'),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined, color: isBlack ? Colors.white70 : null), selectedIcon: const Icon(Icons.assignment, color: Color(0xFF2563EB)), label: '팀 업무'),
+            NavigationDestination(icon: Icon(Icons.edit_note_rounded, color: isBlack ? Colors.white70 : null), selectedIcon: const Icon(Icons.edit_note_rounded, color: Color(0xFF2563EB)), label: '일지'),
+            NavigationDestination(icon: Icon(Icons.grid_view_outlined, color: isBlack ? Colors.white70 : null), selectedIcon: const Icon(Icons.grid_view, color: Color(0xFF2563EB)), label: '갤러리'),
           ],
         ),
       ),
     );
-  }
-
-  Color _getBgColor(AppTone tone) {
-    switch (tone) {
-      case AppTone.white: return const Color(0xFFF8FAFC);
-      case AppTone.blue: return const Color(0xFFE0F2FE);
-      case AppTone.black: return const Color(0xFF0F172A);
-    }
   }
 
   void _showTonePicker() {
@@ -182,12 +184,12 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("${['홈', '팀 업무', '일지', '갤러리'][_selectedIndex]} 테마 설정", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
+            Text("${['홈', '팀 업무', '일지', '갤러리'][_selectedIndex]} 화면 테마 설정", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -196,7 +198,7 @@ class _MainScreenState extends State<MainScreen> {
                 _toneOption("Black", AppTone.black, const Color(0xFF0F172A), Colors.white),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -248,7 +250,7 @@ class HomeTab extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
             child: Row(children: [
               Icon(Icons.campaign, color: isDark ? Colors.blueAccent : const Color(0xFF2563EB)),
               const SizedBox(width: 12),
@@ -272,15 +274,15 @@ class HomeTab extends StatelessWidget {
           const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 8))]),
+            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 8))]),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("업무 달성률", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text("${(progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF2563EB), fontSize: 18))]),
               const SizedBox(height: 16),
-              ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, backgroundColor: const Color(0xFF2563EB).withOpacity(0.1), color: const Color(0xFF2563EB), minHeight: 10)),
+              ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1), color: const Color(0xFF2563EB), minHeight: 10)),
             ]),
           ),
           const SizedBox(height: 24),
-          Row(children: [_card("남은 업무", "${total - done}", const Color(0xFF2563EB), Colors.white), const SizedBox(width: 16), _card("갤러리 사진", "24", isDark ? Colors.white.withOpacity(0.05) : Colors.white, isDark ? Colors.white : Colors.black87)]),
+          Row(children: [_card("남은 업무", "${total - done}", const Color(0xFF2563EB), Colors.white), const SizedBox(width: 16), _card("갤러리 사진", "24", isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, isDark ? Colors.white : Colors.black87)]),
           const SizedBox(height: 40),
           Text("팀원 리스트", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
           const SizedBox(height: 20),
@@ -293,7 +295,7 @@ class HomeTab extends StatelessWidget {
     );
   }
 
-  Widget _card(String t, String c, Color bg, Color tx) => Expanded(child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(28)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: tx)), const SizedBox(height: 4), Text(t, style: TextStyle(color: tx.withOpacity(0.7), fontSize: 13))])));
+  Widget _card(String t, String c, Color bg, Color tx) => Expanded(child: Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(28)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(c, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: tx)), const SizedBox(height: 4), Text(t, style: TextStyle(color: tx.withValues(alpha: 0.7), fontSize: 13))])));
 }
 
 class TeamTaskTab extends StatefulWidget {
@@ -314,7 +316,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   String _statusFilter = '전체';
   String _memberId = 'all';
   DateFilter _dateFilter = DateFilter.all;
-  TaskPriority? _priorityFilter; // 중요도 필터 상태
+  TaskPriority? _priorityFilter; 
 
   void _showTaskNoteDialog(Task task) {
     final noteController = TextEditingController();
@@ -336,7 +338,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
                   Container(
                     height: 200,
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.grey.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200)),
+                    decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200)),
                     child: ListView.builder(
                       itemCount: task.taskNotes.length,
                       itemBuilder: (c, i) => Padding(
@@ -408,10 +410,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     var list = widget.tasks.where((t) {
       if (_statusFilter == '진행 중') if (t.isDone) return false;
       if (_statusFilter == '완료됨') if (!t.isDone) return false;
-      
-      // 중요도 필터 로직
       if (_priorityFilter != null && t.priority != _priorityFilter) return false;
-
       if (_dateFilter == DateFilter.today) {
         final due = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
         return due.isAtSameMomentAs(today);
@@ -444,7 +443,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           ),
         ),
       ),
-      // 중요도 필터 추가
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -457,7 +455,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       ),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(children: [
           _dateChip("전체기간", DateFilter.all),
           _dateChip("오늘 할 일", DateFilter.today),
@@ -495,7 +493,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           itemBuilder: (ctx, i) => Dismissible(
             key: Key(filteredList[i].id),
             onDismissed: (dir) => widget.onDeleteTask(filteredList[i].id),
-            background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 24), color: Colors.red.shade100, child: const Icon(Icons.delete_outline, color: Colors.red)),
+            background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 24), color: Colors.red.withValues(alpha: 0.1), child: const Icon(Icons.delete_outline, color: Colors.red)),
             child: GestureDetector(
               onTap: () => _showTaskNoteDialog(filteredList[i]),
               child: _TaskCard(task: filteredList[i], tone: widget.tone, myProfileImage: widget.myProfileImage, onToggle: (v) { setState(() { filteredList[i].isDone = v!; filteredList[i].completedAt = v ? DateTime.now() : null; }); widget.onStateChange(); }, onPriority: () { setState(() { filteredList[i].priority = TaskPriority.values[(filteredList[i].priority.index+1)%4]; }); widget.onStateChange(); }),
@@ -508,7 +506,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(32), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+          decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(32), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
           child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_circle_outline, color: Colors.blue), SizedBox(width: 8), Text("Add Task", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))]),
         ),
       ),
@@ -522,7 +520,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(color: isS ? Colors.blue.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(20), border: Border.all(color: isS ? Colors.blue : Colors.grey.shade300)),
+        decoration: BoxDecoration(color: isS ? Colors.blue.withValues(alpha: 0.1) : Colors.transparent, borderRadius: BorderRadius.circular(20), border: Border.all(color: isS ? Colors.blue : Colors.grey.shade300)),
         child: Text(label, style: TextStyle(fontSize: 13, fontWeight: isS ? FontWeight.bold : FontWeight.normal, color: isS ? Colors.blue : Colors.grey)),
       ),
     );
@@ -535,7 +533,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: isS ? color.withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: isS ? color : Colors.grey.shade300)),
+        decoration: BoxDecoration(color: isS ? color.withValues(alpha: 0.15) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: isS ? color : Colors.grey.shade300)),
         child: Text(label, style: TextStyle(fontSize: 11, fontWeight: isS ? FontWeight.bold : FontWeight.normal, color: isS ? color : Colors.grey)),
       ),
     );
@@ -548,7 +546,7 @@ class _TaskCard extends StatelessWidget {
   final File? myProfileImage;
   final ValueChanged<bool?> onToggle;
   final VoidCallback onPriority;
-  const _TaskCard({required this.task, required this.tone, this.myProfileImage, required this.onToggle, required this.onPriority});
+  const _TaskCard({required this.task, required this.onToggle, required this.onPriority, required this.tone, this.myProfileImage});
 
   @override
   Widget build(BuildContext context) {
@@ -557,7 +555,7 @@ class _TaskCard extends StatelessWidget {
     final dateStyle = TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white38 : Colors.black54);
 
     return Card(
-      elevation: 0, color: isDark ? Colors.white.withOpacity(0.05) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)), margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0, color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade100)), margin: const EdgeInsets.only(bottom: 16),
       child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [
         SizedBox(width: 48, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Transform.scale(
@@ -570,7 +568,7 @@ class _TaskCard extends StatelessWidget {
             child: Container(
               width: 36, height: 36,
               alignment: Alignment.center,
-              decoration: BoxDecoration(color: _pColor(task.priority).withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 2)),
+              decoration: BoxDecoration(color: _pColor(task.priority).withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 2)),
               child: Text(_pText(task.priority), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _pColor(task.priority))),
             ),
           ),
@@ -579,7 +577,7 @@ class _TaskCard extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.center, children: [
             Expanded(child: Text(task.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: isDark ? Colors.white : Colors.black87, decoration: task.isDone ? TextDecoration.lineThrough : null))),
-            CircleAvatar(radius: 12, backgroundColor: Colors.blue.withOpacity(0.1), backgroundImage: (task.assigneeId == 'me' && myProfileImage != null) ? FileImage(myProfileImage!) : null, child: (task.assigneeId == 'me' && myProfileImage != null) ? null : Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
+            CircleAvatar(radius: 12, backgroundColor: Colors.blue.withValues(alpha: 0.1), backgroundImage: (task.assigneeId == 'me' && myProfileImage != null) ? FileImage(myProfileImage!) : null, child: (task.assigneeId == 'me' && myProfileImage != null) ? null : Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
           ]),
           const SizedBox(height: 4),
           Text(task.isDone ? "📑 완료 리포트" : "📑 진행사항", style: TextStyle(fontSize: 11, color: Colors.blue.shade400, fontWeight: FontWeight.bold)),
