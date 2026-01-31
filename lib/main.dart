@@ -12,9 +12,9 @@ void main() async {
   runApp(const WorkNoteApp());
 }
 
-// ==========================================
+// =============================================================================
 // [COMMON] Data Models & Enums
-// ==========================================
+// =============================================================================
 enum TaskPriority { high, medium, low, none }
 enum AppTone { white, blue, black }
 enum DateFilter { all, today, week, twoWeeks }
@@ -93,9 +93,9 @@ class JournalEntry {
   });
 }
 
-// ==========================================
-// [MAIN] App Bootstrap
-// ==========================================
+// =============================================================================
+// [MAIN] App Bootstrap & Global State
+// =============================================================================
 class WorkNoteApp extends StatelessWidget {
   const WorkNoteApp({super.key});
   @override
@@ -158,6 +158,14 @@ class _MainScreenState extends State<MainScreen> {
   void _deleteTask(String id) => setState(() => _tasks.removeWhere((t) => t.id == id));
   void _addJournal(JournalEntry journal) => setState(() => _journals.insert(0, journal));
 
+  Color _getBgColor(AppTone tone) {
+    switch (tone) {
+      case AppTone.white: return const Color(0xFFF8FAFC);
+      case AppTone.blue: return const Color(0xFFE0F2FE);
+      case AppTone.black: return const Color(0xFF0F172A);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentTone = _tabTones[_selectedIndex];
@@ -177,38 +185,48 @@ class _MainScreenState extends State<MainScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: currentTone == AppTone.white ? const Color(0xFFF8FAFC) : (currentTone == AppTone.blue ? const Color(0xFFE0F2FE) : const Color(0xFF0F172A)),
+      backgroundColor: _getBgColor(currentTone),
       appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, color: isBlack ? Colors.white : Colors.black87)),
-        actions: [IconButton(icon: const Icon(Icons.palette_rounded), onPressed: () => _showTonePicker())],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: isBlack ? Colors.white : Colors.black87)),
+        actions: [
+          IconButton(icon: Icon(Icons.palette_rounded, color: isBlack ? const Color(0xFF448AFF) : const Color(0xFF2563EB)), onPressed: () => _showTonePicker()),
+          const SizedBox(width: 8),
+        ],
       ),
       body: IndexedStack(index: _selectedIndex, children: screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '홈'),
-          NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: '팀 업무'),
-          NavigationDestination(icon: Icon(Icons.edit_note_rounded), selectedIcon: Icon(Icons.edit_note_rounded), label: '일지'),
-          NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: '갤러리'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+          backgroundColor: isBlack ? const Color(0xFF1E293B) : Colors.white,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '홈'),
+            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: '팀 업무'),
+            NavigationDestination(icon: Icon(Icons.edit_note_rounded), selectedIcon: Icon(Icons.edit_note_rounded), label: '일지'),
+            NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: '갤러리'),
+          ],
+        ),
       ),
     );
   }
 
   void _showTonePicker() {
-    showModalBottomSheet(context: context, builder: (ctx) => Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(title: const Text("White"), onTap: () { setState(() => _tabTones[_selectedIndex] = AppTone.white); Navigator.pop(context); }),
-      ListTile(title: const Text("Blue"), onTap: () { setState(() => _tabTones[_selectedIndex] = AppTone.blue); Navigator.pop(context); }),
-      ListTile(title: const Text("Black"), onTap: () { setState(() => _tabTones[_selectedIndex] = AppTone.black); Navigator.pop(context); }),
-    ]));
+    showModalBottomSheet(context: context, builder: (ctx) => Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        _toneTile("White", AppTone.white), _toneTile("Blue", AppTone.blue), _toneTile("Black", AppTone.black),
+      ]),
+    ));
   }
+  Widget _toneTile(String l, AppTone t) => ListTile(title: Text(l), onTap: () { setState(() => _tabTones[_selectedIndex] = t); Navigator.pop(context); });
 }
 
-// ==========================================
+// =============================================================================
 // [PART 1] HOME TAB
-// ==========================================
+// =============================================================================
 class HomeTab extends StatelessWidget {
   final File? profileImage;
   final VoidCallback onProfileTap;
@@ -229,25 +247,29 @@ class HomeTab extends StatelessWidget {
             Text(DateFormat('M월 d일 E요일', 'ko_KR').format(DateTime.now()), style: const TextStyle(fontSize: 13, color: Colors.grey)),
             Text("안녕하세요 관리자님! 👷", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black87)),
           ]),
-          GestureDetector(onTap: onProfileTap, child: CircleAvatar(radius: 28, backgroundImage: profileImage != null ? FileImage(profileImage!) : null, child: profileImage == null ? const Icon(Icons.person) : null))
+          GestureDetector(onTap: onProfileTap, child: CircleAvatar(radius: 28, backgroundColor: Colors.blue.shade100, backgroundImage: profileImage != null ? FileImage(profileImage!) : null, child: profileImage == null ? const Icon(Icons.person) : null))
         ]),
         const SizedBox(height: 32),
         Text("프로젝트별 달성률", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 16),
         ...projects.map((p) {
           final pTasks = tasks.where((t) => t.projectId == p.id).toList();
-          final progress = pTasks.isEmpty ? 0.0 : pTasks.where((t) => t.isDone).length / pTasks.length;
+          final total = pTasks.length;
+          final done = pTasks.where((t) => t.isDone).length;
+          final progress = total == 0 ? 0.0 : done / total;
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
-            child: Column(children: [
+            decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Row(children: [Container(width: 12, height: 12, decoration: BoxDecoration(color: p.color, shape: BoxShape.circle)), const SizedBox(width: 8), Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold))]),
                 Text("${(progress * 100).toInt()}%", style: TextStyle(fontWeight: FontWeight.w900, color: p.color)),
               ]),
               const SizedBox(height: 12),
               ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 8, color: p.color, backgroundColor: p.color.withOpacity(0.1))),
+              const SizedBox(height: 8),
+              Text("진행 $done / 전체 $total", style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ]),
           );
         }),
@@ -256,16 +278,20 @@ class HomeTab extends StatelessWidget {
         const SizedBox(height: 20),
         SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: members.length, itemBuilder: (ctx, i) => Padding(
           padding: const EdgeInsets.only(right: 24),
-          child: Column(children: [CircleAvatar(radius: 32, backgroundColor: isDark ? Colors.white10 : Colors.white, child: Text(members[i].emoji, style: const TextStyle(fontSize: 30))), const SizedBox(height: 10), Text(members[i].name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87))]),
+          child: Column(children: [
+            CircleAvatar(radius: 32, backgroundColor: isDark ? Colors.white10 : Colors.white, child: Text(members[i].emoji, style: const TextStyle(fontSize: 30))),
+            const SizedBox(height: 10),
+            Text(members[i].name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87))
+          ]),
         ))),
       ]),
     );
   }
 }
 
-// ==========================================
+// =============================================================================
 // [PART 2] TEAM TASK TAB
-// ==========================================
+// =============================================================================
 class TeamTaskTab extends StatefulWidget {
   final List<Task> tasks;
   final List<Project> projects;
@@ -294,16 +320,30 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     final reportCtrl = TextEditingController(text: task.completionReport);
     showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: Text(task.isDone ? "완료 보고서" : "진행사항 기록", style: const TextStyle(fontWeight: FontWeight.bold)),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        ...task.taskNotes.map((n) => Text(n, style: const TextStyle(fontSize: 12))),
-        if (!task.isDone) TextField(controller: noteCtrl),
-        if (task.isDone) TextField(controller: reportCtrl, maxLines: 3),
-      ]),
-      actions: [FilledButton(onPressed: () {
-        if (!task.isDone) task.taskNotes.insert(0, noteCtrl.text);
-        else task.completionReport = reportCtrl.text;
-        Navigator.pop(ctx); widget.onStateChange();
-      }, child: const Text("저장"))],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ...task.taskNotes.map((n) => ListTile(title: Text(n, style: const TextStyle(fontSize: 13)))),
+        const SizedBox(height: 16),
+        if (!task.isDone) ...[
+          TextField(controller: noteCtrl, decoration: InputDecoration(hintText: "진행사항 입력...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: () {
+            if (noteCtrl.text.isEmpty) return;
+            setState(() { task.taskNotes.insert(0, "[${DateFormat('MM.dd HH:mm').format(DateTime.now())}] ${noteCtrl.text}"); task.updatedAt = DateTime.now(); });
+            noteCtrl.clear(); setDialogState(() {}); widget.onStateChange();
+          }, child: const Text("기록 추가"))
+        ] else ...[
+          const Text("완료된 업무의 최종 성과를 기록하세요.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 12),
+          TextField(controller: reportCtrl, maxLines: 3, decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+          const SizedBox(height: 8),
+          FilledButton(onPressed: () {
+            setState(() { task.completionReport = reportCtrl.text; task.updatedAt = DateTime.now(); });
+            Navigator.pop(ctx); widget.onStateChange();
+          }, child: const Text("보고서 저장"))
+        ]
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("닫기"))],
     )));
   }
 
@@ -315,11 +355,14 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
 
     showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: const Text("새 업무 추가", style: TextStyle(fontWeight: FontWeight.bold)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Autocomplete<String>(
           optionsBuilder: (textValue) {
             if (!textValue.text.contains('#')) { currentPrefix = textValue.text; return const Iterable<String>.empty(); }
-            final search = textValue.text.split('#').last;
+            final parts = textValue.text.split('#');
+            currentPrefix = parts[0];
+            final search = parts.last;
             final matching = widget.projects.where((p) => p.name.contains(search)).map((p) => "#${p.name}").toList();
             if (search.isNotEmpty) matching.add("신규 생성: #$search");
             return matching;
@@ -365,6 +408,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       if (_dateFilter == DateFilter.today && !DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day).isAtSameMomentAs(today)) return false;
       if (_dateFilter == DateFilter.week && t.dueDate.isAfter(today.add(const Duration(days: 7)))) return false;
       if (_dateFilter == DateFilter.twoWeeks && t.dueDate.isAfter(today.add(const Duration(days: 14)))) return false;
+      if (_memberId != 'all' && t.assigneeId != _memberId) return false;
       return true;
     }).toList();
   }
@@ -386,6 +430,8 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           _filterCellWithMenu("중요도", _priorityFilter == null ? "전체" : _pText(_priorityFilter!), ['전체','상','중','하'], (v)=>setState(()=>_priorityFilter = v=='전체'?null:(v=='상'?TaskPriority.high:(v=='중'?TaskPriority.medium:TaskPriority.low)))),
           _filterDivider(),
           _filterCellWithMenu("기한", _dFilterText(_dateFilter), ['전체','오늘','이번 주','2주'], (v)=>setState(()=>_dateFilter = v=='전체'?DateFilter.all:(v=='오늘'?DateFilter.today:(v=='이번 주'?DateFilter.week:DateFilter.twoWeeks)))),
+          _filterDivider(),
+          _filterCellWithMenu("담당자", _memberId == 'all' ? "전체" : widget.members.firstWhere((m) => m.id == _memberId).name, ['전체', ...widget.members.where((m)=>m.id != 'all').map((m)=>m.name)], (v)=>setState(()=>_memberId = v == '전체' ? 'all' : widget.members.firstWhere((m)=>m.name==v).id)),
         ])),
       ),
       Expanded(child: ListView.builder(itemCount: list.length, itemBuilder: (ctx, i) => GestureDetector(onTap: () => _showTaskNoteDialog(list[i]), child: _TaskCard(task: list[i], projects: widget.projects, tone: widget.tone, onToggle: (v) { setState(() { list[i].isDone = v!; list[i].completedAt = v ? DateTime.now() : null; list[i].updatedAt = DateTime.now(); }); widget.onStateChange(); }, onPriority: () { setState(() { list[i].priority = TaskPriority.values[(list[i].priority.index+1)%4]; list[i].updatedAt = DateTime.now(); }); widget.onStateChange(); })))),
@@ -396,6 +442,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   Widget _filterCellWithMenu(String t, String v, List<String> options, Function(String) onPick) {
     return Expanded(child: PopupMenuButton<String>(
       onSelected: onPick,
+      position: PopupMenuPosition.under,
       itemBuilder: (ctx) => options.map((o) => PopupMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 13)))).toList(),
       child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Column(children: [Text(t, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w900)), Text(v, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis)])),
     ));
@@ -423,7 +470,7 @@ class _TaskCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade200)),
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
       child: Padding(padding: const EdgeInsets.all(20), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(width: 48, child: Column(children: [
           Checkbox(value: task.isDone, onChanged: onToggle),
@@ -432,7 +479,10 @@ class _TaskCard extends StatelessWidget {
         ])),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(p.name, style: TextStyle(fontSize: 10, color: p.color, fontWeight: FontWeight.w900)),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(p.name, style: TextStyle(fontSize: 10, color: p.color, fontWeight: FontWeight.w900)),
+            Text(task.assigneeEmoji, style: const TextStyle(fontSize: 14)),
+          ]),
           const SizedBox(height: 4),
           Text(task.title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, decoration: task.isDone ? TextDecoration.lineThrough : null, color: isDark ? Colors.white : Colors.black87)),
           const Divider(height: 24),
@@ -450,9 +500,9 @@ class _TaskCard extends StatelessWidget {
   String _pText(TaskPriority p) { switch (p) { case TaskPriority.high: return "상"; case TaskPriority.medium: return "중"; case TaskPriority.low: return "하"; default: return "-"; } }
 }
 
-// ==========================================
+// =============================================================================
 // [PART 3] JOURNAL TAB
-// ==========================================
+// =============================================================================
 class JournalTab extends StatefulWidget {
   final List<JournalEntry> journals;
   final List<Task> tasks;
@@ -525,11 +575,12 @@ class _JournalTabState extends State<JournalTab> {
     return Column(children: [
       Padding(padding: const EdgeInsets.all(16), child: TextField(onChanged: (v) => setState(() => _searchQuery = v), decoration: InputDecoration(hintText: "일지 검색...", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(32)), filled: true, fillColor: isDark ? Colors.white10 : Colors.white))),
       SizedBox(height: 60, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: widget.members.length, itemBuilder: (c, i) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: ActionChip(label: Text(widget.members[i].name), onPressed: () => setState(() => _memberFilterId = widget.members[i].id))))),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
         const Text("그룹 기준: ", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
         const SizedBox(width: 8),
         PopupMenuButton<JournalGroupPeriod>(
           onSelected: (v) => setState(() => _groupPeriod = v),
+          position: PopupMenuPosition.under,
           itemBuilder: (ctx) => [
             const PopupMenuItem(value: JournalGroupPeriod.day, child: Text("일")),
             const PopupMenuItem(value: JournalGroupPeriod.week, child: Text("주")),
