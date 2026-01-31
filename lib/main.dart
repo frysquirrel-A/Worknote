@@ -12,9 +12,9 @@ void main() async {
   runApp(const WorkNoteApp());
 }
 
-// =============================================================================
+// ==========================================
 // [COMMON] Data Models & Enums
-// =============================================================================
+// ==========================================
 enum TaskPriority { high, medium, low, none }
 enum AppTone { white, blue, black }
 enum DateFilter { all, today, week, twoWeeks }
@@ -93,9 +93,9 @@ class JournalEntry {
   });
 }
 
-// =============================================================================
-// [MAIN] App Bootstrap & Navigation
-// =============================================================================
+// ==========================================
+// [MAIN] App Bootstrap
+// ==========================================
 class WorkNoteApp extends StatelessWidget {
   const WorkNoteApp({super.key});
   @override
@@ -179,16 +179,14 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       backgroundColor: currentTone == AppTone.white ? const Color(0xFFF8FAFC) : (currentTone == AppTone.blue ? const Color(0xFFE0F2FE) : const Color(0xFF0F172A)),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: isBlack ? Colors.white : Colors.black87)),
-        actions: [IconButton(icon: Icon(Icons.palette_rounded, color: isBlack ? Colors.blueAccent : Colors.blue), onPressed: () => _showTonePicker())],
+        backgroundColor: Colors.transparent, elevation: 0,
+        title: Text('WorkNote', style: TextStyle(fontWeight: FontWeight.w900, color: isBlack ? Colors.white : Colors.black87)),
+        actions: [IconButton(icon: const Icon(Icons.palette_rounded), onPressed: () => _showTonePicker())],
       ),
       body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-        backgroundColor: isBlack ? const Color(0xFF1E293B) : Colors.white,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '홈'),
           NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: '팀 업무'),
@@ -208,9 +206,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// =============================================================================
+// ==========================================
 // [PART 1] HOME TAB
-// =============================================================================
+// ==========================================
 class HomeTab extends StatelessWidget {
   final File? profileImage;
   final VoidCallback onProfileTap;
@@ -253,14 +251,21 @@ class HomeTab extends StatelessWidget {
             ]),
           );
         }),
+        const SizedBox(height: 40),
+        Text("팀원 리스트", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+        const SizedBox(height: 20),
+        SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: members.length, itemBuilder: (ctx, i) => Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Column(children: [CircleAvatar(radius: 32, backgroundColor: isDark ? Colors.white10 : Colors.white, child: Text(members[i].emoji, style: const TextStyle(fontSize: 30))), const SizedBox(height: 10), Text(members[i].name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87))]),
+        ))),
       ]),
     );
   }
 }
 
-// =============================================================================
+// ==========================================
 // [PART 2] TEAM TASK TAB
-// =============================================================================
+// ==========================================
 class TeamTaskTab extends StatefulWidget {
   final List<Task> tasks;
   final List<Project> projects;
@@ -289,30 +294,16 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     final reportCtrl = TextEditingController(text: task.completionReport);
     showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: Text(task.isDone ? "완료 보고서" : "진행사항 기록", style: const TextStyle(fontWeight: FontWeight.bold)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        ...task.taskNotes.map((n) => ListTile(title: Text(n, style: const TextStyle(fontSize: 13)))),
-        const SizedBox(height: 16),
-        if (!task.isDone) ...[
-          TextField(controller: noteCtrl, decoration: InputDecoration(hintText: "진행사항 입력...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 8),
-          FilledButton(onPressed: () {
-            if (noteCtrl.text.isEmpty) return;
-            setState(() { task.taskNotes.insert(0, "[${DateFormat('MM.dd HH:mm').format(DateTime.now())}] ${noteCtrl.text}"); task.updatedAt = DateTime.now(); });
-            noteCtrl.clear(); setDialogState(() {}); widget.onStateChange();
-          }, child: const Text("기록 추가"))
-        ] else ...[
-          const Text("최종 완료 성과를 기록하세요.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 12),
-          TextField(controller: reportCtrl, maxLines: 3, decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-          const SizedBox(height: 8),
-          FilledButton(onPressed: () {
-            setState(() { task.completionReport = reportCtrl.text; task.updatedAt = DateTime.now(); });
-            Navigator.pop(ctx); widget.onStateChange();
-          }, child: const Text("보고서 저장"))
-        ]
-      ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("닫기"))],
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        ...task.taskNotes.map((n) => Text(n, style: const TextStyle(fontSize: 12))),
+        if (!task.isDone) TextField(controller: noteCtrl),
+        if (task.isDone) TextField(controller: reportCtrl, maxLines: 3),
+      ]),
+      actions: [FilledButton(onPressed: () {
+        if (!task.isDone) task.taskNotes.insert(0, noteCtrl.text);
+        else task.completionReport = reportCtrl.text;
+        Navigator.pop(ctx); widget.onStateChange();
+      }, child: const Text("저장"))],
     )));
   }
 
@@ -324,14 +315,11 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
 
     showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
       title: const Text("새 업무 추가", style: TextStyle(fontWeight: FontWeight.bold)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Autocomplete<String>(
           optionsBuilder: (textValue) {
             if (!textValue.text.contains('#')) { currentPrefix = textValue.text; return const Iterable<String>.empty(); }
-            final parts = textValue.text.split('#');
-            currentPrefix = parts[0];
-            final search = parts.last;
+            final search = textValue.text.split('#').last;
             final matching = widget.projects.where((p) => p.name.contains(search)).map((p) => "#${p.name}").toList();
             if (search.isNotEmpty) matching.add("신규 생성: #$search");
             return matching;
@@ -462,9 +450,9 @@ class _TaskCard extends StatelessWidget {
   String _pText(TaskPriority p) { switch (p) { case TaskPriority.high: return "상"; case TaskPriority.medium: return "중"; case TaskPriority.low: return "하"; default: return "-"; } }
 }
 
-// =============================================================================
+// ==========================================
 // [PART 3] JOURNAL TAB
-// =============================================================================
+// ==========================================
 class JournalTab extends StatefulWidget {
   final List<JournalEntry> journals;
   final List<Task> tasks;
@@ -518,16 +506,6 @@ class _JournalTabState extends State<JournalTab> {
     )));
   }
 
-  String _getGroupKey(DateTime date, JournalGroupPeriod period) {
-    switch (period) {
-      case JournalGroupPeriod.day: return DateFormat('yyyy-MM-dd').format(date);
-      case JournalGroupPeriod.week: return "${DateFormat('yyyy-MM').format(date)} ${((date.day-1)/7).floor()+1}주";
-      case JournalGroupPeriod.month: return DateFormat('yyyy-MM').format(date);
-      case JournalGroupPeriod.quarter: return "${date.year}년 ${((date.month-1)/3).floor()+1}분기";
-      case JournalGroupPeriod.year: return "${date.year}년";
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = widget.tone == AppTone.black;
@@ -548,22 +526,34 @@ class _JournalTabState extends State<JournalTab> {
       Padding(padding: const EdgeInsets.all(16), child: TextField(onChanged: (v) => setState(() => _searchQuery = v), decoration: InputDecoration(hintText: "일지 검색...", prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(32)), filled: true, fillColor: isDark ? Colors.white10 : Colors.white))),
       SizedBox(height: 60, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: widget.members.length, itemBuilder: (c, i) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: ActionChip(label: Text(widget.members[i].name), onPressed: () => setState(() => _memberFilterId = widget.members[i].id))))),
       Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-        const Text("그룹 기준: ", style: TextStyle(fontSize: 12, color: Colors.grey)),
-        DropdownButton<JournalGroupPeriod>(value: _groupPeriod, items: const [
-          DropdownMenuItem(value: JournalGroupPeriod.day, child: Text("일")),
-          DropdownMenuItem(value: JournalGroupPeriod.week, child: Text("주")),
-          DropdownMenuItem(value: JournalGroupPeriod.month, child: Text("월")),
-          DropdownMenuItem(value: JournalGroupPeriod.quarter, child: Text("분기")),
-          DropdownMenuItem(value: JournalGroupPeriod.year, child: Text("년")),
-        ], onChanged: (v) => setState(() => _groupPeriod = v!), underline: const SizedBox()),
+        const Text("그룹 기준: ", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+        const SizedBox(width: 8),
+        PopupMenuButton<JournalGroupPeriod>(
+          onSelected: (v) => setState(() => _groupPeriod = v),
+          itemBuilder: (ctx) => [
+            const PopupMenuItem(value: JournalGroupPeriod.day, child: Text("일")),
+            const PopupMenuItem(value: JournalGroupPeriod.week, child: Text("주")),
+            const PopupMenuItem(value: JournalGroupPeriod.month, child: Text("월")),
+            const PopupMenuItem(value: JournalGroupPeriod.quarter, child: Text("분기")),
+            const PopupMenuItem(value: JournalGroupPeriod.year, child: Text("년")),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.3))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(_periodText(_groupPeriod), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.blue)),
+              const Icon(Icons.arrow_drop_down, color: Colors.blue, size: 18),
+            ]),
+          ),
+        ),
       ])),
       Expanded(child: ListView.builder(itemCount: keys.length, itemBuilder: (c, i) {
         final group = groups[keys[i]]!;
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(padding: const EdgeInsets.all(16), child: Text(keys[i], style: const TextStyle(fontWeight: FontWeight.w900))),
+          Padding(padding: const EdgeInsets.all(16), child: Row(children: [Container(width: 4, height: 16, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 8), Text(keys[i], style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? Colors.white70 : Colors.grey.shade700))])),
           ...group.map((j) => Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade200)),
+            decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
             child: ListTile(title: Text(j.title, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text(j.content, maxLines: 1, overflow: TextOverflow.ellipsis), onTap: () => _showDetail(j)),
           )),
         ]);
@@ -575,11 +565,21 @@ class _JournalTabState extends State<JournalTab> {
   void _showDetail(JournalEntry j) {
     showDialog(context: context, builder: (ctx) => AlertDialog(title: Text(j.title), content: Text(j.content), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("닫기"))]));
   }
+  String _getGroupKey(DateTime d, JournalGroupPeriod p) {
+    switch(p) {
+      case JournalGroupPeriod.day: return DateFormat('yyyy-MM-dd').format(d);
+      case JournalGroupPeriod.week: return "${DateFormat('yyyy-MM').format(d)} ${((d.day-1)/7).floor()+1}주";
+      case JournalGroupPeriod.month: return DateFormat('yyyy-MM').format(d);
+      case JournalGroupPeriod.quarter: return "${d.year}년 ${((d.month-1)/3).floor()+1}분기";
+      case JournalGroupPeriod.year: return "${d.year}년";
+    }
+  }
+  String _periodText(JournalGroupPeriod p) { switch(p) { case JournalGroupPeriod.day: return "일"; case JournalGroupPeriod.week: return "주"; case JournalGroupPeriod.month: return "월"; case JournalGroupPeriod.quarter: return "분기"; case JournalGroupPeriod.year: return "년"; } }
 }
 
-// =============================================================================
+// ==========================================
 // [PART 4] GALLERY TAB
-// =============================================================================
+// ==========================================
 class GalleryTab extends StatefulWidget {
   final List<JournalEntry> journals;
   final List<TeamMember> members;
