@@ -197,7 +197,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+        decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
@@ -260,14 +260,14 @@ class HomeTab extends StatelessWidget {
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.05) : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
+            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Row(children: [Container(width: 12, height: 12, decoration: BoxDecoration(color: p.color, shape: BoxShape.circle)), const SizedBox(width: 8), Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold))]),
                 Text("${(progress * 100).toInt()}%", style: TextStyle(fontWeight: FontWeight.w900, color: p.color)),
               ]),
               const SizedBox(height: 12),
-              ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 8, color: p.color, backgroundColor: p.color.withOpacity(0.1))),
+              ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: progress, minHeight: 8, color: p.color, backgroundColor: p.color.withValues(alpha: 0.1))),
               const SizedBox(height: 8),
               Text("진행 $done / 전체 $total", style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ]),
@@ -470,12 +470,12 @@ class _TaskCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade200)),
-      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
       child: Padding(padding: const EdgeInsets.all(20), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(width: 48, child: Column(children: [
           Checkbox(value: task.isDone, onChanged: onToggle),
           const SizedBox(height: 12),
-          GestureDetector(onTap: onPriority, child: Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: _pColor(task.priority).withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 2)), child: Text(_pText(task.priority), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _pColor(task.priority))))),
+          GestureDetector(onTap: onPriority, child: Container(width: 36, height: 36, alignment: Alignment.center, decoration: BoxDecoration(color: _pColor(task.priority).withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: _pColor(task.priority), width: 2)), child: Text(_pText(task.priority), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _pColor(task.priority))))),
         ])),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -536,7 +536,7 @@ class _JournalTabState extends State<JournalTab> {
         const SizedBox(height: 20),
         TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "제목", border: OutlineInputBorder())),
         const SizedBox(height: 16),
-        DropdownButtonFormField<Project>(isExpanded: true, value: selectedProject, items: widget.projects.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(), onChanged: (v) => setDialogState(() => selectedProject = v), decoration: const InputDecoration(labelText: "프로젝트")),
+        DropdownButtonFormField<Project>(isExpanded: true, initialValue: selectedProject, items: widget.projects.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(), onChanged: (v) => setDialogState(() => selectedProject = v), decoration: const InputDecoration(labelText: "프로젝트")),
         const SizedBox(height: 16),
         TextField(controller: contentCtrl, maxLines: 5, decoration: const InputDecoration(labelText: "내용", border: OutlineInputBorder())),
         const SizedBox(height: 16),
@@ -590,7 +590,7 @@ class _JournalTabState extends State<JournalTab> {
           ],
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.3))),
+            decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withValues(alpha: 0.3))),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text(_periodText(_groupPeriod), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.blue)),
               const Icon(Icons.arrow_drop_down, color: Colors.blue, size: 18),
