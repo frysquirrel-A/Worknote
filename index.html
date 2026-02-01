@@ -1,7 +1,7 @@
 <html class="dark" lang="ko"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>WorkNote Master Workspace v12.0</title>
+<title>WorkNote Master Hub v19.0</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -14,6 +14,8 @@
             task: '#8b5cf6',
             journal: '#f59e0b',
             gallery: '#10b981',
+            f_bg: '#F8FAFC',
+            f_nav: '#F1F5F9'
           }
         }
       }
@@ -22,368 +24,265 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
-    body { font-family: 'Inter', sans-serif; transition: all 0.3s; background-color: #020617; color: #f1f5f9; scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; transition: all 0.3s; background-color: #020617; color: #f1f5f9; text-align: left; }
     .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
     .feature-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border: 1px solid rgba(255,255,255,0.08); position: relative; }
-    .feature-card:hover { border-color: rgba(255,255,255,0.3); transform: translateY(-8px); background: rgba(255,255,255,0.04); }
+    .feature-card:hover { border-color: #2563EB; transform: translateY(-5px); background: rgba(37, 99, 235, 0.05); }
     .feature-card.active { background: rgba(37, 99, 235, 0.15); border-color: #2563EB; box-shadow: 0 0 40px rgba(37, 99, 235, 0.25); }
     
-    .comment-box { background: rgba(0, 0, 0, 0.4); border-left: 10px solid #2563EB; box-shadow: inset 0 2px 30px rgba(0,0,0,0.7); }
-    .nav-btn { transition: all 0.3s; opacity: 0.5; font-weight: 900; font-size: 14px; padding: 8px 0; }
-    .nav-btn.active { opacity: 1; color: #2563EB; border-bottom: 3px solid #2563EB; }
+    .mockup-container { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .frame-phone { width: 390px; height: 844px; border: 12px solid #1e293b; border-radius: 60px; background: #F8FAFC; position: relative; display: flex; flex-direction: column; overflow: hidden; }
     
-    .inner-tab { transition: all 0.2s; opacity: 0.4; font-weight: 800; cursor: pointer; padding-bottom: 10px; border-bottom: 2px solid transparent; }
-    .inner-tab.active { opacity: 1; color: #2563EB; border-color: #2563EB; }
+    .comment-box { background: rgba(0, 0, 0, 0.4); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; }
+    .audit-entry { background: rgba(255,255,255,0.03); border-left: 4px solid #2563EB; padding: 16px; margin-bottom: 12px; border-radius: 0 12px 12px 0; position: relative; }
+    .audit-entry:hover .entry-actions { opacity: 1; }
+    .entry-actions { position: absolute; top: 8px; right: 8px; opacity: 0; transition: 0.2s; display: flex; gap: 4px; }
+    .done-reply { margin-top: 8px; color: #10b981; font-weight: 800; display: flex; gap: 8px; align-items: flex-start; }
 
-    .ui-preview-box { border: 1px solid rgba(255,255,255,0.1); border-radius: 32px; background: #0f172a; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-    
-    .logic-item { transition: all 0.3s; border: 2px solid transparent; cursor: pointer; }
-    .logic-item:hover { background: rgba(255,255,255,0.05); transform: scale(1.02); }
-    .logic-item.selected { 
-        background: rgba(37, 99, 235, 0.1); 
-        border-color: #2563EB; 
-        box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
-    }
-    .logic-item.selected span:first-child { color: #2563EB; font-weight: 900; }
+    [data-logic] { transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer; }
+    .highlight-active { border-color: #2563EB !important; box-shadow: 0 0 20px rgba(37, 99, 235, 0.5) !important; background: rgba(37,99,235,0.05); }
 
-    ::-webkit-scrollbar { width: 10px; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; border: 3px solid #020617; }
+    .logic-item { transition: all 0.2s; cursor: pointer; border-radius: 12px; padding: 12px; border: 1px solid transparent; }
+    .logic-item:hover { background: rgba(255,255,255,0.05); }
+    .logic-item.selected { background: rgba(37, 99, 235, 0.1); border-color: #2563EB; }
+
+    .module-header-clickable { cursor: pointer; transition: 0.2s; border-radius: 12px; padding: 4px 12px; }
+    .module-header-clickable:hover { background: rgba(37, 99, 235, 0.1); color: #2563EB; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>
 </head>
 <body class="overflow-x-hidden">
 
-<nav class="fixed top-0 w-full z-[150] glass border-b border-white/5 px-12 py-6 flex justify-between items-center">
+<nav class="fixed top-0 w-full z-[150] glass border-b border-white/5 px-12 py-6 flex justify-between items-center text-left">
     <div class="flex items-center gap-5 cursor-pointer" onclick="location.reload()">
         <div class="w-12 h-12 rounded-2xl bg-brand flex items-center justify-center shadow-2xl shadow-blue-500/40">
             <span class="material-symbols-outlined text-white text-3xl font-bold">account_tree</span>
         </div>
-        <span class="text-2xl font-black tracking-tighter uppercase italic">WorkNote <span class="font-light text-slate-500 text-sm">v12.0 Master</span></span>
+        <span class="text-2xl font-black tracking-tighter uppercase italic">WorkNote <span class="font-light text-slate-500 text-sm italic">v19.0 Master Hub</span></span>
     </div>
-    <div class="flex gap-12">
-        <button onclick="showMainSection('hub')" id="nav-hub" class="nav-btn active uppercase">Feature Deep-Dive</button>
-        <button onclick="showMainSection('arch')" id="nav-arch" class="nav-btn uppercase">Global Infra</button>
+    <div class="flex gap-8">
+        <button onclick="saveAllAudits()" class="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-full shadow-lg hover:bg-emerald-500 transition">PUSH ALL UPDATES</button>
     </div>
 </nav>
 
-<main class="pt-36 pb-24 px-10 max-w-[1800px] mx-auto">
+<main class="pt-36 pb-24 px-10 max-w-[2200px] mx-auto text-left">
 
-    <div id="section-hub" class="animate-fade-in">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            <!-- MODULE CARDS -->
-            <div id="card-home" onclick="toggleFeature('home')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-home text-left">
-                <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-home text-4xl font-bold">dashboard</span>
-                    <span class="text-xl font-black uppercase italic tracking-tighter">Home Dashboard</span>
-                </div>
-                <p class="text-sm text-slate-400 font-bold leading-snug">실시간 달성률 분석 및 팀 가동률 리포트</p>
+    <!-- OVERALL PROJECT FEEDBACK -->
+    <div class="mb-16 glass p-10 rounded-[48px] border-l-8 border-brand">
+        <h2 class="text-3xl font-black italic tracking-tighter mb-6 flex items-center gap-4">
+            <span class="material-symbols-outlined text-4xl text-brand">settings_suggest</span> OVERALL APP FEEDBACK
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 text-left">
+            <div class="comment-box min-h-[150px]">
+                <div id="overall-feedback-input" class="text-lg text-slate-200 outline-none font-medium" contenteditable="true" placeholder="어플 전체에 대한 의견을 남겨주세요..."></div>
             </div>
-            <div id="card-task" onclick="toggleFeature('task')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-task text-left">
-                <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-task text-4xl font-bold">task_alt</span>
-                    <span class="text-xl font-black uppercase italic tracking-tighter">Task Engine</span>
-                </div>
-                <p class="text-sm text-slate-400 font-bold leading-snug">4단 복합 필터 및 지능형 입력 시스템</p>
-            </div>
-            <div id="card-journal" onclick="toggleFeature('journal')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-journal text-left">
-                <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-journal text-4xl font-bold">history_edu</span>
-                    <span class="text-xl font-black uppercase italic tracking-tighter">Smart Journal</span>
-                </div>
-                <p class="text-sm text-slate-400 font-bold leading-snug">보안 기반 타임라인 그룹화 아카이빙</p>
-            </div>
-            <div id="card-gallery" onclick="toggleFeature('gallery')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-gallery text-left">
-                <div class="flex items-center gap-4">
-                    <span class="material-symbols-outlined text-gallery text-4xl font-bold">auto_awesome_motion</span>
-                    <span class="text-xl font-black uppercase italic tracking-tighter">Visual Hub</span>
-                </div>
-                <p class="text-sm text-slate-400 font-bold leading-snug">GlobalKey 기반 스마트 점프 네비게이션</p>
+            <div class="flex flex-col justify-end items-end gap-4 text-left">
+                <p class="text-xs text-slate-500 font-bold max-w-sm text-right">전체적인 디자인 톤, 폰트 일관성, 혹은 공통 내비게이션에 대한 의견을 통합 저장합니다.</p>
+                <button onclick="saveOverallFeedback()" class="px-10 py-4 bg-brand text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] transition active:scale-95">SAVE OVERALL FEEDBACK</button>
             </div>
         </div>
+    </div>
 
-        <!-- EXPANDED CONTENT -->
-        <div id="feature-content" class="glass rounded-[60px] p-12 animate-slide-down hidden border-t-8 border-brand/40 shadow-2xl">
-            <div class="flex justify-between items-start mb-12">
-                <div class="flex items-center gap-6">
-                    <div id="feat-icon-bg" class="w-20 h-20 rounded-3xl flex items-center justify-center">
-                        <span id="feat-icon" class="material-symbols-outlined text-white text-5xl"></span>
-                    </div>
-                    <div>
-                        <h2 id="feat-title" class="text-5xl font-black italic tracking-tighter uppercase text-left"></h2>
-                        <p id="feat-subtitle" class="text-slate-400 text-xl font-bold text-left"></p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div id="card-home" onclick="toggleModule('home')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-home text-left">
+            <div class="flex items-center gap-4"><span class="material-symbols-outlined text-home text-4xl">dashboard</span><span class="text-xl font-black uppercase">Dashboard</span></div>
+            <p class="text-xs text-slate-400 font-bold">실시간 분석 및 자원 관제</p>
+        </div>
+        <div id="card-task" onclick="toggleModule('task')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-task text-left">
+            <div class="flex items-center gap-4"><span class="material-symbols-outlined text-task text-4xl">task_alt</span><span class="text-xl font-black uppercase">Task Engine</span></div>
+            <p class="text-xs text-slate-400 font-bold">복합 필터 및 마감 관리</p>
+        </div>
+        <div id="card-journal" onclick="toggleModule('journal')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-journal text-left">
+            <div class="flex items-center gap-4"><span class="material-symbols-outlined text-journal text-4xl">history_edu</span><span class="text-xl font-black uppercase">Smart Journal</span></div>
+            <p class="text-xs text-slate-400 font-bold">Dropdown 보안 아카이브</p>
+        </div>
+        <div id="card-gallery" onclick="toggleModule('gallery')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-gallery text-left">
+            <div class="flex items-center gap-4"><span class="material-symbols-outlined text-gallery text-4xl">auto_awesome_motion</span><span class="text-xl font-black uppercase">Visual Hub</span></div>
+            <p class="text-xs text-slate-400 font-bold">이미지 스마트 인덱싱</p>
+        </div>
+    </div>
+
+    <div id="module-content" class="glass rounded-[60px] p-12 animate-slide-down hidden border-t-8 border-brand/40 shadow-2xl">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 text-left">
+            <div class="lg:col-span-7">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.4em]">Flutter Live Mirror</h3>
+                    <div class="flex gap-4">
+                        <button id="btn-actual" onclick="updateUiMode('actual')" class="px-4 py-1.5 rounded-full bg-brand text-white text-[10px] font-black shadow-lg">ACTUAL CODE</button>
+                        <button id="btn-rec" onclick="updateUiMode('rec')" class="px-4 py-1.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-black">AI CHOICE</button>
                     </div>
                 </div>
-                <button onclick="closeFeature()" class="p-3 hover:bg-white/10 rounded-full transition text-slate-500 hover:text-white"><span class="material-symbols-outlined text-4xl">close</span></button>
-            </div>
-
-            <div class="flex gap-10 mb-10 border-b border-white/5 pb-4">
-                <div id="tab-overview" onclick="switchInnerTab('overview')" class="inner-tab active text-lg uppercase tracking-widest">UI & Implementation</div>
-                <div id="tab-arch" onclick="switchInnerTab('arch')" class="inner-tab text-lg uppercase tracking-widest">Technical Blueprint</div>
-            </div>
-
-            <div id="content-overview" class="grid grid-cols-1 lg:grid-cols-12 gap-12 text-left">
-                <!-- UI MOCKUP AREA (LEFT) -->
-                <div class="lg:col-span-7">
-                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.4em] mb-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span> LIVE UI REPLICATION (FLUTTER)
-                    </h3>
-                    <div id="ui-mockup" class="ui-preview-box min-h-[600px] p-10 bg-[#F8FAFC] text-slate-900 shadow-inner overflow-y-auto">
-                        <!-- UI 디자인이 동적으로 렌더링됨 -->
+                <div class="mockup-container rounded-[48px]">
+                    <div id="device-frame" class="frame-phone">
+                        <div id="ui-render" class="h-full flex flex-col bg-[#F8FAFC] text-left"></div>
                     </div>
                 </div>
+            </div>
 
-                <!-- FEEDBACK & LIST (RIGHT) -->
-                <div class="lg:col-span-5 flex flex-col gap-8">
-                    <div class="space-y-6">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-black text-brand italic uppercase tracking-wider">Functional Logic</h3>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Click to target feedback</span>
-                        </div>
-                        <div id="feat-list" class="space-y-3">
-                            <!-- 항목 리스트가 동적으로 들어감 -->
-                        </div>
+            <div class="lg:col-span-5 flex flex-col gap-8">
+                <div class="space-y-6">
+                    <!-- 클릭 가능한 제목 -->
+                    <h3 id="module-title-display" onclick="selectLogic(null)" class="text-3xl font-black italic uppercase text-brand module-header-clickable inline-block">DASHBOARD</h3>
+                    <div id="logic-list" class="space-y-2"></div>
+                </div>
+
+                <div class="flex-1 flex flex-col mt-8">
+                    <div class="flex justify-between items-end mb-4">
+                        <h3 class="text-lg font-black text-emerald-400 uppercase tracking-widest italic underline decoration-2 underline-offset-8">Audit Entry</h3>
+                        <div id="target-label" class="px-3 py-1 rounded bg-brand/10 border border-brand/20 text-brand text-[10px] font-black uppercase tracking-tighter">Target: Module Global</div>
                     </div>
                     
-                    <div class="mt-auto pt-8 border-t border-white/5">
-                        <div class="flex justify-between items-end mb-4 text-left">
-                            <h3 class="text-lg font-black text-emerald-400 uppercase tracking-widest italic underline underline-offset-8">User Feedback</h3>
-                            <div id="feedback-target-label" class="px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black tracking-tighter uppercase">Target: Global Module</div>
+                    <div class="bg-black/40 rounded-[32px] p-6 border border-white/5 mb-6">
+                        <div id="feedback-input" class="text-lg text-slate-200 outline-none min-h-[120px] font-medium" contenteditable="true" placeholder="해당 항목에 대한 피드백을 입력하세요..."></div>
+                        <div class="flex justify-end mt-4">
+                            <button id="btn-save-audit" onclick="saveLogicFeedback()" class="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl shadow-lg active:scale-95 transition">SAVE AUDIT</button>
                         </div>
-                        <div class="comment-box p-8 rounded-[40px] bg-black/40 border border-white/5 focus-within:border-brand/50 transition-all text-left text-slate-200">
-                            <div id="feat-comment" class="text-xl leading-relaxed outline-none min-h-[250px] font-medium" contenteditable="true" oninput="saveComment()">
-                                <!-- 사용자의 피드백 공간 -->
-                            </div>
-                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto max-h-[350px] space-y-4 pr-2" id="audit-history">
+                        <!-- AUDIT LOGS -->
                     </div>
                 </div>
             </div>
-
-            <div id="content-arch" class="hidden animate-fade-in grid grid-cols-1 md:grid-cols-2 gap-10">
-                <!-- 아키텍처 코드는 Technical Blueprint 탭에서 다룸 -->
-            </div>
-        </div>
-        
-        <div id="hub-empty" class="h-[500px] flex flex-col items-center justify-center text-slate-800 border-4 border-dashed border-white/5 rounded-[60px]">
-            <span class="material-symbols-outlined text-8xl mb-6 opacity-10">ads_click</span>
-            <p class="font-black uppercase tracking-[0.5em] text-xl opacity-20">Click a module to inspect design</p>
         </div>
     </div>
 
 </main>
 
 <script>
-    const featureData = {
+    let activeModuleId = null;
+    let activeLogicIdx = null;
+    let editingAuditIdx = null;
+
+    const moduleData = {
         'home': {
-            title: "Dashboard", subtitle: "실시간 성과 지표 관제", icon: "dashboard", color: "bg-home",
-            functions: ["프로젝트별 독립형 실시간 달성률 분석", "팀원 가동률 및 역할별 참여 현황 모니터링", "시각화된 리포트 카드 (Glassmorphism)", "글로벌 테마 및 톤 통합 제어 시스템"],
-            ui: `
-                <div class="flex flex-col gap-8 text-left">
-                    <div class="flex justify-between items-center mb-4">
-                        <div><p class="text-xs text-slate-400 font-bold">10월 24일 목요일</p><h4 class="text-2xl font-black">안녕하세요 관리자님! 👷</h4></div>
-                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shadow-md"><span class="material-symbols-outlined text-blue-600">person</span></div>
-                    </div>
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                        <div class="flex justify-between mb-4">
-                            <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span class="font-bold">A동 아파트 신축</span></div>
-                            <span class="text-blue-600 font-black">75%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-2"><div class="bg-blue-500 h-full w-3/4"></div></div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase">Progress: 3 / 4 TASKS</p>
-                    </div>
-                    <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                        <div class="flex justify-between mb-4">
-                            <div class="flex items-center gap-2"><div class="w-3 h-3 bg-orange-500 rounded-full"></div><span class="font-bold">B동 설비 보수</span></div>
-                            <span class="text-orange-600 font-black">40%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mb-2"><div class="bg-orange-500 h-full w-2/5"></div></div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase">Progress: 2 / 5 TASKS</p>
-                    </div>
-                </div>
-            `
+            title: "Dashboard", logics: ["실시간 달성률 분석 엔진", "팀원 리스트 & 이모지 아바타", "Master 전용 앱바 디자인", "날짜 및 개인화 인사말"],
+            ui: `<div class="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-white"><h2 class="text-xl font-black italic text-[#1E293B]">WORKNOTE Master</h2><span class="material-symbols-outlined text-[#1E293B]">notifications</span></div>
+                 <div class="flex-1 px-6 py-8 space-y-8"><div data-logic="3"><p class="text-sm text-slate-400 font-bold">2월 1일 일요일</p><h1 class="text-2xl font-black">안녕하세요 관리자님! 👷</h1></div>
+                 <div data-logic="0" class="space-y-4"><h3 class="text-lg font-black">프로젝트 현황</h3><div class="bg-white rounded-[24px] p-6 shadow-sm border border-slate-50"><div class="flex justify-between items-center mb-4"><div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span class="font-black">A동 아파트 신축</span></div><span class="text-blue-600 font-black">0%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-blue-500 h-full w-[2%]"></div></div></div></div></div>`
         },
         'task': {
-            title: "Task Engine", subtitle: "지능형 업무 분배 시스템", icon: "task_alt", color: "bg-task",
-            functions: ["4단 복합 필터링 테이블 (프로젝트/상태/중요도/기한)", "지능형 #프로젝트 자동완성 및 입력 제목 보존", "커스텀 팝업 메뉴 기반 원터치 필터링 조작", "기한 필터링 확장 (2주, 1달 옵션 통합)"],
-            ui: `
-                <div class="flex flex-col gap-6 text-left">
-                    <div class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm">
-                        <div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black">프로젝트</p><p class="text-[10px] font-black text-blue-600">A동 신축</p></div>
-                        <div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black">상태</p><p class="text-[10px] font-black text-blue-600">진행 중</p></div>
-                        <div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black">중요도</p><p class="text-[10px] font-black text-red-500">상</p></div>
-                        <div class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black">기한</p><p class="text-[10px] font-black">2주</p></div>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="bg-white p-5 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm hover:shadow-md transition cursor-pointer">
-                            <div class="w-6 h-6 border-2 border-slate-300 rounded-lg"></div>
-                            <div class="flex-1">
-                                <p class="text-[10px] text-blue-500 font-black uppercase">A동 아파트 신축</p>
-                                <p class="text-sm font-bold">배관 누수 긴급 점검 수행</p>
-                            </div>
-                            <div class="flex flex-col items-end"><span class="text-xl">👷</span><p class="text-[8px] text-slate-400 font-bold">나</p></div>
-                        </div>
-                    </div>
-                    <div class="mt-4 p-4 bg-brand rounded-2xl flex justify-center text-white font-black gap-2 shadow-lg shadow-blue-500/30 hover:scale-[1.02] transition active:scale-95 cursor-pointer">
-                        <span class="material-symbols-outlined">add</span> ADD TASK
-                    </div>
-                </div>
-            `
+            title: "Task Engine", logics: ["4단 복합 필터바 드롭다운", "기한 확장 (2주/1달) 엔진", "중요도별 컬러 코딩", "와이드 ADD TASK 버튼"],
+            ui: `<div class="px-6 py-4 border-b border-slate-100 bg-white text-left"><h2 class="text-xl font-black italic text-[#1E293B]">TASK Console</h2></div>
+                 <div class="flex-1 p-4 space-y-6"><div data-logic="0" class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm"><div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">상태</p><p class="text-[10px] font-black text-blue-600">전체</p></div><div data-logic="2" class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">중요도</p><p class="text-[10px] font-black text-red-500">상</p></div><div data-logic="1" class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase">기한</p><p class="text-[10px] font-black text-blue-600">1달</p></div></div></div>`
         },
         'journal': {
-            title: "Smart Journal", subtitle: "보안 기반 지능형 게시판", icon: "history_edu", color: "bg-journal",
-            functions: ["다차원 타임라인 그룹화 (일/주/월/분기/년별)", "비공개(Private) 보안 필터링 및 본인 인증 로직", "드롭다운 기반 복합 필터 시스템 (그룹주기/담당자)", "실시간 텍스트 검색 및 아카이빙 엔진"],
-            ui: `
-                <div class="flex flex-col gap-6 text-left">
-                    <div class="bg-white rounded-full p-3 px-6 border border-slate-200 shadow-sm flex items-center gap-3">
-                        <span class="material-symbols-outlined text-slate-400 text-lg">search</span>
-                        <p class="text-slate-400 text-sm font-medium">일지 내용을 검색하세요...</p>
-                    </div>
-                    <div class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm">
-                        <div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black">그룹 주기</p><p class="text-[10px] font-black text-blue-600 uppercase">일별</p></div>
-                        <div class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black">담당 팀원</p><p class="text-[10px] font-black uppercase text-slate-800">전체 리스트</p></div>
-                    </div>
-                    <div class="space-y-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-3 ml-2">
-                                <div class="w-1.5 h-4 bg-blue-600 rounded-full"></div>
-                                <p class="text-slate-800 font-black text-sm tracking-tight uppercase">2024-10-24</p>
-                            </div>
-                            <div class="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                                <div class="flex justify-between items-start mb-3">
-                                    <h5 class="text-lg font-black tracking-tight leading-none group-hover:text-blue-600 transition">오전 현장 정기 순찰</h5>
-                                    <div class="p-1.5 rounded-lg bg-amber-50"><span class="material-symbols-outlined text-amber-600 text-xs font-bold">lock</span></div>
-                                </div>
-                                <p class="text-sm text-slate-500 leading-relaxed font-medium">오늘은 자재 반입이 많아 동선 확보에 주력했습니다. 각 팀장님들께 협조를 요청하였고...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `
+            title: "Smart Journal", logics: ["다차원 타임라인 그룹화", "비공개 보안 로직", "Dropdown 복합 필터", "프로젝트 배지 및 작성자 정보"],
+            ui: `<div class="p-4 flex flex-col gap-6"><div data-logic="2" class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm"><div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">그룹 주기</p><p class="text-[10px] font-black text-blue-600">일별</p></div><div class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase">담당 팀원</p><p class="text-[10px] font-black">전체</p></div></div></div>`
         },
         'gallery': {
-            title: "Visual Hub", subtitle: "사진 자산 시계열 관리", icon: "auto_awesome_motion", color: "bg-gallery",
-            functions: ["Context-Aware 스마트 점프 (날짜별 자동 스크롤)", "GlobalKey 기반 시계열 인덱싱 및 빠른 탐색", "팀원별 사진 필터링 및 업로드 히스토리 관리", "점진적 이미지 로딩 및 그리드 레이아웃 최적화"],
-            ui: `
-                <div class="flex flex-col gap-6 text-left text-slate-800 font-bold">
-                    <p class="text-xl font-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Visual Hub Archive</p>
-                    <div class="space-y-8">
-                        <div>
-                            <p class="text-xs font-black text-slate-400 mb-4 ml-2 uppercase tracking-widest">Thursday, Oct 24</p>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-300"><span class="material-symbols-outlined text-slate-400">image</span></div>
-                                <div class="aspect-square bg-emerald-50 rounded-2xl flex items-center justify-center border-2 border-emerald-500 shadow-lg shadow-emerald-100"><span class="material-symbols-outlined text-emerald-500">photo_camera</span></div>
-                                <div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-300"><span class="material-symbols-outlined text-slate-400">image</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `
+            title: "Visual Hub", logics: ["GlobalKey 기반 스마트 점프", "시계열 사진 인덱싱", "팀원별 필터링", "그리드 레이아웃 최적화"],
+            ui: `<div class="p-6 space-y-8 text-left text-slate-900"><p data-logic="0" class="text-xl font-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Visual Archive</p><div data-logic="1" class="space-y-6"><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Oct 24, 2024</p><div class="grid grid-cols-3 gap-3"><div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">image</span></div><div class="aspect-square bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined text-white">photo_camera</span></div><div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">image</span></div></div></div></div>`
         }
     };
 
-    let activeModule = null;
-    let activeSubFeatureIdx = null;
-
-    function showMainSection(id) {
-        document.getElementById('section-hub').classList.add('hidden');
-        document.getElementById('nav-hub').classList.remove('active');
-        document.getElementById('nav-arch').classList.remove('active');
-        document.getElementById('nav-' + id).classList.add('active');
-        if(id === 'hub') document.getElementById('section-hub').classList.remove('hidden');
-    }
-
-    function toggleFeature(id) {
-        if (activeModule === id) { closeFeature(); return; }
-        activeModule = id;
-        activeSubFeatureIdx = null;
-        const data = featureData[id];
-        
+    function toggleModule(id) {
+        activeModuleId = id; activeLogicIdx = null; editingAuditIdx = null;
         document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
         document.getElementById('card-' + id).classList.add('active');
-        
-        document.getElementById('feat-title').innerText = data.title;
-        document.getElementById('feat-subtitle').innerText = data.subtitle;
-        document.getElementById('feat-icon').innerText = data.icon;
-        document.getElementById('feat-icon-bg').className = `w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg ${data.color}`;
-        
-        document.getElementById('ui-mockup').innerHTML = data.ui;
-        
-        renderLogicList(data.functions, data.color);
-        updateFeedbackTarget();
-        
-        document.getElementById('feat-comment').innerText = localStorage.getItem(`feedback-${id}-global`) || "";
-        
-        document.getElementById('hub-empty').classList.add('hidden');
-        document.getElementById('feature-content').classList.remove('hidden');
-        switchInnerTab('overview');
-        document.getElementById('feature-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('module-title-display').innerText = moduleData[id].title;
+        renderLogics(moduleData[id].logics);
+        updateRender();
+        updateAuditHistory();
+        document.getElementById('module-content').classList.remove('hidden');
+        document.getElementById('module-content').scrollIntoView({ behavior: 'smooth' });
     }
 
-    function renderLogicList(functions, colorClass) {
-        const listContainer = document.getElementById('feat-list');
-        listContainer.innerHTML = functions.map((f, idx) => `
-            <div onclick="selectSubFeature(${idx})" id="logic-item-${idx}" class="logic-item flex items-center gap-4 p-5 glass rounded-2xl border-white/5 shadow-md">
-                <span class="material-symbols-outlined text-2xl ${colorClass.replace('bg-', 'text-')} transition-all">verified</span>
-                <span class="text-sm font-bold text-slate-300 transition-all">${f}</span>
+    function renderLogics(logics) {
+        document.getElementById('logic-list').innerHTML = logics.map((l, idx) => `
+            <div onclick="selectLogic(${idx})" id="logic-${idx}" class="logic-item flex items-center gap-4">
+                <span class="material-symbols-outlined text-brand">verified</span>
+                <span class="text-sm font-bold text-slate-300">${l}</span>
             </div>
         `).join('');
     }
 
-    function selectSubFeature(idx) {
-        const data = featureData[activeModule];
-        const isDeselect = activeSubFeatureIdx === idx;
-        
+    function selectLogic(idx) {
+        activeLogicIdx = idx;
+        editingAuditIdx = null;
         document.querySelectorAll('.logic-item').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('[data-logic]').forEach(el => el.classList.remove('highlight-active'));
+        if (activeLogicIdx !== null) {
+            document.getElementById(`logic-${idx}`).classList.add('selected');
+            const target = document.querySelector(`[data-logic="${idx}"]`);
+            if (target) target.classList.add('highlight-active');
+        }
+        updateLabel(); updateAuditHistory();
+        document.getElementById('feedback-input').innerText = "";
+        document.getElementById('btn-save-audit').innerText = "SAVE AUDIT";
+    }
+
+    function updateLabel() {
+        const label = document.getElementById('target-label');
+        label.innerText = activeLogicIdx === null ? `Target: ${activeModuleId.toUpperCase()} Global` : `Target: ${moduleData[activeModuleId].logics[activeLogicIdx]}`;
+    }
+
+    function updateRender() {
+        document.getElementById('ui-render').innerHTML = moduleData[activeModuleId].ui;
+    }
+
+    function saveLogicFeedback() {
+        const text = document.getElementById('feedback-input').innerText;
+        if (!text.trim()) return;
+        const key = activeLogicIdx === null ? `audit-${activeModuleId}-global` : `audit-${activeModuleId}-${activeLogicIdx}`;
+        let audits = JSON.parse(localStorage.getItem(key) || "[]");
         
-        if (isDeselect) {
-            activeSubFeatureIdx = null;
+        if (editingAuditIdx !== null) {
+            audits[editingAuditIdx].content = text;
+            editingAuditIdx = null;
+            document.getElementById('btn-save-audit').innerText = "SAVE AUDIT";
         } else {
-            activeSubFeatureIdx = idx;
-            document.getElementById(`logic-item-${idx}`).classList.add('selected');
+            audits.unshift({ date: new Date().toLocaleString(), content: text, reply: "" });
         }
         
-        updateFeedbackTarget();
-        loadFeedback();
+        localStorage.setItem(key, JSON.stringify(audits));
+        document.getElementById('feedback-input').innerText = "";
+        updateAuditHistory();
     }
 
-    function updateFeedbackTarget() {
-        const label = document.getElementById('feedback-target-label');
-        if (activeSubFeatureIdx === null) {
-            label.innerText = `Target: ${activeModule.toUpperCase()} Global`;
-            label.className = "px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black tracking-tighter uppercase";
-        } else {
-            const featureName = featureData[activeModule].functions[activeSubFeatureIdx];
-            label.innerText = `Target: ${featureName}`;
-            label.className = "px-3 py-1 rounded bg-brand/10 border border-brand/20 text-brand text-[10px] font-black tracking-tighter uppercase animate-pulse";
-        }
+    function deleteAudit(idx) {
+        const key = activeLogicIdx === null ? `audit-${activeModuleId}-global` : `audit-${activeModuleId}-${activeLogicIdx}`;
+        let audits = JSON.parse(localStorage.getItem(key) || "[]");
+        audits.splice(idx, 1);
+        localStorage.setItem(key, JSON.stringify(audits));
+        updateAuditHistory();
     }
 
-    function loadFeedback() {
-        const feedbackKey = activeSubFeatureIdx === null 
-            ? `feedback-${activeModule}-global` 
-            : `feedback-${activeModule}-sub-${activeSubFeatureIdx}`;
-        document.getElementById('feat-comment').innerText = localStorage.getItem(feedbackKey) || "";
+    function editAudit(idx) {
+        const key = activeLogicIdx === null ? `audit-${activeModuleId}-global` : `audit-${activeModuleId}-${activeLogicIdx}`;
+        let audits = JSON.parse(localStorage.getItem(key) || "[]");
+        document.getElementById('feedback-input').innerText = audits[idx].content;
+        editingAuditIdx = idx;
+        document.getElementById('btn-save-audit').innerText = "UPDATE AUDIT";
+        document.getElementById('feedback-input').focus();
     }
 
-    function saveComment() {
-        if (!activeModule) return;
-        const feedbackKey = activeSubFeatureIdx === null 
-            ? `feedback-${activeModule}-global` 
-            : `feedback-${activeModule}-sub-${activeSubFeatureIdx}`;
-        localStorage.setItem(feedbackKey, document.getElementById('feat-comment').innerText);
+    function updateAuditHistory() {
+        const key = activeLogicIdx === null ? `audit-${activeModuleId}-global` : `audit-${activeModuleId}-${activeLogicIdx}`;
+        const audits = JSON.parse(localStorage.getItem(key) || "[]");
+        document.getElementById('audit-history').innerHTML = audits.map((a, i) => `
+            <div class="audit-entry group">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-black text-slate-500">${a.date}</span>
+                    <div class="entry-actions">
+                        <button onclick="editAudit(${i})" class="text-blue-400 hover:text-white"><span class="material-symbols-outlined text-sm">edit</span></button>
+                        <button onclick="deleteAudit(${i})" class="text-red-400 hover:text-white"><span class="material-symbols-outlined text-sm">delete</span></button>
+                    </div>
+                </div>
+                <div class="text-slate-200 font-medium leading-relaxed">${a.content}</div>
+                ${a.reply ? `<div class="done-reply"><span class="material-symbols-outlined text-sm">subdirectory_arrow_right</span><span>${a.reply}</span></div>` : ""}
+            </div>
+        `).join('');
     }
 
-    function closeFeature() {
-        document.getElementById('feature-content').classList.add('hidden');
-        document.getElementById('hub-empty').classList.remove('hidden');
-        document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
-        activeModule = null;
-        activeSubFeatureIdx = null;
+    function saveOverallFeedback() {
+        localStorage.setItem('overall-app-feedback', document.getElementById('overall-feedback-input').innerText);
+        alert("전체 어플 피드백이 저장되었습니다.");
     }
 
-    function switchInnerTab(tab) {
-        document.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.add('active');
-        document.getElementById('content-overview').className = tab === 'overview' ? 'grid grid-cols-1 lg:grid-cols-12 gap-12' : 'hidden';
-        document.getElementById('content-arch').className = tab === 'arch' ? 'animate-fade-in grid grid-cols-1 md:grid-cols-2 gap-10' : 'hidden';
-    }
+    // Load Overall Feedback on start
+    document.getElementById('overall-feedback-input').innerText = localStorage.getItem('overall-app-feedback') || "";
 </script>
 </body></html>
