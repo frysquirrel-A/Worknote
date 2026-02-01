@@ -1,7 +1,7 @@
 <html class="dark" lang="ko"><head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>WorkNote Master Hub v19.0</title>
+<title>WorkNote Master Hub v20.2</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
     tailwind.config = {
@@ -14,8 +14,7 @@
             task: '#8b5cf6',
             journal: '#f59e0b',
             gallery: '#10b981',
-            f_bg: '#F8FAFC',
-            f_nav: '#F1F5F9'
+            f_bg: '#F8FAFC'
           }
         }
       }
@@ -31,23 +30,31 @@
     .feature-card.active { background: rgba(37, 99, 235, 0.15); border-color: #2563EB; box-shadow: 0 0 40px rgba(37, 99, 235, 0.25); }
     
     .mockup-container { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; padding: 40px; }
-    .frame-phone { width: 390px; height: 844px; border: 12px solid #1e293b; border-radius: 60px; background: #F8FAFC; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+    .frame-phone { width: 395px; height: 850px; border: 12px solid #1e293b; border-radius: 60px; background: #F8FAFC; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 50px 100px rgba(0,0,0,0.6); }
     
+    .status-bar-mock { height: 30px; width: 100%; background: transparent; display: flex; justify-content: flex-end; align-items: center; padding: 0 24px; gap: 6px; }
+    .status-bar-mock span { font-size: 14px; color: #1e293b; opacity: 0.5; }
+
     .comment-box { background: rgba(0, 0, 0, 0.4); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); padding: 20px; }
+    
+    /* placeholder warning fix */
+    [contenteditable=true]:empty:before { content: attr(data-placeholder); color: #64748b; font-style: italic; pointer-events: none; display: block; }
+
     .audit-entry { background: rgba(255,255,255,0.03); border-left: 4px solid #2563EB; padding: 16px; margin-bottom: 12px; border-radius: 0 12px 12px 0; position: relative; }
+    .entry-actions { position: absolute; top: 12px; right: 12px; opacity: 0; transition: 0.2s; display: flex; gap: 8px; }
     .audit-entry:hover .entry-actions { opacity: 1; }
-    .entry-actions { position: absolute; top: 8px; right: 8px; opacity: 0; transition: 0.2s; display: flex; gap: 4px; }
-    .done-reply { margin-top: 8px; color: #10b981; font-weight: 800; display: flex; gap: 8px; align-items: flex-start; }
+    
+    .done-reply { margin-top: 12px; color: #10b981; font-weight: 800; display: flex; gap: 8px; align-items: center; border-top: 1px solid rgba(16, 185, 129, 0.1); padding-top: 8px; }
 
     [data-logic] { transition: all 0.3s ease; border: 2px solid transparent; cursor: pointer; }
-    .highlight-active { border-color: #2563EB !important; box-shadow: 0 0 20px rgba(37, 99, 235, 0.5) !important; background: rgba(37,99,235,0.05); }
+    .highlight-active { border-color: #2563EB !important; box-shadow: 0 0 20px rgba(37, 99, 235, 0.3) !important; background: rgba(37,99,235,0.02); }
 
     .logic-item { transition: all 0.2s; cursor: pointer; border-radius: 12px; padding: 12px; border: 1px solid transparent; }
-    .logic-item:hover { background: rgba(255,255,255,0.05); }
-    .logic-item.selected { background: rgba(37, 99, 235, 0.1); border-color: #2563EB; }
+    .logic-item.selected { background: rgba(37, 99, 235, 0.1); border-color: #2563EB; font-weight: 900; }
 
-    .module-header-clickable { cursor: pointer; transition: 0.2s; border-radius: 12px; padding: 4px 12px; }
-    .module-header-clickable:hover { background: rgba(37, 99, 235, 0.1); color: #2563EB; }
+    .module-header-clickable { cursor: pointer; transition: 0.3s; border-radius: 16px; padding: 8px 16px; border: 2px solid transparent; }
+    .module-header-clickable:hover { border-color: #2563EB; background: rgba(37, 99, 235, 0.05); }
+    .module-header-clickable.selected { border-color: #2563EB; background: rgba(37, 99, 235, 0.15); box-shadow: 0 0 20px rgba(37, 99, 235, 0.2); }
 
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -60,90 +67,88 @@
         <div class="w-12 h-12 rounded-2xl bg-brand flex items-center justify-center shadow-2xl shadow-blue-500/40">
             <span class="material-symbols-outlined text-white text-3xl font-bold">account_tree</span>
         </div>
-        <span class="text-2xl font-black tracking-tighter uppercase italic">WorkNote <span class="font-light text-slate-500 text-sm italic">v19.0 Master Hub</span></span>
+        <span class="text-2xl font-black tracking-tighter uppercase italic">WorkNote <span class="font-light text-slate-500 text-sm italic">v20.2 Pro Hub</span></span>
     </div>
     <div class="flex gap-8">
-        <button onclick="saveAllAudits()" class="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-full shadow-lg hover:bg-emerald-500 transition">PUSH ALL UPDATES</button>
+        <div class="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-xs font-black uppercase">● Live System Online</div>
     </div>
 </nav>
 
 <main class="pt-36 pb-24 px-10 max-w-[2200px] mx-auto text-left">
 
-    <!-- OVERALL PROJECT FEEDBACK -->
-    <div class="mb-16 glass p-10 rounded-[48px] border-l-8 border-brand">
-        <h2 class="text-3xl font-black italic tracking-tighter mb-6 flex items-center gap-4">
-            <span class="material-symbols-outlined text-4xl text-brand">settings_suggest</span> OVERALL APP FEEDBACK
+    <!-- OVERALL APP FEEDBACK (NOW FULLY ENABLED) -->
+    <div class="mb-16 glass p-10 rounded-[48px] border-l-8 border-emerald-500">
+        <h2 class="text-3xl font-black italic tracking-tighter mb-6 flex items-center gap-4 text-left">
+            <span class="material-symbols-outlined text-4xl text-emerald-500">settings_suggest</span> OVERALL APP FEEDBACK
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 text-left">
-            <div class="comment-box min-h-[150px]">
-                <div id="overall-feedback-input" class="text-lg text-slate-200 outline-none font-medium" contenteditable="true" placeholder="어플 전체에 대한 의견을 남겨주세요..."></div>
+            <div class="comment-box min-h-[150px] text-left">
+                <div id="overall-feedback-input" class="text-lg text-slate-200 outline-none font-medium text-left" contenteditable="true" data-placeholder="어플 전체에 대한 공통 디자인, 폰트 일관성 등의 의견을 남겨주세요..."></div>
             </div>
             <div class="flex flex-col justify-end items-end gap-4 text-left">
-                <p class="text-xs text-slate-500 font-bold max-w-sm text-right">전체적인 디자인 톤, 폰트 일관성, 혹은 공통 내비게이션에 대한 의견을 통합 저장합니다.</p>
-                <button onclick="saveOverallFeedback()" class="px-10 py-4 bg-brand text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] transition active:scale-95">SAVE OVERALL FEEDBACK</button>
+                <button onclick="saveOverallFeedback()" class="px-10 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] transition active:scale-95">SAVE OVERALL FEEDBACK</button>
+                <div id="overall-status" class="text-emerald-400 text-[10px] font-black opacity-0">● PROJECT FEEDBACK UPDATED AND SYNCED</div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 text-left">
         <div id="card-home" onclick="toggleModule('home')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-home text-left">
             <div class="flex items-center gap-4"><span class="material-symbols-outlined text-home text-4xl">dashboard</span><span class="text-xl font-black uppercase">Dashboard</span></div>
             <p class="text-xs text-slate-400 font-bold">실시간 분석 및 자원 관제</p>
         </div>
         <div id="card-task" onclick="toggleModule('task')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-task text-left">
             <div class="flex items-center gap-4"><span class="material-symbols-outlined text-task text-4xl">task_alt</span><span class="text-xl font-black uppercase">Task Engine</span></div>
-            <p class="text-xs text-slate-400 font-bold">복합 필터 및 마감 관리</p>
+            <p class="text-xs text-slate-400 font-bold">복합 필터 및 상세 마감</p>
         </div>
         <div id="card-journal" onclick="toggleModule('journal')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-journal text-left">
             <div class="flex items-center gap-4"><span class="material-symbols-outlined text-journal text-4xl">history_edu</span><span class="text-xl font-black uppercase">Smart Journal</span></div>
-            <p class="text-xs text-slate-400 font-bold">Dropdown 보안 아카이브</p>
+            <p class="text-xs text-slate-400 font-bold">보안 기반 타임라인 아카이브</p>
         </div>
         <div id="card-gallery" onclick="toggleModule('gallery')" class="feature-card glass p-8 rounded-[40px] flex flex-col gap-4 border-l-4 border-gallery text-left">
             <div class="flex items-center gap-4"><span class="material-symbols-outlined text-gallery text-4xl">auto_awesome_motion</span><span class="text-xl font-black uppercase">Visual Hub</span></div>
-            <p class="text-xs text-slate-400 font-bold">이미지 스마트 인덱싱</p>
+            <p class="text-xs text-slate-400 font-bold">GlobalKey 스마트 인덱싱</p>
         </div>
     </div>
 
-    <div id="module-content" class="glass rounded-[60px] p-12 animate-slide-down hidden border-t-8 border-brand/40 shadow-2xl">
+    <div id="module-content" class="glass rounded-[60px] p-12 animate-slide-down hidden border-t-8 border-brand/40 shadow-2xl text-left">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 text-left">
-            <div class="lg:col-span-7">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.4em]">Flutter Live Mirror</h3>
-                    <div class="flex gap-4">
-                        <button id="btn-actual" onclick="updateUiMode('actual')" class="px-4 py-1.5 rounded-full bg-brand text-white text-[10px] font-black shadow-lg">ACTUAL CODE</button>
-                        <button id="btn-rec" onclick="updateUiMode('rec')" class="px-4 py-1.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-black">AI CHOICE</button>
-                    </div>
-                </div>
+            <!-- LEFT: REAL-TIME FLUTTER UI REPLICATION -->
+            <div class="lg:col-span-7 text-left">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.4em] mb-6 text-left">Flutter Emulator Mirror</h3>
                 <div class="mockup-container rounded-[48px]">
-                    <div id="device-frame" class="frame-phone">
-                        <div id="ui-render" class="h-full flex flex-col bg-[#F8FAFC] text-left"></div>
+                    <div id="device-frame" class="frame-phone text-left">
+                        <div class="status-bar-mock">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">signal_cellular_alt</span>
+                            <span class="material-symbols-outlined" style="font-size: 14px;">wifi</span>
+                            <span class="material-symbols-outlined" style="font-size: 14px;">battery_full</span>
+                        </div>
+                        <div id="ui-render" class="flex-1 flex flex-col overflow-y-auto bg-[#F8FAFC] text-left"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-5 flex flex-col gap-8">
-                <div class="space-y-6">
-                    <!-- 클릭 가능한 제목 -->
-                    <h3 id="module-title-display" onclick="selectLogic(null)" class="text-3xl font-black italic uppercase text-brand module-header-clickable inline-block">DASHBOARD</h3>
-                    <div id="logic-list" class="space-y-2"></div>
+            <!-- RIGHT: DYNAMIC AUDIT CONSOLE -->
+            <div class="lg:col-span-5 flex flex-col gap-8 text-left">
+                <div class="space-y-6 text-left">
+                    <h3 id="module-title-display" onclick="selectLogic(null)" class="text-3xl font-black italic uppercase text-brand module-header-clickable inline-block">TITLE</h3>
+                    <div id="logic-list" class="space-y-2 text-left"></div>
                 </div>
 
-                <div class="flex-1 flex flex-col mt-8">
-                    <div class="flex justify-between items-end mb-4">
+                <div class="flex-1 flex flex-col mt-8 border-t border-white/5 pt-8 text-left">
+                    <div class="flex justify-between items-end mb-4 text-left">
                         <h3 class="text-lg font-black text-emerald-400 uppercase tracking-widest italic underline decoration-2 underline-offset-8">Audit Entry</h3>
-                        <div id="target-label" class="px-3 py-1 rounded bg-brand/10 border border-brand/20 text-brand text-[10px] font-black uppercase tracking-tighter">Target: Module Global</div>
+                        <div id="target-label" class="px-3 py-1 rounded bg-brand/10 border border-brand/20 text-brand text-[10px] font-black uppercase tracking-tight">Target: Global Module</div>
                     </div>
                     
-                    <div class="bg-black/40 rounded-[32px] p-6 border border-white/5 mb-6">
-                        <div id="feedback-input" class="text-lg text-slate-200 outline-none min-h-[120px] font-medium" contenteditable="true" placeholder="해당 항목에 대한 피드백을 입력하세요..."></div>
+                    <div class="bg-black/40 rounded-[32px] p-6 border border-white/5 mb-6 text-left">
+                        <div id="feedback-input" class="text-lg text-slate-200 outline-none min-h-[120px] font-medium text-left" contenteditable="true" data-placeholder="선택한 항목이나 모듈 제목을 클릭하여 피드백을 남기세요..."></div>
                         <div class="flex justify-end mt-4">
-                            <button id="btn-save-audit" onclick="saveLogicFeedback()" class="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-xl shadow-lg active:scale-95 transition">SAVE AUDIT</button>
+                            <button id="btn-save-audit" onclick="saveLogicFeedback()" class="px-8 py-3 bg-emerald-600 text-white text-xs font-black rounded-xl shadow-lg active:scale-95 transition uppercase tracking-widest">Save Audit</button>
                         </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto max-h-[350px] space-y-4 pr-2" id="audit-history">
-                        <!-- AUDIT LOGS -->
-                    </div>
+                    <div class="flex-1 overflow-y-auto max-h-[350px] space-y-4 pr-2 text-left" id="audit-history"></div>
                 </div>
             </div>
         </div>
@@ -158,23 +163,99 @@
 
     const moduleData = {
         'home': {
-            title: "Dashboard", logics: ["실시간 달성률 분석 엔진", "팀원 리스트 & 이모지 아바타", "Master 전용 앱바 디자인", "날짜 및 개인화 인사말"],
-            ui: `<div class="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-white"><h2 class="text-xl font-black italic text-[#1E293B]">WORKNOTE Master</h2><span class="material-symbols-outlined text-[#1E293B]">notifications</span></div>
-                 <div class="flex-1 px-6 py-8 space-y-8"><div data-logic="3"><p class="text-sm text-slate-400 font-bold">2월 1일 일요일</p><h1 class="text-2xl font-black">안녕하세요 관리자님! 👷</h1></div>
-                 <div data-logic="0" class="space-y-4"><h3 class="text-lg font-black">프로젝트 현황</h3><div class="bg-white rounded-[24px] p-6 shadow-sm border border-slate-50"><div class="flex justify-between items-center mb-4"><div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span class="font-black">A동 아파트 신축</span></div><span class="text-blue-600 font-black">0%</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-blue-500 h-full w-[2%]"></div></div></div></div></div>`
+            title: "WORKNOTE Master", logics: ["프로젝트 실시간 진행률 산출 엔진", "팀원 리스트 (이모지+이름 하단 배치)", "상단 환영 인사말 및 2월 1일 날짜 형식", "프로필 아이콘 및 연보라색 네비 인디케이터"],
+            ui: `
+                <div class="px-6 py-4 flex justify-between items-center bg-white border-b border-slate-50">
+                    <h2 class="text-xl font-black italic text-[#1E293B]">WORKNOTE Master</h2>
+                    <span class="material-symbols-outlined text-[#1E293B]">notifications</span>
+                </div>
+                <div class="flex-1 px-6 py-8 space-y-8 text-left bg-[#F8FAFC]">
+                    <div data-logic="2">
+                        <p class="text-[13px] text-slate-400 font-bold mb-1 text-left">2월 1일 일요일</p>
+                        <div class="flex justify-between items-center text-left">
+                            <h1 class="text-2xl font-black text-slate-900">안녕하세요 관리자님! 👷</h1>
+                            <div class="w-12 h-12 bg-[#E0E7FF] rounded-full flex items-center justify-center border-2 border-white shadow-sm"><span class="material-symbols-outlined text-[#1E293B]">person</span></div>
+                        </div>
+                    </div>
+                    <div data-logic="0" class="space-y-4 text-left">
+                        <h3 class="text-lg font-black text-slate-900">프로젝트 현황</h3>
+                        <div class="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col gap-4 text-left">
+                            <div class="flex justify-between items-center text-left">
+                                <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 bg-blue-500 rounded-full"></div><span class="font-black text-slate-800">A동 아파트 신축</span></div>
+                                <span class="text-blue-600 font-black text-sm">0%</span>
+                            </div>
+                            <div class="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden"><div class="bg-blue-500 h-full w-[2%]"></div></div>
+                            <p class="text-[10px] text-slate-400 font-black tracking-tighter uppercase text-left">진행 0 / 전체 1</p>
+                        </div>
+                    </div>
+                    <div data-logic="1" class="space-y-4 text-left">
+                        <h3 class="text-lg font-black text-slate-900">팀원 리스트</h3>
+                        <div class="flex gap-6 overflow-x-hidden text-left">
+                            <div class="flex flex-col items-center gap-2 text-left">
+                                <div class="w-16 h-16 bg-[#E0E7FF] rounded-full flex items-center justify-center text-3xl shadow-sm border-2 border-white">👷</div>
+                                <p class="text-[11px] font-black text-slate-500">나</p>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 text-left">
+                                <div class="w-16 h-16 bg-[#E0E7FF] rounded-full flex items-center justify-center text-3xl shadow-sm border-2 border-white">👨‍🔧</div>
+                                <p class="text-[11px] font-black text-slate-500">김반장</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div data-logic="3" class="h-[85px] bg-white border-t border-slate-50 flex items-center justify-around px-2 pb-2">
+                    <div class="flex flex-col items-center gap-1 relative"><div class="absolute -top-1 w-16 h-8 bg-[#E0E7FF] rounded-full -z-0"></div><span class="material-symbols-outlined text-[#1E293B] font-black z-10">home</span><span class="text-[10px] font-black text-[#1E293B] z-10">홈</span></div>
+                    <div class="flex flex-col items-center gap-1 text-left"><span class="material-symbols-outlined text-slate-400">assignment</span><span class="text-[10px] font-bold text-slate-400">업무</span></div>
+                    <div class="flex flex-col items-center gap-1 text-left"><span class="material-symbols-outlined text-slate-400">edit_note</span><span class="text-[10px] font-bold text-slate-400">일지</span></div>
+                    <div class="flex flex-col items-center gap-1 text-left"><span class="material-symbols-outlined text-slate-400">photo_library</span><span class="text-[10px] font-bold text-slate-400">갤러리</span></div>
+                </div>
+            `
         },
         'task': {
-            title: "Task Engine", logics: ["4단 복합 필터바 드롭다운", "기한 확장 (2주/1달) 엔진", "중요도별 컬러 코딩", "와이드 ADD TASK 버튼"],
-            ui: `<div class="px-6 py-4 border-b border-slate-100 bg-white text-left"><h2 class="text-xl font-black italic text-[#1E293B]">TASK Console</h2></div>
-                 <div class="flex-1 p-4 space-y-6"><div data-logic="0" class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm"><div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">상태</p><p class="text-[10px] font-black text-blue-600">전체</p></div><div data-logic="2" class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">중요도</p><p class="text-[10px] font-black text-red-500">상</p></div><div data-logic="1" class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase">기한</p><p class="text-[10px] font-black text-blue-600">1달</p></div></div></div>`
+            title: "TASK Console", logics: ["4단 복합 필터바 UI 및 드롭다운 연동", "기한 필터링 확장 (1달/2주/전체 로직)", "중요도별 원터치 배지 및 색상 강조", "와이드 스타일 ADD TASK 하단 버튼"],
+            ui: `<div class="px-6 py-4 flex justify-between items-center bg-white border-b border-slate-50 text-left"><h2 class="text-xl font-black italic text-[#1E293B]">TASK Console</h2></div>
+                 <div class="flex-1 p-4 space-y-6 bg-[#F8FAFC] text-left">
+                    <div data-logic="0" class="bg-white rounded-2xl flex border border-slate-100 overflow-hidden shadow-sm text-left">
+                        <div class="flex-1 p-3 text-center border-r border-slate-50"><p class="text-[8px] text-slate-400 font-black uppercase text-left ml-auto mr-auto w-max">상태</p><p class="text-[10px] font-black text-blue-600">전체</p></div>
+                        <div data-logic="2" class="flex-1 p-3 text-center border-r border-slate-50"><p class="text-[8px] text-slate-400 font-black uppercase text-left ml-auto mr-auto w-max">중요도</p><p class="text-[10px] font-black text-red-500 uppercase">상</p></div>
+                        <div data-logic="1" class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase text-left ml-auto mr-auto w-max">기한</p><p class="text-[10px] font-black text-blue-600">1달</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex gap-4 text-left">
+                        <div class="flex flex-col items-center gap-3 text-left"><div class="w-6 h-6 border-2 border-slate-200 rounded-lg"></div><div class="w-9 h-9 rounded-full border-2 border-red-500 flex items-center justify-center text-red-500 text-[10px] font-black text-left">상</div></div>
+                        <div class="flex-1 text-left"><p class="text-[10px] text-blue-500 font-black text-left">A동 신축</p><h3 class="text-md font-black text-[#1E293B] text-left">누수 긴급 점검 수행</h3></div>
+                    </div>
+                 </div>
+                 <div data-logic="3" class="p-6 bg-white border-t border-slate-100 text-left"><div class="w-full bg-[#2563EB] py-4 rounded-2xl text-white font-black text-center shadow-lg shadow-blue-200 uppercase tracking-widest italic">ADD TASK</div></div>`
         },
         'journal': {
-            title: "Smart Journal", logics: ["다차원 타임라인 그룹화", "비공개 보안 로직", "Dropdown 복합 필터", "프로젝트 배지 및 작성자 정보"],
-            ui: `<div class="p-4 flex flex-col gap-6"><div data-logic="2" class="bg-white rounded-2xl flex border border-slate-200 overflow-hidden shadow-sm"><div class="flex-1 p-3 text-center border-r border-slate-100"><p class="text-[8px] text-slate-400 font-black uppercase">그룹 주기</p><p class="text-[10px] font-black text-blue-600">일별</p></div><div class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase">담당 팀원</p><p class="text-[10px] font-black">전체</p></div></div></div>`
+            title: "SMART JOURNAL", logics: ["다차원 타임라인 그룹화 및 정렬 엔진", "비공개 보안 모드 및 자물쇠 인디케이터", "Dropdown 복합 필터바 (그룹주기/담당자)", "작성자 프로필 및 #프로젝트 배지 시각화"],
+            ui: `<div class="p-4 flex-1 flex flex-col gap-6 bg-[#F8FAFC] text-left">
+                    <div class="bg-white rounded-full p-3 px-6 border border-slate-100 shadow-sm flex items-center gap-3 text-left"><span class="material-symbols-outlined text-slate-400">search</span><p class="text-slate-400 text-sm text-left">일지 검색...</p></div>
+                    <div data-logic="2" class="bg-white rounded-2xl flex border border-slate-100 overflow-hidden shadow-sm text-left">
+                        <div class="flex-1 p-3 text-center border-r border-slate-50"><p class="text-[8px] text-slate-400 font-black uppercase text-left ml-auto mr-auto w-max">그룹 주기</p><p class="text-[10px] font-black text-blue-600">일별</p></div>
+                        <div class="flex-1 p-3 text-center"><p class="text-[8px] text-slate-400 font-black uppercase text-left ml-auto mr-auto w-max">담당 팀원</p><p class="text-[10px] font-black uppercase text-slate-800">전체 리스트</p></div>
+                    </div>
+                    <div data-logic="0" class="space-y-6 text-left">
+                        <div class="flex items-center gap-3 ml-2 text-left"><div class="w-1.5 h-4 bg-blue-600 rounded-full text-left"></div><p class="text-slate-800 font-black text-sm uppercase text-left">2024-10-24</p></div>
+                        <div class="bg-white p-6 rounded-[32px] border border-slate-50 shadow-sm text-left relative">
+                            <div class="flex justify-between mb-3 text-left"><h5 class="text-lg font-black text-[#1E293B]">현장 순찰 기록</h5><div data-logic="1" class="p-1.5 bg-orange-50 rounded-lg text-left"><span class="material-symbols-outlined text-orange-600 text-xs font-black">lock</span></div></div>
+                            <div data-logic="3" class="flex gap-2 text-left"><span class="px-3 py-1 bg-blue-50 text-blue-600 text-[9px] font-black rounded-full text-left">#A동 신축</span><span class="px-3 py-1 bg-slate-50 text-slate-500 text-[9px] font-black text-left">👷 나</span></div>
+                        </div>
+                    </div>
+                 </div>`
         },
         'gallery': {
-            title: "Visual Hub", logics: ["GlobalKey 기반 스마트 점프", "시계열 사진 인덱싱", "팀원별 필터링", "그리드 레이아웃 최적화"],
-            ui: `<div class="p-6 space-y-8 text-left text-slate-900"><p data-logic="0" class="text-xl font-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Visual Archive</p><div data-logic="1" class="space-y-6"><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Oct 24, 2024</p><div class="grid grid-cols-3 gap-3"><div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">image</span></div><div class="aspect-square bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg"><span class="material-symbols-outlined text-white">photo_camera</span></div><div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">image</span></div></div></div></div>`
+            title: "VISUAL HUB", logics: ["GlobalKey 기반 특정 날짜 스마트 점프", "시계열 사진 아카이빙 및 정렬 엔진", "팀원별 사진 필터링 및 업로드 히스토리", "그리드 레이아웃 최적화 및 인덱싱"],
+            ui: `<div class="p-6 space-y-8 text-left text-slate-900 bg-[#F8FAFC] h-full text-left">
+                    <p data-logic="0" class="text-xl font-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter text-left">Visual Archive</p>
+                    <div data-logic="1" class="space-y-6 text-left">
+                        <p class="text-xs font-black text-slate-400 mb-4 ml-2 text-left uppercase">October 24, 2024</p>
+                        <div class="grid grid-cols-3 gap-3 text-left">
+                            <div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center text-left">IMG</div>
+                            <div class="aspect-square bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg text-left"><span class="material-symbols-outlined text-white">photo_camera</span></div>
+                            <div class="aspect-square bg-slate-200 rounded-2xl flex items-center justify-center text-left">IMG</div>
+                        </div>
+                    </div>
+                 </div>`
         }
     };
 
@@ -182,8 +263,10 @@
         activeModuleId = id; activeLogicIdx = null; editingAuditIdx = null;
         document.querySelectorAll('.feature-card').forEach(c => c.classList.remove('active'));
         document.getElementById('card-' + id).classList.add('active');
-        document.getElementById('module-title-display').innerText = moduleData[id].title;
-        renderLogics(moduleData[id].logics);
+        const data = moduleData[id];
+        document.getElementById('module-title-display').innerText = data.title;
+        document.getElementById('module-title-display').classList.add('selected');
+        renderLogics(data.logics);
         updateRender();
         updateAuditHistory();
         document.getElementById('module-content').classList.remove('hidden');
@@ -204,10 +287,16 @@
         editingAuditIdx = null;
         document.querySelectorAll('.logic-item').forEach(el => el.classList.remove('selected'));
         document.querySelectorAll('[data-logic]').forEach(el => el.classList.remove('highlight-active'));
+        document.getElementById('module-title-display').classList.toggle('selected', idx === null);
+        
         if (activeLogicIdx !== null) {
             document.getElementById(`logic-${idx}`).classList.add('selected');
             const target = document.querySelector(`[data-logic="${idx}"]`);
             if (target) target.classList.add('highlight-active');
+        } else {
+            const frame = document.getElementById('device-frame');
+            frame.classList.add('highlight-active');
+            setTimeout(() => frame.classList.remove('highlight-active'), 1000);
         }
         updateLabel(); updateAuditHistory();
         document.getElementById('feedback-input').innerText = "";
@@ -267,8 +356,8 @@
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-[10px] font-black text-slate-500">${a.date}</span>
                     <div class="entry-actions">
-                        <button onclick="editAudit(${i})" class="text-blue-400 hover:text-white"><span class="material-symbols-outlined text-sm">edit</span></button>
-                        <button onclick="deleteAudit(${i})" class="text-red-400 hover:text-white"><span class="material-symbols-outlined text-sm">delete</span></button>
+                        <button onclick="editAudit(${i})" class="text-blue-400 hover:text-white transition"><span class="material-symbols-outlined text-sm">edit</span></button>
+                        <button onclick="deleteAudit(${i})" class="text-red-400 hover:text-white transition"><span class="material-symbols-outlined text-sm">delete</span></button>
                     </div>
                 </div>
                 <div class="text-slate-200 font-medium leading-relaxed">${a.content}</div>
@@ -279,10 +368,12 @@
 
     function saveOverallFeedback() {
         localStorage.setItem('overall-app-feedback', document.getElementById('overall-feedback-input').innerText);
-        alert("전체 어플 피드백이 저장되었습니다.");
+        document.getElementById('overall-status').style.opacity = "1";
+        setTimeout(() => document.getElementById('overall-status').style.opacity = "0", 2000);
     }
 
-    // Load Overall Feedback on start
-    document.getElementById('overall-feedback-input').innerText = localStorage.getItem('overall-app-feedback') || "";
+    window.onload = () => {
+        document.getElementById('overall-feedback-input').innerText = localStorage.getItem('overall-app-feedback') || "";
+    };
 </script>
 </body></html>

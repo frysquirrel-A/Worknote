@@ -17,6 +17,7 @@ class GalleryTab extends StatefulWidget {
 }
 
 class _GalleryTabState extends State<GalleryTab> {
+  // GlobalKey가 매번 새로 생성되지 않도록 캐싱합니다.
   final Map<String, GlobalKey> _dateKeys = {};
 
   @override
@@ -48,18 +49,20 @@ class _GalleryTabState extends State<GalleryTab> {
     final dates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     if (dates.isEmpty) {
-      return const Center(child: Text("저장된 사진이 없습니다."));
+      return const Center(child: Text("저장된 사진이 없습니다.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)));
     }
 
     return ListView.builder(
       itemCount: dates.length,
       itemBuilder: (c, i) {
         final d = dates[i];
-        _dateKeys[d] = GlobalKey();
-        return Column(key: _dateKeys[d], crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // 기존에 키가 있으면 유지, 없으면 생성
+        final key = _dateKeys.putIfAbsent(d, () => GlobalKey());
+        
+        return Column(key: key, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(d, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+            child: Text(d, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1E293B))),
           ),
           GridView.builder(
             shrinkWrap: true,
@@ -72,11 +75,11 @@ class _GalleryTabState extends State<GalleryTab> {
             ),
             itemCount: grouped[d]!.length,
             itemBuilder: (cc, pIdx) => ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: Image.file(File(grouped[d]![pIdx]), fit: BoxFit.cover),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
         ]);
       },
     );
