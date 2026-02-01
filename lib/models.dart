@@ -43,12 +43,20 @@ class JournalEntry {
   final String id, userId, userName, title, content;
   String? projectId;
   final DateTime date;
+  DateTime updatedAt; // 추가됨
   final List<String> photos;
   bool isPrivate;
 
   JournalEntry({
-    required this.id, required this.userId, required this.userName,
-    required this.title, required this.content, this.projectId,
-    required this.date, required this.photos, this.isPrivate = false,
-  });
+    required this.id, 
+    required this.userId, 
+    required this.userName, 
+    required this.title, 
+    required this.content, 
+    this.projectId,
+    required this.date, 
+    DateTime? updatedAt, // 추가됨
+    required this.photos,
+    this.isPrivate = false,
+  }) : updatedAt = updatedAt ?? date;
 }
