@@ -84,10 +84,11 @@ class DriveService {
 
     // A. 와이파이 체크
     if (isWifiOnly) {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.mobile) {
+      final connectivity = await Connectivity().checkConnectivity();
+      // 단일 값 비교 방식으로 수정 (에러 해결)
+      if (connectivity == ConnectivityResult.mobile) {
         if (kDebugMode) print("⚠️ [Data Saver] 모바일 데이터 사용 중이라 업로드를 건너뜁니다.");
-        return null;
+        return null; // 로컬 경로 그대로 사용
       }
     }
 

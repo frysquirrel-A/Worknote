@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
-import 'models.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/task_tab.dart'; 
 import 'tabs/journal_tab.dart'; 
@@ -15,6 +14,7 @@ import 'providers/journal_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/auth_provider.dart';
 import 'pages/login_page.dart';
+import 'models.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,7 +57,6 @@ class WorkNoteApp extends StatelessWidget {
           iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         ),
       ),
-      // 로그인 여부 체크하여 화면 전환
       home: authProv.isLoggedIn ? const MainScreen() : const LoginPage(),
     );
   }

@@ -67,7 +67,7 @@ class HomeTab extends StatelessWidget {
           // 2. 파이 차트 (업무 현황)
           Text("업무 진행률", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textColor)),
           const SizedBox(height: 16),
-          Container(
+          <caret>Container(
             height: 200,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
