@@ -85,7 +85,6 @@ class DriveService {
     // A. 와이파이 체크
     if (isWifiOnly) {
       final connectivityResult = await Connectivity().checkConnectivity();
-      // v5.0 기준: 결과가 단일 값일 경우에 대비한 비교
       if (connectivityResult == ConnectivityResult.mobile) {
         if (kDebugMode) print("⚠️ [Data Saver] 모바일 데이터 사용 중이라 업로드를 건너뜁니다.");
         return null;
