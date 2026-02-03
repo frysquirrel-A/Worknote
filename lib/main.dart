@@ -14,7 +14,6 @@ import 'providers/journal_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/auth_provider.dart';
 import 'pages/login_page.dart';
-import 'models.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
