@@ -13,22 +13,18 @@ class TeamTaskTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
-    final isDark = teamProv.isDarkMode;
-    
-    // 현재 팀의 필터링된 업무 가져오기
     final tasks = taskProv.getFilteredTasks(teamProv.currentTeamId);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: const Color(0xFF3B82F6),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text("새 업무", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         onPressed: () => _showAddTaskModal(context, taskProv, teamProv.currentTeamId),
       ),
       body: Column(
         children: [
-          // 필터 바
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -40,11 +36,9 @@ class TeamTaskTab extends StatelessWidget {
               ],
             ),
           ),
-          
-          // 업무 리스트
           Expanded(
             child: tasks.isEmpty 
-              ? Center(child: Text("등록된 업무가 없습니다.", style: TextStyle(color: Colors.grey[400])))
+              ? Center(child: Text("등록된 업무가 없습니다.", style: TextStyle(color: Colors.white.withValues(alpha: 0.3))))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   itemCount: tasks.length,
@@ -52,21 +46,32 @@ class TeamTaskTab extends StatelessWidget {
                     final task = tasks[index];
                     return Dismissible(
                       key: Key(task.id),
-                      background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) {
+                        taskProv.deleteTask(task.id); // 삭제 기능 연결
+                      },
+                      background: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(16)),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white10 : Colors.white,
+                          // [디자인 복구] 유리 질감
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
-                          border: task.isDone ? Border.all(color: Colors.green.withOpacity(0.5)) : null,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: Row(
                           children: [
-                            // 체크박스
                             GestureDetector(
                               onTap: () => taskProv.updateTaskStatus(task, !task.isDone),
-                              child: Container(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
                                 width: 24, height: 24,
                                 decoration: BoxDecoration(
                                   color: task.isDone ? Colors.green : Colors.transparent,
@@ -77,36 +82,20 @@ class TeamTaskTab extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            // 내용
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(task.title, style: TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: task.isDone ? Colors.white30 : Colors.white,
                                     decoration: task.isDone ? TextDecoration.lineThrough : null,
-                                    decorationColor: Colors.grey,
                                   )),
                                   const SizedBox(height: 4),
-                                  Text("기한: ${DateFormat('yyyy.MM.dd').format(task.dueDate)}", 
-                                    style: TextStyle(fontSize: 12, color: task.dueDate.isBefore(DateTime.now()) && !task.isDone ? Colors.red : Colors.grey)),
+                                  Text(DateFormat('yyyy.MM.dd').format(task.dueDate), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                 ],
                               ),
                             ),
-                            // 중요도 뱃지
-                            GestureDetector(
-                              onTap: () => taskProv.cycleTaskPriority(task),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _getPriorityColor(task.priority).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(_getPriorityText(task.priority), 
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getPriorityColor(task.priority))),
-                              ),
-                            )
                           ],
                         ),
                       ),
@@ -142,22 +131,22 @@ class TeamTaskTab extends StatelessWidget {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: "무슨 업무인가요?",
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true, fillColor: Colors.white10,
+                hintStyle: const TextStyle(color: Colors.white30),
+                filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), foregroundColor: Colors.white),
                 onPressed: () {
                   if (titleCtrl.text.isEmpty) return;
                   prov.addTask(Task(
                     id: const Uuid().v4(),
-                    teamId: teamId, // 현재 팀 ID
+                    teamId: teamId,
                     title: titleCtrl.text,
                     assigneeId: 'me', assigneeName: '나', assigneeEmoji: '👤',
                     projectId: 'p1',
@@ -165,31 +154,13 @@ class TeamTaskTab extends StatelessWidget {
                   ));
                   Navigator.pop(context);
                 },
-                child: const Text("등록하기", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text("등록하기", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             )
           ],
         ),
       ),
     );
-  }
-
-  Color _getPriorityColor(TaskPriority p) {
-    switch(p) {
-      case TaskPriority.high: return Colors.red;
-      case TaskPriority.medium: return Colors.orange;
-      case TaskPriority.low: return Colors.green;
-      default: return Colors.grey;
-    }
-  }
-
-  String _getPriorityText(TaskPriority p) {
-    switch(p) {
-      case TaskPriority.high: return "긴급";
-      case TaskPriority.medium: return "중요";
-      case TaskPriority.low: return "보통";
-      default: return "-";
-    }
   }
 }
 
@@ -203,13 +174,14 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
+          color: isSelected ? const Color(0xFF3B82F6) : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF2563EB) : Colors.grey.withOpacity(0.5)),
+          border: Border.all(color: isSelected ? const Color(0xFF3B82F6) : Colors.white.withValues(alpha: 0.1)),
         ),
         child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
       ),

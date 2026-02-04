@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkNote User Portal V3.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #020617; color: #e2e8f0; overflow: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Layout */
+        .sidebar { width: 280px; background: #0b1120; border-right: 1px solid #1e293b; display: flex; flex-direction: column; z-index: 50; }
+        .main-content { flex: 1; overflow-y: auto; background: #0f172a; position: relative; }
+        .bg-grid { position: absolute; inset: 0; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; opacity: 0.3; pointer-events: none; }
+
+        /* Navigation */
+        .nav-item { padding: 14px 24px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #64748b; transition: 0.2s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: #f1f5f9; }
+        .nav-item.active { background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%); color: #60a5fa; border-left-color: #3b82f6; font-weight: 700; }
+        
+        /* Sections */
+        .section { display: none; padding: 40px; max-width: 1000px; margin: 0 auto; animation: slideUp 0.5s ease; padding-bottom: 150px; position: relative; z-index: 10; }
+        .section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Visual Effects */
+        .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 30px; margin-bottom: 30px; position: relative; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3); }
+        .connection-line { height: 3px; background: linear-gradient(90deg, #334155 50%, transparent 50%); background-size: 20px 100%; width: 100%; position: relative; margin: 20px 0; }
+        
+        /* Phone Mockup for UI Gallery */
+        .phone-mockup { width: 280px; height: 580px; background: #0f172a; border-radius: 36px; border: 8px solid #334155; position: relative; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 0 auto; }
+        .phone-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100px; height: 24px; background: #334155; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; z-index: 20; }
+        .phone-screen { width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a, #1e1b4b); padding: 40px 16px 16px 16px; display: flex; flex-direction: column; }
+        
+        /* UI Elements Mockup */
+        .ui-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .ui-title { width: 60%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; }
+        .ui-avatar { width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; }
+        .ui-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .ui-list-item { height: 50px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; padding: 0 12px; gap: 10px; }
+        .ui-checkbox { width: 16px; height: 16px; border: 1px solid #475569; border-radius: 4px; }
+        .ui-line { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; flex: 1; }
+        .ui-fab { position: absolute; bottom: 20px; right: 20px; width: 48px; height: 48px; background: #3b82f6; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; color: white; }
+        .ui-nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; background: rgba(15, 23, 42, 0.9); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: center; padding-bottom: 10px; }
+        .ui-nav-item { width: 24px; height: 24px; background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+        /* Feedback UI */
+        .feedback-area { border-top: 1px dashed #334155; padding-top: 24px; margin-top: 40px; }
+        .feedback-form { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 24px; }
+        .feedback-item { background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
+        .feedback-time { font-size: 11px; color: #64748b; margin-bottom: 4px; display: block; }
+        textarea { width: 100%; background: #020617; border: 1px solid #475569; border-radius: 8px; color: white; padding: 12px; margin-top: 8px; outline: none; resize: vertical; min-height: 80px; }
+        textarea:focus { border-color: #3b82f6; }
+        
+        .status-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-top: 8px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="sidebar">
+        <div class="p-8 border-b border-slate-800">
+            <h1 class="font-black text-white text-xl flex items-center gap-2">
+                <span class="material-symbols-rounded text-blue-500 text-3xl">rate_review</span> User Portal
+            </h1>
+            <p class="text-[10px] text-slate-500 mt-1">WorkNote System V3.0</p>
+        </div>
+        
+        <nav class="flex-1 py-6 space-y-1 overflow-y-auto">
+            <div class="px-8 pb-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Guide & Visuals</div>
+            <div class="nav-item active" onclick="switchTab('overview')">
+                <span class="material-symbols-rounded">cloud_off</span> 1. Serverless 구조
+            </div>
+            <div class="nav-item" onclick="switchTab('dataflow')">
+                <span class="material-symbols-rounded">sync_alt</span> 2. 데이터 흐름
+            </div>
+            <div class="nav-item" onclick="switchTab('ui')">
+                <span class="material-symbols-rounded">screenshot_monitor</span> 3. UI 구성도 (Gallery)
+            </div>
+            
+            <div class="px-8 pb-3 mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest">System</div>
+            <div class="nav-item" onclick="switchTab('login')">
+                <span class="material-symbols-rounded">vpn_key</span> 4. 로그인 시스템
+            </div>
+            <div class="nav-item" onclick="switchTab('sha1')">
+                <span class="material-symbols-rounded text-red-400">warning</span> 5. 에러 리포트
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="bg-grid"></div>
+
+        <div id="tab-overview" class="section active">
+            <h2 class="text-3xl font-black text-white mb-2">01. Serverless 구조</h2>
+            <p class="text-slate-400 mb-8 text-lg">별도의 서버 없이 <strong>구글 드라이브</strong>를 공용 창고로 사용합니다.</p>
+            
+            <div class="glass-card">
+                <h3 class="text-blue-400 font-bold mb-8 uppercase tracking-widest text-xs">Architecture</h3>
+                <div class="flex items-center justify-between px-10 relative z-10">
+                    <div class="text-center">
+                        <div class="w-24 h-24 bg-slate-800 rounded-2xl border-2 border-slate-600 flex items-center justify-center shadow-2xl relative">
+                            <span class="material-symbols-rounded text-5xl text-blue-400">smartphone</span>
+                        </div>
+                        <h4 class="text-white font-bold mt-4">App (Client)</h4>
+                    </div>
+                    <div class="flex-1 px-8 flex flex-col items-center">
+                        <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2 animate-pulse">Sync (JSON)</div>
+                        <div class="connection-line"></div>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-24 h-24 bg-slate-800 rounded-2xl border-2 border-green-500 flex items-center justify-center shadow-2xl">
+                            <span class="material-symbols-rounded text-5xl text-green-500">cloud</span>
+                        </div>
+                        <h4 class="text-white font-bold mt-4">Google Drive</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feedback-area">
+                <div class="feedback-form">
+                    <label class="text-xs font-bold text-slate-400 uppercase">피드백 작성</label>
+                    <textarea id="input-overview" placeholder="구조에 대한 의견을 남겨주세요."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="addFeedback('overview')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition text-sm">등록하기</button>
+                    </div>
+                </div>
+                <div id="list-overview"></div>
+            </div>
+        </div>
+
+        <div id="tab-dataflow" class="section">
+            <h2 class="text-3xl font-black text-white mb-2">02. 데이터 흐름</h2>
+            <p class="text-slate-400 mb-8 text-lg">충돌 방지를 위한 <strong>개별 폴더 병합</strong> 방식입니다.</p>
+            
+            <div class="glass-card">
+                 <div class="flex gap-4 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">1</div>
+                    <div>
+                        <h4 class="font-bold text-white">입력 (Input)</h4>
+                        <p class="text-sm text-slate-400">내 폰에 먼저 저장 (즉시 반영)</p>
+                    </div>
+                 </div>
+                 <div class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center font-bold text-white">2</div>
+                    <div>
+                        <h4 class="font-bold text-white">동기화 (Sync)</h4>
+                        <p class="text-sm text-slate-400">내 전용 폴더(ID)에 업로드. 남의 파일 건드리지 않음.</p>
+                    </div>
+                 </div>
+            </div>
+
+            <div class="feedback-area">
+                <div class="feedback-form">
+                    <textarea id="input-dataflow" placeholder="동기화 방식에 대한 의견이 있나요?"></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="addFeedback('dataflow')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition text-sm">등록하기</button>
+                    </div>
+                </div>
+                <div id="list-dataflow"></div>
+            </div>
+        </div>
+
+        <div id="tab-ui" class="section">
+            <h2 class="text-3xl font-black text-white mb-2">03. UI 구성도 (Gallery)</h2>
+            <p class="text-slate-400 mb-8 text-lg">실제 앱 화면의 구성입니다. 화면별로 피드백을 남겨주세요.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                
+                <div class="flex flex-col items-center">
+                    <h3 class="text-blue-400 font-bold mb-4">1. 홈 화면 (HomeTab)</h3>
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="ui-header">
+                                <div>
+                                    <div class="w-20 h-3 bg-slate-600 rounded mb-2"></div>
+                                    <div class="w-32 h-5 bg-white rounded"></div>
+                                </div>
+                                <div class="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-blue-500 text-sm">settings</span>
+                                </div>
+                            </div>
+                            <div class="ui-card h-48 flex items-center justify-center">
+                                <div class="w-24 h-24 rounded-full border-4 border-blue-500 border-r-transparent transform -rotate-45"></div>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="ui-card flex-1 h-20"></div>
+                                <div class="ui-card flex-1 h-20"></div>
+                            </div>
+                            <div class="ui-nav">
+                                <div class="ui-nav-item bg-blue-500"></div>
+                                <div class="ui-nav-item"></div>
+                                <div class="ui-nav-item"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">우측 상단 설정 버튼, 파이 차트, 퀵 메뉴</p>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <h3 class="text-green-400 font-bold mb-4">2. 업무 목록 (TaskTab)</h3>
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="flex gap-2 mb-4 overflow-hidden">
+                                <div class="px-3 py-1 bg-blue-600 rounded-full text-[8px] text-white w-12 h-6"></div>
+                                <div class="px-3 py-1 bg-slate-700 rounded-full text-[8px] w-12 h-6"></div>
+                                <div class="px-3 py-1 bg-slate-700 rounded-full text-[8px] w-12 h-6"></div>
+                            </div>
+                            <div class="ui-list-item">
+                                <div class="ui-checkbox"></div>
+                                <div class="ui-line"></div>
+                            </div>
+                            <div class="ui-list-item">
+                                <div class="ui-checkbox"></div>
+                                <div class="ui-line"></div>
+                            </div>
+                            <div class="ui-list-item">
+                                <div class="ui-checkbox border-green-500 bg-green-500"></div>
+                                <div class="ui-line opacity-30 line-through"></div>
+                            </div>
+                            <div class="ui-fab">
+                                <span class="material-symbols-rounded">add</span>
+                            </div>
+                            <div class="ui-nav">
+                                <div class="ui-nav-item"></div>
+                                <div class="ui-nav-item bg-blue-500"></div>
+                                <div class="ui-nav-item"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">상단 필터, 업무 리스트(유리 질감), FAB</p>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <h3 class="text-purple-400 font-bold mb-4">3. 설정 (AdminDashboard)</h3>
+                    <div class="phone-mockup">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <div class="flex items-center gap-2 mb-6">
+                                <span class="material-symbols-rounded text-white">arrow_back</span>
+                                <div class="w-20 h-4 bg-white rounded"></div>
+                            </div>
+                            <div class="ui-card flex items-center gap-3">
+                                <div class="ui-avatar"></div>
+                                <div class="flex-1">
+                                    <div class="w-20 h-3 bg-white rounded mb-1"></div>
+                                    <div class="w-10 h-2 bg-slate-500 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="w-full h-10 border border-slate-600 rounded-xl mb-2 flex items-center px-3 gap-2">
+                                <span class="material-symbols-rounded text-green-500 text-sm">add_to_drive</span>
+                                <div class="w-24 h-2 bg-white rounded"></div>
+                            </div>
+                            <div class="w-full h-10 border border-slate-600 rounded-xl mb-2 flex items-center px-3 gap-2">
+                                <span class="material-symbols-rounded text-purple-500 text-sm">dark_mode</span>
+                                <div class="w-16 h-2 bg-white rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">프로필, 구글 드라이브 연동 버튼, 다크모드</p>
+                </div>
+
+            </div>
+
+            <div class="feedback-area">
+                <div class="feedback-form">
+                    <h4 class="font-bold text-white mb-2 flex items-center gap-2"><span class="material-symbols-rounded text-sm">palette</span> UI 디자인 의견</h4>
+                    <textarea id="input-ui" placeholder="UI 디자인이나 배치에 대한 의견을 남겨주세요."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="addFeedback('ui')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition text-sm">등록하기</button>
+                    </div>
+                </div>
+                <div id="list-ui"></div>
+            </div>
+        </div>
+
+        <div id="tab-login" class="section">
+            <h2 class="text-3xl font-black text-white mb-2">04. 로그인 시스템</h2>
+            <div class="glass-card border-l-4 border-yellow-500">
+                <h3 class="font-bold text-white text-xl mb-4">선 사용, 후 로그인</h3>
+                <p class="text-slate-300 text-sm">앱 설치 후 바로 사용 가능하며, 동기화가 필요할 때만 설정에서 로그인합니다.</p>
+            </div>
+            <div class="feedback-area">
+                <div class="feedback-form">
+                    <textarea id="input-login" placeholder="로그인 방식에 대한 의견을 남겨주세요."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="addFeedback('login')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition text-sm">등록하기</button>
+                    </div>
+                </div>
+                <div id="list-login"></div>
+            </div>
+        </div>
+
+        <div id="tab-sha1" class="section">
+            <h2 class="text-3xl font-black text-white mb-2">05. 에러 리포트 (SHA-1)</h2>
+            <div class="glass-card bg-red-500/5 border-red-500/20">
+                <h3 class="font-bold text-red-400 mb-4">보안 설정 필수</h3>
+                <div class="bg-black p-4 rounded-xl border border-slate-700">
+                    <code class="text-green-400 font-mono text-sm select-all">./gradlew signingReport</code>
+                </div>
+            </div>
+            <div class="feedback-area">
+                <div class="feedback-form">
+                    <textarea id="input-sha1" placeholder="에러 메시지를 적어주세요."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="addFeedback('sha1')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition text-sm">등록하기</button>
+                    </div>
+                </div>
+                <div id="list-sha1"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('wn_system_db') || "[]");
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function addFeedback(section) {
+            const input = document.getElementById('input-' + section);
+            const text = input.value.trim();
+            if (!text) return alert("내용을 입력해주세요.");
+
+            const newItem = { id: Date.now(), section: section, content: text, timestamp: new Date().toLocaleString(), status: 'pending' };
+            db.push(newItem);
+            saveAndRender();
+            input.value = "";
+        }
+
+        function deleteFeedback(id) {
+            if(!confirm("삭제하시겠습니까?")) return;
+            db = db.filter(item => item.id !== id);
+            saveAndRender();
+        }
+        
+        function editFeedback(id) {
+            const item = db.find(i => i.id === id);
+            const newText = prompt("수정할 내용:", item.content);
+            if(newText) { item.content = newText; item.timestamp = new Date().toLocaleString() + " (수정됨)"; saveAndRender(); }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('wn_system_db', JSON.stringify(db));
+            renderLists();
+        }
+
+        function renderLists() {
+            const sections = ['overview', 'dataflow', 'ui', 'login', 'sha1'];
+            sections.forEach(sec => {
+                const container = document.getElementById('list-' + sec);
+                const items = db.filter(i => i.section === sec).sort((a,b) => b.id - a.id);
+                container.innerHTML = items.map(item => `
+                    <div class="feedback-item">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="feedback-time">${item.timestamp}</span>
+                            <div class="flex gap-2 opacity-50 hover:opacity-100">
+                                <button onclick="editFeedback(${item.id})" class="text-xs text-blue-400 hover:underline">수정</button>
+                                <button onclick="deleteFeedback(${item.id})" class="text-xs text-red-400 hover:underline">삭제</button>
+                            </div>
+                        </div>
+                        <p class="text-slate-200 text-sm leading-relaxed">${item.content}</p>
+                        ${getStatusBadge(item.status)}
+                    </div>
+                `).join('');
+                if(items.length === 0) container.innerHTML = `<p class="text-slate-600 text-xs text-center">등록된 의견이 없습니다.</p>`;
+            });
+        }
+
+        function getStatusBadge(status) {
+            if(status === 'approved') return `<span class="status-badge bg-green-500/10 text-green-400 border border-green-500/30">✅ 승인됨</span>`;
+            if(status === 'rejected') return `<span class="status-badge bg-red-500/10 text-red-400 border border-red-500/30">❌ 보류됨</span>`;
+            return `<span class="status-badge bg-slate-700 text-slate-400">⏳ 대기중</span>`;
+        }
+
+        window.onload = renderLists;
+    </script>
+</body>
+</html>

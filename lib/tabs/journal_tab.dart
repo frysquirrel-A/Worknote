@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../models.dart';
 import '../providers/journal_provider.dart';
@@ -17,7 +16,6 @@ class JournalTab extends StatelessWidget {
     final journalProv = context.watch<JournalProvider>();
     final isDark = teamProv.isDarkMode;
     
-    // 그룹화된 일지 가져오기
     final grouped = journalProv.getGroupedJournals(teamProv.currentTeamId);
     final keys = grouped.keys.toList();
 
@@ -69,9 +67,7 @@ class JournalTab extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   color: Colors.grey,
-                                  image: DecorationImage(image: j.photos[i].startsWith('http') 
-                                    ? NetworkImage(j.photos[i])
-                                    : FileImage(File(j.photos[i])) as ImageProvider,
+                                  image: DecorationImage(image: FileImage(File(j.photos[i])),
                                   fit: BoxFit.cover),
                                 ),
                               ),
@@ -121,7 +117,7 @@ class JournalTab extends StatelessWidget {
                     final picker = ImagePicker();
                     final xFile = await picker.pickImage(source: ImageSource.camera);
                     if (xFile != null) {
-                      final uploadedId = await prov.uploadPhoto(xFile.path, teamProv.isWifiOnly);
+                      final uploadedId = await prov.uploadPhoto(xFile.path);
                       if (uploadedId != null) {
                         setState(() => tempPhotos.add(xFile.path));
                       }

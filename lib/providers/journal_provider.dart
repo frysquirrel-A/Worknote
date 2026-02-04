@@ -1,90 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart'; // Uuid 필요
 import '../models.dart';
 import '../services/drive_service.dart';
+import 'package:collection/collection.dart';
 
 class JournalProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
   
   List<JournalEntry> _journals = [];
+  bool _isLoading = false;
 
-  // UI Filters
-  String searchQuery = '';
-  JournalGroupPeriod groupPeriod = JournalGroupPeriod.day;
-  String memberFilterId = 'all';
-
-  // --- Getters ---
   List<JournalEntry> get journals => _journals;
+  bool get isLoading => _isLoading;
 
-  // 팀별, 필터별 그룹화된 일지 가져오기
-  Map<String, List<JournalEntry>> getGroupedJournals(String currentTeamId) {
-    final filtered = _journals.where((j) {
-      if (j.teamId != currentTeamId) return false; // 팀 필터링
-
-      bool canSee = !j.isPrivate || j.userId == 'me';
-      bool matchesSearch = j.title.contains(searchQuery) || j.content.contains(searchQuery);
-      bool matchesMember = memberFilterId == 'all' || j.userId == memberFilterId;
-      return canSee && matchesSearch && matchesMember;
-    }).toList();
-
-    final groups = <String, List<JournalEntry>>{};
-    for (var j in filtered) {
-      String key = _getJournalGroupKey(j.date, groupPeriod);
-      groups.putIfAbsent(key, () => []).add(j);
-    }
-    return groups;
+  Map<String, List<JournalEntry>> getGroupedJournals(String teamId) {
+    final filtered = _journals.where((j) => j.teamId == teamId).toList();
+    return groupBy(filtered, (JournalEntry j) => j.date.toIso8601String().substring(0, 10));
   }
-
-  String _getJournalGroupKey(DateTime d, JournalGroupPeriod p) {
-    if (p == JournalGroupPeriod.day) return DateFormat('yyyy-MM-dd').format(d);
-    if (p == JournalGroupPeriod.month) return DateFormat('yyyy-MM').format(d);
-    return DateFormat('yyyy년').format(d);
-  }
-
-  // --- Actions ---
 
   Future<void> loadJournals() async {
+    _setLoading(true);
     final data = await _driveService.syncJsonData(
       _journals.map((e) => e.toJson()).toList(), 
       'worknote_journals.json'
     );
-    if (data != null) {
+
+    if (data != null && data.isNotEmpty) {
       _journals = data.map((e) => JournalEntry.fromJson(e)).toList();
+    } else {
+      // [복구] 데이터 없으면 샘플 일지 생성
+      _journals = [
+        JournalEntry(
+          id: const Uuid().v4(), teamId: 'default',
+          userId: 'me', userName: '김반장',
+          title: '오늘의 현장 점검',
+          content: '302동 타설 작업 완료했습니다. 특이사항 없습니다.',
+          date: DateTime.now(),
+          photos: [], // 사진은 실제 파일이 있어야 해서 비워둠
+        )
+      ];
     }
-    notifyListeners();
+    _setLoading(false);
   }
 
-  // [중요] 사진 추가 (업로드 포함)
-  Future<String?> uploadPhoto(String filePath, bool isWifiOnly) async {
-    return await _driveService.uploadPhoto(filePath, isWifiOnly);
+  Future<String?> uploadPhoto(String localPath) async {
+    final fileName = 'journal_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    return await _driveService.uploadPhoto(localPath, fileName);
   }
 
-  Future<void> addJournal(JournalEntry e) async {
-    _journals.insert(0, e);
-    notifyListeners();
-    await _sync();
-  }
-
-  Future<void> updateJournal(JournalEntry updatedEntry) async {
-    final index = _journals.indexWhere((j) => j.id == updatedEntry.id);
-    if (index != -1) {
-      _journals[index] = updatedEntry;
-      notifyListeners();
-      await _sync();
-    }
-  }
-
-  Future<void> _sync() async {
+  Future<void> addJournal(JournalEntry journal) async {
+    _setLoading(true);
+    _journals.insert(0, journal);
+    
     await _driveService.syncJsonData(
       _journals.map((e) => e.toJson()).toList(), 
       'worknote_journals.json'
     );
+
+    notifyListeners();
+    _setLoading(false);
   }
 
-  void setFilters({String? search, JournalGroupPeriod? period, String? memberId}) {
-    if (search != null) searchQuery = search;
-    if (period != null) groupPeriod = period;
-    if (memberId != null) memberFilterId = memberId;
+  void _setLoading(bool val) {
+    _isLoading = val;
     notifyListeners();
   }
 }
