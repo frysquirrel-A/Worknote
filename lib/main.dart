@@ -9,7 +9,7 @@ import 'providers/journal_provider.dart';
 import 'providers/chat_provider.dart';    
 import 'pages/login_page.dart';
 import 'tabs/home_tab.dart';
-import 'tabs/task_tab.dart';
+import 'tabs/task_tab.dart'; 
 import 'tabs/messenger_tab.dart';
 import 'tabs/journal_tab.dart'; 
 import 'tabs/gallery_tab.dart'; 
@@ -21,10 +21,10 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => TeamProvider()),
-        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => TeamProvider()..loadTeams()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()..loadData()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => JournalProvider()), 
+        ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()), 
         ChangeNotifierProvider(create: (_) => ChatProvider()),    
       ],
       child: const WorkNoteApp(),
@@ -44,14 +44,12 @@ class WorkNoteApp extends StatelessWidget {
       title: 'WorkNote',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), 
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         primaryColor: const Color(0xFF3B82F6),
         useMaterial3: true,
         textTheme: GoogleFonts.notoSansKrTextTheme(ThemeData.dark().textTheme),
       ),
-      home: authProv.currentUser == null 
-          ? const LoginPage() 
-          : const MainScreen(),
+      home: authProv.currentUser == null ? const LoginPage() : const MainScreen(),
     );
   }
 }
@@ -65,6 +63,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Widget> _tabs = [
     const HomeTab(),
@@ -76,7 +75,50 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final teamProv = context.watch<TeamProvider>();
+
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF1E1B4B)),
+              accountName: Text(teamProv.currentTeam.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              accountEmail: Text("초대코드: ${teamProv.currentTeam.inviteCode}", style: const TextStyle(color: Colors.blueAccent)),
+              currentAccountPicture: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.hub, color: Colors.white, size: 40)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  const Padding(padding: EdgeInsets.all(16), child: Text("내 팀 목록", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                  ...teamProv.teams.map((t) => ListTile(
+                    leading: Icon(Icons.group_work, color: t.id == teamProv.currentTeamId ? Colors.blue : Colors.grey),
+                    title: Text(t.name),
+                    onTap: () {
+                      teamProv.switchTeam(t.id);
+                      Navigator.pop(context);
+                    },
+                  )),
+                  ListTile(
+                    leading: const Icon(Icons.add, color: Colors.blue),
+                    title: const Text("새 팀 만들기", style: TextStyle(color: Colors.blue)),
+                    onTap: () => _showCreateTeamDialog(context, teamProv),
+                  ),
+                  const Divider(color: Colors.white10),
+                  const Padding(padding: EdgeInsets.all(16), child: Text("팀원 목록", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                  ...teamProv.currentTeam.memberIds.map((m) => ListTile(
+                    leading: const CircleAvatar(radius: 12, child: Text("👤", style: TextStyle(fontSize: 12))),
+                    title: Text(m, style: const TextStyle(fontSize: 14)),
+                  )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -85,7 +127,26 @@ class _MainScreenState extends State<MainScreen> {
             colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)], 
           ),
         ),
-        child: SafeArea(child: _tabs[_selectedIndex]),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(teamProv.currentTeam.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              ),
+              Expanded(child: _tabs[_selectedIndex]),
+            ],
+          ),
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -107,5 +168,21 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
     );
+  }
+
+  void _showCreateTeamDialog(BuildContext context, TeamProvider prov) {
+    final ctrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text("새 팀 생성"),
+      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: "팀 이름을 입력하세요")),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+        ElevatedButton(onPressed: () {
+          if(ctrl.text.isNotEmpty) prov.createTeam(ctrl.text);
+          Navigator.pop(ctx);
+        }, child: const Text("생성")),
+      ],
+    ));
   }
 }

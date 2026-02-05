@@ -9,15 +9,13 @@ class ChatProvider extends ChangeNotifier {
   List<ChatMessage> _allMessages = [];
   Timer? _pollingTimer;
 
-  // 특정 팀의 메시지만 가져오기
   List<ChatMessage> getMessages(String teamId) {
     return _allMessages.where((m) => m.teamId == teamId).toList()
-      ..sort((a, b) => b.sentAt.compareTo(a.sentAt)); // 최신순 정렬
+      ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
   }
 
-  // 채팅 시작 (5초마다 자동 동기화)
   void startPolling() {
-    _sync(); // 즉시 1회 실행
+    _sync();
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _sync());
   }
@@ -30,16 +28,16 @@ class ChatProvider extends ChangeNotifier {
     final newMsg = ChatMessage(
       id: const Uuid().v4(),
       teamId: teamId,
-      senderId: 'me', // 내 ID는 항상 'me'로 가정
+      senderId: 'me',
       senderName: userName,
       content: content,
       sentAt: DateTime.now(),
     );
 
-    _allMessages.add(newMsg); // 로컬 선반영 (Optimistic UI)
+    _allMessages.add(newMsg);
     notifyListeners();
 
-    await _sync(); // 드라이브 저장
+    await _sync();
   }
 
   Future<void> _sync() async {

@@ -32,27 +32,29 @@ class _LoginPageState extends State<LoginPage> {
               const Icon(Icons.architecture, size: 80, color: Colors.blueAccent),
               const SizedBox(height: 16),
               const Text("WORKNOTE", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              const Text("오프라인 모드로 시작", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const Text("탭하여 바로 시작하기", style: TextStyle(color: Colors.grey, fontSize: 14)),
               
               const SizedBox(height: 48),
 
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white10),
                 ),
                 child: Column(
                   children: [
-                    Text(isLoginMode ? "로컬 로그인" : "로컬 회원가입", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(isLoginMode ? "환영합니다" : "로컬 회원가입", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
 
-                    _buildTextField(_idCtrl, "아이디", Icons.person, false),
-                    const SizedBox(height: 12),
-                    _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
-
-                    if (!isLoginMode) ...[
+                    if (isLoginMode) ...[
+                      const Text("아래 버튼을 누르면 즉시 입장합니다.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      _buildTextField(_idCtrl, "아이디", Icons.person, false),
+                      const SizedBox(height: 12),
+                      _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
                       const SizedBox(height: 12),
                       _buildTextField(_nameCtrl, "이름 (예: 김반장)", Icons.badge, false),
                       const SizedBox(height: 12),
@@ -63,55 +65,44 @@ class _LoginPageState extends State<LoginPage> {
 
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 56,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 10,
+                          shadowColor: Colors.blueAccent.withValues(alpha: 0.3),
                         ),
                         onPressed: authProv.isLoading ? null : () async {
                           if (isLoginMode) {
-                            // [수정] 로컬 로그인 호출
-                            final success = await authProv.loginLocal(_idCtrl.text, _pwCtrl.text);
-                            if (!success && mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로그인 실패 (임시 모드)")));
-                            }
+                            String id = _idCtrl.text.trim().isEmpty ? "admin" : _idCtrl.text.trim();
+                            String pw = _pwCtrl.text.trim().isEmpty ? "1234" : _pwCtrl.text.trim();
+                            await authProv.loginLocal(id, pw);
                           } else {
-                            // [수정] 로컬 회원가입 호출
                             if (_nameCtrl.text.isEmpty) return;
                             await authProv.signUpLocal(_idCtrl.text, _pwCtrl.text, _nameCtrl.text, _roleCtrl.text);
                           }
                         },
                         child: authProv.isLoading 
                           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(isLoginMode ? "시작하기" : "가입하고 시작", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                          : Text(isLoginMode ? "지금 바로 시작하기" : "가입하고 시작", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
+              if (isLoginMode)
               TextButton(
                 onPressed: () {
                   setState(() {
-                    isLoginMode = !isLoginMode;
-                    if (isLoginMode) _nameCtrl.clear();
+                    isLoginMode = false;
                   });
                 },
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(color: Colors.grey),
-                    children: [
-                      TextSpan(text: isLoginMode ? "처음이신가요? " : "이미 계정이 있나요? "),
-                      TextSpan(
-                        text: isLoginMode ? "회원가입" : "로그인",
-                        style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
+                child: const Text("새로운 계정 만들기", style: TextStyle(color: Colors.white24, fontSize: 12)),
               ),
             ],
           ),
@@ -126,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: isObscure,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.grey, size: 20),
+        prefixIcon: Icon(icon, color: Colors.blueAccent.withValues(alpha: 0.5), size: 20),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
         filled: true,

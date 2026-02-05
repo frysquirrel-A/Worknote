@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io'; // 파일 처리를 위해 추가됨
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:googleapis/drive/v3.dart' as drive;
 
@@ -14,13 +14,9 @@ class DriveService {
 
   // 2. JSON 데이터 동기화
   Future<List<dynamic>?> syncJsonData(List<dynamic> localData, String fileName) async {
-    if (_driveApi == null) {
-      print("⚠️ 드라이브 미연결: 로컬 데이터만 사용합니다.");
-      return null;
-    }
+    if (_driveApi == null) return null;
 
     try {
-      // 파일 찾기
       final fileList = await _driveApi!.files.list(
         q: "name = '$fileName' and trashed = false",
         $fields: "files(id, name)",
@@ -31,7 +27,6 @@ class DriveService {
         fileId = fileList.files!.first.id;
       }
 
-      // 다운로드 (클라우드 데이터 우선)
       if (fileId != null) {
         final media = await _driveApi!.files.get(
           fileId,
@@ -42,12 +37,10 @@ class DriveService {
         final content = await utf8.decodeStream(stream);
         
         if (content.isNotEmpty) {
-          final cloudData = jsonDecode(content) as List<dynamic>;
-          return cloudData; 
+          return jsonDecode(content) as List<dynamic>;
         }
       }
 
-      // 업로드 (로컬 데이터로 덮어쓰기)
       final jsonString = jsonEncode(localData);
       final uploadMedia = drive.Media(
         Stream.value(utf8.encode(jsonString)),
@@ -62,29 +55,22 @@ class DriveService {
       }
       
       return localData;
-
     } catch (e) {
       print("❌ Drive Sync Error: $e");
       return null;
     }
   }
 
-  // 3. [추가됨] 사진 업로드 기능 (이게 없어서 에러가 났었습니다)
+  // 3. 사진 업로드
   Future<String?> uploadPhoto(String localPath, String fileName) async {
     if (_driveApi == null) return null;
-
     try {
       final file = File(localPath);
       final length = await file.length();
-      
       final uploadMedia = drive.Media(file.openRead(), length);
       final driveFile = drive.File()..name = fileName;
-
-      // 이미지를 루트 폴더에 저장 (필요시 폴더 ID 지정 가능)
       final result = await _driveApi!.files.create(driveFile, uploadMedia: uploadMedia);
-      
-      print("📸 사진 업로드 성공: ${result.id}");
-      return result.id; // 구글 드라이브 파일 ID 반환
+      return result.id;
     } catch (e) {
       print("❌ 사진 업로드 실패: $e");
       return null;
@@ -92,13 +78,10 @@ class DriveService {
   }
 }
 
-// 인증 클라이언트 클래스
 class GoogleAuthClient extends http.BaseClient {
   final Map<String, String> _headers;
   final http.Client _client = http.Client();
-
   GoogleAuthClient(this._headers);
-
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers.addAll(_headers);

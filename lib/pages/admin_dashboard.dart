@@ -28,7 +28,6 @@ class AdminDashboard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // 프로필 섹션
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
@@ -45,12 +44,9 @@ class AdminDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             
-            // 메뉴 리스트
             _buildTile(context, "구글 드라이브 연동", Icons.add_to_drive, Colors.green, cardColor, textColor, onTap: () async {
               if (!authProv.isGoogleLinked) {
                 final success = await authProv.connectGoogleDrive();
-                
-                // [수정] Async 경고 해결: 화면이 살아있는지 체크
                 if (!context.mounted) return;
                 
                 if (success) {

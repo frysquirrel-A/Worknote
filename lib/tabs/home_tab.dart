@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart'; 
 import '../providers/team_provider.dart';
 import '../providers/task_provider.dart';
 import '../pages/admin_dashboard.dart'; 
+import '../models.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
@@ -24,7 +26,6 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -34,124 +35,133 @@ class HomeTab extends StatelessWidget {
                   Text(DateFormat('M월 d일 E요일', 'ko_KR').format(DateTime.now()), 
                     style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Row(children: [
-                    const Text("안녕하세요 ", style: TextStyle(fontSize: 20, color: Colors.white70)),
-                    Text("${teamProv.currentTeam.name}님", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ]),
+                  Text("${teamProv.currentTeam.name} 대시보드", 
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
                 ],
               ),
-              // 설정 버튼 (Glass Style)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: IconButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboard())),
-                  icon: const Icon(Icons.settings, color: Colors.blueAccent),
+              IconButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboard())),
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  child: const Icon(Icons.settings, color: Colors.blueAccent),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 30),
           
-          // [디자인 복구] 대시보드 카드 (유리 질감)
           Container(
-            height: 220,
+            height: 180,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05), // 반투명
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10)),
-              ],
             ),
             child: Row(
               children: [
                 Expanded(
-                  flex: 3,
-                  child: PieChart(
-                    PieChartData(
-                      sectionsSpace: 0,
-                      centerSpaceRadius: 40,
-                      sections: [
-                        PieChartSectionData(
-                          color: const Color(0xFF3B82F6),
-                          value: doneCount.toDouble(),
-                          title: '${doneRate.toInt()}%',
-                          radius: 50,
-                          titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        PieChartSectionData(color: Colors.white10, value: (totalCount - doneCount).toDouble(), title: '', radius: 40),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  flex: 2,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _legend("완료", const Color(0xFF3B82F6), doneCount),
-                      const SizedBox(height: 12),
-                      _legend("진행중", Colors.grey, totalCount - doneCount),
+                      const Text("전체 업무 달성률", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      Text("${doneRate.toInt()}%", style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.blueAccent)),
+                      Text("총 $totalCount건 중 $doneCount건 완료", style: const TextStyle(color: Colors.white30, fontSize: 12)),
                     ],
                   ),
+                ),
+                SizedBox(
+                  width: 100, height: 100,
+                  child: PieChart(PieChartData(sections: [
+                    PieChartSectionData(color: Colors.blueAccent, value: doneCount.toDouble(), radius: 10, showTitle: false),
+                    PieChartSectionData(color: Colors.white10, value: (totalCount - doneCount).toDouble(), radius: 8, showTitle: false),
+                  ])),
                 )
               ],
             ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // 퀵 메뉴 복구
+
+          const SizedBox(height: 32),
+
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: _quickActionCard(Icons.add_task, "새 업무", Colors.orangeAccent)),
-              const SizedBox(width: 16),
-              Expanded(child: _quickActionCard(Icons.camera_alt, "사진 촬영", Colors.greenAccent)),
+              const Text("진행 중인 프로젝트", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text("추가"),
+                onPressed: () => _showAddProjectDialog(context, taskProv, teamProv.currentTeamId),
+              )
             ],
-          )
+          ),
+          const SizedBox(height: 16),
+          
+          ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((project) {
+            final pTasks = tasks.where((t) => t.projectId == project.id).toList();
+            final pDone = pTasks.where((t) => t.isDone).length;
+            final pTotal = pTasks.length;
+            final pRate = pTotal == 0 ? 0.0 : (pDone / pTotal);
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 4, height: 16, decoration: BoxDecoration(color: project.color, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white))),
+                      Text("${(pRate * 100).toInt()}%", style: TextStyle(color: project.color, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: pRate,
+                      backgroundColor: Colors.white10,
+                      color: project.color,
+                      minHeight: 6,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );
   }
 
-  Widget _legend(String title, Color color, int count) {
-    return Row(
-      children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            Text("$count건", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-          ],
-        )
+  void _showAddProjectDialog(BuildContext context, TaskProvider prov, String teamId) {
+    final ctrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text("새 프로젝트"),
+      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: "프로젝트명")),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+        ElevatedButton(onPressed: () {
+          if(ctrl.text.isNotEmpty) {
+            prov.addProject(Project(
+              id: const Uuid().v4(),
+              teamId: teamId,
+              name: ctrl.text,
+              colorValue: prov.getRandomProjectColor().value,
+            ));
+          }
+          Navigator.pop(ctx);
+        }, child: const Text("생성")),
       ],
-    );
-  }
-
-  Widget _quickActionCard(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 30),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
+    ));
   }
 }

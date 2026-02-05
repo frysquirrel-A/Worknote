@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 import '../models.dart';
 import '../providers/journal_provider.dart';
 import '../providers/team_provider.dart';
@@ -22,15 +23,22 @@ class JournalTab extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.orangeAccent,
         icon: const Icon(Icons.edit, color: Colors.white),
         label: const Text("일지 쓰기", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         onPressed: () => _showWriteModal(context, journalProv, teamProv),
       ),
       body: keys.isEmpty 
-        ? Center(child: Text("작성된 일지가 없습니다.", style: TextStyle(color: Colors.grey[400])))
+        ? Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.edit_note, size: 60, color: Colors.white.withValues(alpha: 0.2)),
+              const SizedBox(height: 16),
+              Text("작성된 일지가 없습니다.", style: TextStyle(color: Colors.white.withValues(alpha: 0.4))),
+            ],
+          ))
         : ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             itemCount: keys.length,
             itemBuilder: (context, index) {
               final dateKey = keys[index];
@@ -39,36 +47,50 @@ class JournalTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(dateKey, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[300])),
+                    padding: const EdgeInsets.only(left: 8, bottom: 12, top: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 14, color: Colors.orangeAccent),
+                        const SizedBox(width: 8),
+                        Text(dateKey, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                      ],
+                    ),
                   ),
                   ...entries.map((j) => Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 20, left: 4),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white10 : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(j.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
-                        const SizedBox(height: 8),
-                        Text(j.content, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(j.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
+                            Text(j.userName, style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(j.content, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), height: 1.5)),
                         if (j.photos.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           SizedBox(
-                            height: 80,
+                            height: 100,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
                               itemCount: j.photos.length,
                               itemBuilder: (c, i) => Container(
-                                width: 80, margin: const EdgeInsets.only(right: 8),
+                                width: 100, margin: const EdgeInsets.only(right: 12),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.grey,
-                                  image: DecorationImage(image: FileImage(File(j.photos[i])),
-                                  fit: BoxFit.cover),
+                                  borderRadius: BorderRadius.circular(16),
+                                  image: DecorationImage(
+                                    image: FileImage(File(j.photos[i])),
+                                    fit: BoxFit.cover
+                                  ),
                                 ),
                               ),
                             ),
@@ -93,51 +115,89 @@ class JournalTab extends StatelessWidget {
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => Container(
-          height: MediaQuery.of(context).size.height * 0.9,
+          height: MediaQuery.of(context).size.height * 0.85,
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: teamProv.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E293B),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("일지 작성", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                const Text("작업 일지 작성", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                IconButton(icon: const Icon(Icons.close, color: Colors.white54), onPressed: () => Navigator.pop(context)),
               ]),
-              const SizedBox(height: 16),
-              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "제목")),
-              const SizedBox(height: 12),
-              TextField(controller: contentCtrl, maxLines: 5, decoration: const InputDecoration(labelText: "내용")),
-              const SizedBox(height: 16),
-              Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                  onPressed: () async {
-                    final picker = ImagePicker();
-                    final xFile = await picker.pickImage(source: ImageSource.camera);
-                    if (xFile != null) {
-                      final uploadedId = await prov.uploadPhoto(xFile.path);
-                      if (uploadedId != null) {
-                        setState(() => tempPhotos.add(xFile.path));
-                      }
-                    }
-                  },
+              const SizedBox(height: 24),
+              TextField(
+                controller: titleCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "제목",
+                  labelStyle: const TextStyle(color: Colors.blueAccent),
+                  filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                 ),
-                const Text("사진 추가"),
-              ]),
-              if (tempPhotos.isNotEmpty) SizedBox(height: 60, child: ListView(scrollDirection: Axis.horizontal, children: tempPhotos.map((p)=>Padding(padding:const EdgeInsets.all(4), child: Image.file(File(p)))).toList())),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: contentCtrl,
+                maxLines: 6,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "상세 내용",
+                  labelStyle: const TextStyle(color: Colors.blueAccent),
+                  filled: true, fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent.withValues(alpha: 0.1), foregroundColor: Colors.blueAccent),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text("사진 첨부"),
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final xFile = await picker.pickImage(source: ImageSource.camera);
+                      if (xFile != null) {
+                        final uploadedId = await prov.uploadPhoto(xFile.path);
+                        if (uploadedId != null) {
+                          setState(() => tempPhotos.add(xFile.path));
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+              if (tempPhotos.isNotEmpty) 
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: SizedBox(
+                    height: 80, 
+                    child: ListView(
+                      scrollDirection: Axis.horizontal, 
+                      children: tempPhotos.map((p) => Container(
+                        width: 80, margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), image: DecorationImage(image: FileImage(File(p)), fit: BoxFit.cover)),
+                      )).toList()
+                    )
+                  ),
+                ),
               const Spacer(),
-              SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+              SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 onPressed: () {
+                  if(titleCtrl.text.isEmpty) return;
                   prov.addJournal(JournalEntry(
                     id: const Uuid().v4(), teamId: teamProv.currentTeamId,
-                    userId: 'me', userName: '나', title: titleCtrl.text, content: contentCtrl.text,
+                    userId: 'me', userName: '김반장', title: titleCtrl.text, content: contentCtrl.text,
                     date: DateTime.now(), photos: tempPhotos,
                   ));
                   Navigator.pop(context);
                 },
-                child: const Text("저장하기"),
+                child: const Text("일지 등록", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
               ))
             ],
           ),

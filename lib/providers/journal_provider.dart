@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart'; // Uuid 필요
+import 'package:uuid/uuid.dart'; 
 import '../models.dart';
 import '../services/drive_service.dart';
 import 'package:collection/collection.dart';
@@ -28,7 +28,6 @@ class JournalProvider extends ChangeNotifier {
     if (data != null && data.isNotEmpty) {
       _journals = data.map((e) => JournalEntry.fromJson(e)).toList();
     } else {
-      // [복구] 데이터 없으면 샘플 일지 생성
       _journals = [
         JournalEntry(
           id: const Uuid().v4(), teamId: 'default',
@@ -36,7 +35,7 @@ class JournalProvider extends ChangeNotifier {
           title: '오늘의 현장 점검',
           content: '302동 타설 작업 완료했습니다. 특이사항 없습니다.',
           date: DateTime.now(),
-          photos: [], // 사진은 실제 파일이 있어야 해서 비워둠
+          photos: [],
         )
       ];
     }

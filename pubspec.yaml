@@ -32,9 +32,9 @@ dependencies:
   # [DB]
   hive_flutter: ^1.1.0
 
-  # [🔴 누락된 패키지 추가 🔴]
+  # [추가된 패키지]
   http: ^1.1.0
-  collection: ^1.18.0 
+  collection: ^1.18.0
 
 dev_dependencies:
   flutter_test:

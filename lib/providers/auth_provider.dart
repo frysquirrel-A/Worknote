@@ -23,12 +23,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> loginLocal(String id, String password) async {
     _setLoading(true);
     try {
-      // [복구] 무조건 '김반장'으로 로그인되도록 수정 (테스트용)
       _currentUser = AppUser(
         id: id, 
         password: password, 
-        name: "김반장", // 이름 고정
-        role: "현장소장", // 직책 고정
+        name: "김반장", 
+        role: "현장소장", 
         profileImage: null
       );
       
@@ -58,7 +57,6 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(true);
       final account = await _googleSignIn.signIn();
       if (account != null) {
-        // 구글 로그인 성공 시, DriveService 초기화
         final authHeaders = await account.authHeaders;
         final client = GoogleAuthClient(authHeaders);
         _driveService.setClient(client);
