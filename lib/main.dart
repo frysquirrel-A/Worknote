@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart'; 
-import 'package:hive_flutter/hive_flutter.dart'; 
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-// 어댑터 파일 import
+import 'models.dart'; 
 import 'data/hive_adapters.dart'; 
 
 import 'providers/team_provider.dart';
@@ -36,7 +38,7 @@ void main() async {
   Hive.registerAdapter(ChatMessageAdapter());
 
   // 데이터 박스 열기
-  await Hive.openBox('settings'); 
+  await Hive.openBox('settings');
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Project>('projects');
   await Hive.openBox<JournalEntry>('journals');
@@ -49,7 +51,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => TeamProvider()..loadTeams()),
         ChangeNotifierProvider(create: (_) => TaskProvider()..loadData()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()), 
         ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()), 
         ChangeNotifierProvider(create: (_) => ChatProvider()),    
       ],
@@ -68,6 +70,19 @@ class WorkNoteApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'WorkNote',
+      
+      // [한글 입력 및 언어 설정]
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('ko', 'KR'),
+
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
@@ -133,12 +148,11 @@ class _MainScreenState extends State<MainScreen> {
                     title: const Text("새 팀 만들기", style: TextStyle(color: Colors.blue)),
                     onTap: () => _showCreateTeamDialog(context, teamProv),
                   ),
-                  const Divider(color: Colors.white10),
-                  const Padding(padding: EdgeInsets.all(16), child: Text("팀원 목록", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-                  ...teamProv.currentTeam.memberIds.map((m) => ListTile(
-                    leading: const CircleAvatar(radius: 12, child: Text("👤", style: TextStyle(fontSize: 12))),
-                    title: Text(m, style: const TextStyle(fontSize: 14)),
-                  )),
+                  ListTile(
+                    leading: const Icon(Icons.login, color: Colors.green),
+                    title: const Text("초대 코드로 팀 참여", style: TextStyle(color: Colors.green)),
+                    onTap: () => _showJoinTeamDialog(context, teamProv),
+                  ),
                 ],
               ),
             ),
@@ -208,6 +222,25 @@ class _MainScreenState extends State<MainScreen> {
           if(ctrl.text.isNotEmpty) prov.createTeam(ctrl.text);
           Navigator.pop(ctx);
         }, child: const Text("생성")),
+      ],
+    ));
+  }
+
+  void _showJoinTeamDialog(BuildContext context, TeamProvider prov) {
+    final ctrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text("팀 참여하기"),
+      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: "초대 코드 입력")),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+        ElevatedButton(onPressed: () async {
+          if(ctrl.text.isNotEmpty) {
+            bool success = await prov.joinTeam(ctrl.text);
+            if(success) Navigator.pop(ctx);
+            else ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("팀을 찾을 수 없습니다.")));
+          }
+        }, child: const Text("참여")),
       ],
     ));
   }

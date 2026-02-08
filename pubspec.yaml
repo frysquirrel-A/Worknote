@@ -9,10 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # [Core & UI]
   provider: ^6.1.2
-  intl: ^0.19.0
+  intl: ^0.20.2
   google_fonts: ^6.1.0
   cupertino_icons: ^1.0.8
   flutter_staggered_grid_view: ^0.7.0  # 과거 버전 갤러리 뷰 복원용
