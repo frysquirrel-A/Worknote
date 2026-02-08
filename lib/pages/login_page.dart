@@ -10,12 +10,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool isLoginMode = true;
+  // 처음엔 회원가입 모드(프로필 설정)로 시작하도록 변경
+  bool isLoginMode = false; 
   
   final _idCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _roleCtrl = TextEditingController(text: "팀원");
+  final _roleCtrl = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class _LoginPageState extends State<LoginPage> {
               const Icon(Icons.architecture, size: 80, color: Colors.blueAccent),
               const SizedBox(height: 16),
               const Text("WORKNOTE", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              const Text("탭하여 바로 시작하기", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const Text("현장 협업의 시작", style: TextStyle(color: Colors.grey, fontSize: 14)),
               
               const SizedBox(height: 48),
 
@@ -45,20 +46,20 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: Column(
                   children: [
-                    Text(isLoginMode ? "환영합니다" : "로컬 회원가입", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(isLoginMode ? "로그인" : "프로필 설정", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
 
-                    if (isLoginMode) ...[
-                      const Text("아래 버튼을 누르면 즉시 입장합니다.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 16),
-                    ] else ...[
-                      _buildTextField(_idCtrl, "아이디", Icons.person, false),
+                    // 아이디/비번은 공통
+                    _buildTextField(_idCtrl, "아이디", Icons.person, false),
+                    const SizedBox(height: 12),
+                    _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
+                    
+                    // 회원가입(프로필 설정) 모드일 때만 이름/직책 입력
+                    if (!isLoginMode) ...[
                       const SizedBox(height: 12),
-                      _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
+                      _buildTextField(_nameCtrl, "이름 (예: 홍길동)", Icons.badge, false),
                       const SizedBox(height: 12),
-                      _buildTextField(_nameCtrl, "이름 (예: 김반장)", Icons.badge, false),
-                      const SizedBox(height: 12),
-                      _buildTextField(_roleCtrl, "직책 (예: 소장)", Icons.work, false),
+                      _buildTextField(_roleCtrl, "직책 (예: 전기 팀장)", Icons.work, false),
                     ],
 
                     const SizedBox(height: 24),
@@ -76,33 +77,43 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         onPressed: authProv.isLoading ? null : () async {
                           if (isLoginMode) {
-                            String id = _idCtrl.text.trim().isEmpty ? "admin" : _idCtrl.text.trim();
-                            String pw = _pwCtrl.text.trim().isEmpty ? "1234" : _pwCtrl.text.trim();
-                            await authProv.loginLocal(id, pw);
+                            // 로그인: 입력된 ID/PW로 로그인 시도
+                            await authProv.loginLocal(_idCtrl.text, _pwCtrl.text);
                           } else {
-                            if (_nameCtrl.text.isEmpty) return;
-                            await authProv.signUpLocal(_idCtrl.text, _pwCtrl.text, _nameCtrl.text, _roleCtrl.text);
+                            // 가입: 입력한 이름/직책으로 유저 생성
+                            if (_nameCtrl.text.isEmpty || _roleCtrl.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름과 직책을 모두 입력해주세요.")));
+                              return;
+                            }
+                            await authProv.signUpLocal(
+                              _idCtrl.text, 
+                              _pwCtrl.text, 
+                              _nameCtrl.text, // [중요] 사용자가 입력한 이름 전달
+                              _roleCtrl.text  // [중요] 사용자가 입력한 직책 전달
+                            );
                           }
                         },
                         child: authProv.isLoading 
                           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(isLoginMode ? "지금 바로 시작하기" : "가입하고 시작", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          : Text(isLoginMode ? "입장하기" : "시작하기", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              if (isLoginMode)
               TextButton(
                 onPressed: () {
                   setState(() {
-                    isLoginMode = false;
+                    isLoginMode = !isLoginMode;
                   });
                 },
-                child: const Text("새로운 계정 만들기", style: TextStyle(color: Colors.white24, fontSize: 12)),
+                child: Text(
+                  isLoginMode ? "처음이신가요? 프로필 설정하기" : "이미 계정이 있으신가요? 로그인", 
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)
+                ),
               ),
             ],
           ),

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models.dart';
 import '../services/drive_service.dart';
+import '../services/local_db_service.dart';
 
 class TeamProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
+  final LocalDatabaseService _localDb = LocalDatabaseService();
   
   List<Team> _teams = [];
   String _currentTeamId = 'default';
   
   bool isDarkMode = true;
-  bool isWifiOnly = true;
 
   List<Team> get teams => _teams;
   String get currentTeamId => _currentTeamId;
@@ -25,43 +27,98 @@ class TeamProvider extends ChangeNotifier {
     );
   }
 
-  List<String> get teamMembers => currentTeam.memberIds;
-
   Future<void> loadTeams() async {
-    final data = await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+    _teams = _localDb.getAll<Team>('teams');
     
-    if (data != null && data.isNotEmpty) {
-      _teams = data.map((e) => Team.fromJson(e)).toList();
-    } else if (_teams.isEmpty) {
-      createTeam('메인 프로젝트 팀');
+    final lastTeamId = _localDb.getSetting('last_team_id');
+    if (lastTeamId != null && _teams.any((t) => t.id == lastTeamId)) {
+      _currentTeamId = lastTeamId;
+    } else if (_teams.isNotEmpty) {
+      _currentTeamId = _teams.first.id;
+    }
+
+    if (_teams.isEmpty) {
+      await createTeam('메인 프로젝트 팀', isSync: false); 
     }
     notifyListeners();
+
+    try {
+      final data = await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+      if (data != null && data.isNotEmpty) {
+        _teams = data.map((e) => Team.fromJson(e)).toList();
+        await _localDb.syncAll<Team>('teams', _teams, (t) => t.id);
+        
+        if (!_teams.any((t) => t.id == _currentTeamId)) {
+          _currentTeamId = _teams.isNotEmpty ? _teams.first.id : 'default';
+          await _localDb.saveSetting('last_team_id', _currentTeamId);
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      print("⚠️ 팀 동기화 실패: $e");
+    }
   }
 
   void switchTeam(String teamId) {
     _currentTeamId = teamId;
+    _localDb.saveSetting('last_team_id', teamId);
     notifyListeners();
   }
 
-  void createTeam(String name) {
+  Future<void> createTeam(String name, {bool isSync = true}) async {
     final newTeam = Team(
       id: const Uuid().v4(),
       name: name,
       inviteCode: const Uuid().v4().substring(0, 8).toUpperCase(),
-      memberIds: ['김반장', '이대리', '박기사'],
+      memberIds: ['me'],
     );
+    
     _teams.add(newTeam);
     _currentTeamId = newTeam.id;
-    _sync();
+    
+    await _localDb.put<Team>('teams', newTeam.id, newTeam);
+    await _localDb.saveSetting('last_team_id', newTeam.id);
+    
     notifyListeners();
+
+    if (isSync) {
+      await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+    }
+  }
+
+  Future<bool> joinTeam(String inviteCode) async {
+    if (_teams.any((t) => t.inviteCode == inviteCode)) {
+      final joined = _teams.firstWhere((t) => t.inviteCode == inviteCode);
+      switchTeam(joined.id);
+      return true;
+    }
+
+    try {
+      final data = await _driveService.readJsonData('worknote_teams.json');
+      if (data != null) {
+        final cloudTeams = data.map((e) => Team.fromJson(e)).toList();
+        final targetTeam = cloudTeams.firstWhere(
+          (t) => t.inviteCode == inviteCode, 
+          orElse: () => Team(id: '', name: '', inviteCode: '', memberIds: [])
+        );
+
+        if (targetTeam.id.isNotEmpty) {
+          if (!_teams.any((t) => t.id == targetTeam.id)) {
+             _teams.add(targetTeam);
+             await _localDb.put<Team>('teams', targetTeam.id, targetTeam);
+             switchTeam(targetTeam.id);
+             return true;
+          }
+        }
+      }
+    } catch (e) {
+      print("Join Team Error: $e");
+    }
+    return false;
   }
 
   void toggleTheme() {
     isDarkMode = !isDarkMode;
     notifyListeners();
-  }
-
-  Future<void> _sync() async {
-    await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
   }
 }

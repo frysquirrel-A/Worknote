@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:hive_flutter/hive_flutter.dart';
+
 import '../models.dart';
 import '../services/drive_service.dart';
+import '../services/local_db_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
+  final LocalDatabaseService _localDb = LocalDatabaseService(); 
+  
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: [
-    'https://www.googleapis.com/auth/drive.file',
+    drive.DriveApi.driveFileScope,
   ]);
   
-  List<AppUser> _users = [];
   AppUser? _currentUser;
   bool _isLoading = false;
   bool _isGoogleLinked = false;
@@ -19,39 +24,69 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
   bool get isGoogleLinked => _isGoogleLinked;
 
-  // 1. 로컬 로그인 (김반장 강제 소환)
+  AuthProvider() {
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final lastUserId = _localDb.getSetting('logged_in_user_id');
+    if (lastUserId != null) {
+      final savedUser = Hive.box<AppUser>('users').get(lastUserId);
+      if (savedUser != null) {
+        _currentUser = savedUser;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<bool> loginLocal(String id, String password) async {
     _setLoading(true);
-    try {
-      _currentUser = AppUser(
-        id: id, 
-        password: password, 
-        name: "김반장", 
-        role: "현장소장", 
-        profileImage: null
-      );
-      
+    final user = Hive.box<AppUser>('users').get(id);
+    
+    if (user != null && user.password == password) {
+      _currentUser = user;
+      await _localDb.saveSetting('logged_in_user_id', id);
       notifyListeners();
       _setLoading(false);
       return true;
-    } catch (e) {
+    } else {
       _setLoading(false);
       return false;
     }
   }
 
-  // 2. 회원가입
   Future<bool> signUpLocal(String id, String password, String name, String role) async {
     _setLoading(true);
-    final newUser = AppUser(id: id, password: password, name: name, role: role);
-    _users.add(newUser);
+    if (Hive.box<AppUser>('users').containsKey(id)) {
+      _setLoading(false);
+      return false;
+    }
+
+    final newUser = AppUser(
+      id: id, 
+      password: password, 
+      name: name, 
+      role: role,
+      profileImage: null
+    );
+    
+    await _localDb.put<AppUser>('users', id, newUser);
     _currentUser = newUser;
+    await _localDb.saveSetting('logged_in_user_id', id);
+
     notifyListeners();
     _setLoading(false);
     return true;
   }
 
-  // 3. 구글 연동
+  Future<void> logout() async {
+    _currentUser = null;
+    _isGoogleLinked = false;
+    await _localDb.saveSetting('logged_in_user_id', null);
+    await _googleSignIn.signOut();
+    notifyListeners();
+  }
+
   Future<bool> connectGoogleDrive() async {
     try {
       _setLoading(true);
@@ -60,12 +95,12 @@ class AuthProvider extends ChangeNotifier {
         final authHeaders = await account.authHeaders;
         final client = GoogleAuthClient(authHeaders);
         _driveService.setClient(client);
-        
         _isGoogleLinked = true;
         notifyListeners();
         _setLoading(false);
         return true;
       }
+      _setLoading(false);
       return false;
     } catch (e) {
       print("Google Sign In Error: $e");
@@ -74,15 +109,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  void logout() {
-    _currentUser = null;
-    _isGoogleLinked = false;
-    _googleSignIn.signOut();
-    notifyListeners();
-  }
-
-  void _setLoading(bool val) {
-    _isLoading = val;
+  void _setLoading(bool v) {
+    _isLoading = v;
     notifyListeners();
   }
 }

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart'; 
+import 'package:hive_flutter/hive_flutter.dart'; 
+
+// 어댑터 파일 import
+import 'data/hive_adapters.dart'; 
+
 import 'providers/team_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/auth_provider.dart';
@@ -17,6 +22,27 @@ import 'tabs/gallery_tab.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
+
+  // [Hive 초기화]
+  await Hive.initFlutter();
+  
+  // 어댑터 등록
+  Hive.registerAdapter(TaskPriorityAdapter());
+  Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(ProjectAdapter());
+  Hive.registerAdapter(JournalEntryAdapter());
+  Hive.registerAdapter(TeamAdapter());
+  Hive.registerAdapter(AppUserAdapter());
+  Hive.registerAdapter(ChatMessageAdapter());
+
+  // 데이터 박스 열기
+  await Hive.openBox('settings'); 
+  await Hive.openBox<Task>('tasks');
+  await Hive.openBox<Project>('projects');
+  await Hive.openBox<JournalEntry>('journals');
+  await Hive.openBox<Team>('teams');
+  await Hive.openBox<AppUser>('users');
+  await Hive.openBox<ChatMessage>('messages');
 
   runApp(
     MultiProvider(

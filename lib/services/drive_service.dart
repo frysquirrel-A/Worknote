@@ -61,6 +61,26 @@ class DriveService {
     }
   }
 
+  // [신규] 읽기 전용 데이터 동기화 (Join Team 용)
+  Future<List<dynamic>?> readJsonData(String fileName) async {
+    if (_driveApi == null) return null;
+    try {
+      final fileList = await _driveApi!.files.list(
+        q: "name = '$fileName' and trashed = false",
+        $fields: "files(id, name)",
+      );
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final fileId = fileList.files!.first.id;
+        final media = await _driveApi!.files.get(fileId!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+        final content = await utf8.decodeStream(media.stream);
+        if (content.isNotEmpty) return jsonDecode(content) as List<dynamic>;
+      }
+    } catch (e) {
+      print("❌ Drive Read Error: $e");
+    }
+    return null;
+  }
+
   // 3. 사진 업로드
   Future<String?> uploadPhoto(String localPath, String fileName) async {
     if (_driveApi == null) return null;
