@@ -10,13 +10,11 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // 처음엔 회원가입 모드(프로필 설정)로 시작하도록 변경
   bool isLoginMode = false; 
   
   final _idCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _roleCtrl = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -49,17 +47,13 @@ class _LoginPageState extends State<LoginPage> {
                     Text(isLoginMode ? "로그인" : "프로필 설정", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
 
-                    // 아이디/비번은 공통
                     _buildTextField(_idCtrl, "아이디", Icons.person, false),
                     const SizedBox(height: 12),
                     _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
                     
-                    // 회원가입(프로필 설정) 모드일 때만 이름/직책 입력
                     if (!isLoginMode) ...[
                       const SizedBox(height: 12),
                       _buildTextField(_nameCtrl, "이름 (예: 홍길동)", Icons.badge, false),
-                      const SizedBox(height: 12),
-                      _buildTextField(_roleCtrl, "직책 (예: 전기 팀장)", Icons.work, false),
                     ],
 
                     const SizedBox(height: 24),
@@ -73,23 +67,20 @@ class _LoginPageState extends State<LoginPage> {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 10,
-                          shadowColor: Colors.blueAccent.withValues(alpha: 0.3),
                         ),
                         onPressed: authProv.isLoading ? null : () async {
                           if (isLoginMode) {
-                            // 로그인: 입력된 ID/PW로 로그인 시도
                             await authProv.loginLocal(_idCtrl.text, _pwCtrl.text);
                           } else {
-                            // 가입: 입력한 이름/직책으로 유저 생성
-                            if (_nameCtrl.text.isEmpty || _roleCtrl.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름과 직책을 모두 입력해주세요.")));
+                            if (_nameCtrl.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름을 입력해주세요.")));
                               return;
                             }
+                            // [수정 포인트] 인자 3개만 전달
                             await authProv.signUpLocal(
                               _idCtrl.text, 
                               _pwCtrl.text, 
-                              _nameCtrl.text, // [중요] 사용자가 입력한 이름 전달
-                              _roleCtrl.text  // [중요] 사용자가 입력한 직책 전달
+                              _nameCtrl.text
                             );
                           }
                         },

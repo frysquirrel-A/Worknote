@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-// 1. 업무 우선순위 (Enum)
-enum TaskPriority { high, medium, low, none }
+// 1. 업무 우선순위
+enum TaskPriority { high, medium, low }
 
-// 2. 업무 (Task) 모델
+// 2. 업무 (Task)
 class Task {
   String id;
   String teamId;
@@ -11,10 +11,10 @@ class Task {
   String assigneeId;
   String assigneeName;
   String assigneeEmoji;
-  String projectId;
+  String? projectId; // null이면 '프로젝트 없음'
   DateTime createdAt;
   DateTime dueDate;
-  DateTime updatedAt;
+  DateTime? updatedAt;
   DateTime? completedAt;
   bool isDone;
   TaskPriority priority;
@@ -28,16 +28,16 @@ class Task {
     required this.assigneeId,
     required this.assigneeName,
     required this.assigneeEmoji,
-    required this.projectId,
+    this.projectId, // Nullable
     required this.createdAt,
     required this.dueDate,
-    DateTime? updatedAt,
+    this.updatedAt,
     this.completedAt,
     this.isDone = false,
-    this.priority = TaskPriority.none,
+    this.priority = TaskPriority.medium,
     this.taskNotes = const [],
     this.completionReport,
-  }) : updatedAt = updatedAt ?? createdAt;
+  });
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -49,7 +49,7 @@ class Task {
     'projectId': projectId,
     'createdAt': createdAt.toIso8601String(),
     'dueDate': dueDate.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
     'completedAt': completedAt?.toIso8601String(),
     'isDone': isDone,
     'priority': priority.index,
@@ -67,16 +67,16 @@ class Task {
     projectId: json['projectId'],
     createdAt: DateTime.parse(json['createdAt']),
     dueDate: DateTime.parse(json['dueDate']),
-    updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.parse(json['createdAt']),
+    updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
     isDone: json['isDone'] ?? false,
-    priority: TaskPriority.values[json['priority'] ?? 3],
+    priority: TaskPriority.values[json['priority'] ?? 1],
     taskNotes: List<String>.from(json['taskNotes'] ?? []),
     completionReport: json['completionReport'],
   );
 }
 
-// 3. 프로젝트 (Project) 모델
+// 3. 프로젝트
 class Project {
   String id;
   String teamId;
@@ -107,7 +107,7 @@ class Project {
   );
 }
 
-// 4. 일지 (JournalEntry) 모델
+// 4. 일지
 class JournalEntry {
   String id;
   String teamId;
@@ -133,7 +133,7 @@ class JournalEntry {
     DateTime? updatedAt,
     this.photos = const [],
     this.isPrivate = false,
-  }) : updatedAt = updatedAt ?? date;
+  }) : updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -158,24 +158,26 @@ class JournalEntry {
     content: json['content'],
     projectId: json['projectId'],
     date: DateTime.parse(json['date']),
-    updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.parse(json['date']),
+    updatedAt: DateTime.parse(json['updatedAt']),
     photos: List<String>.from(json['photos'] ?? []),
     isPrivate: json['isPrivate'] ?? false,
   );
 }
 
-// 5. 팀 (Team) 모델
+// 5. 팀 (Team) - [수정됨: 직책 맵 추가]
 class Team {
   String id;
   String name;
   String inviteCode;
   List<String> memberIds;
+  Map<String, String> memberRoles; // {userId: role}
 
   Team({
     required this.id,
     required this.name,
     required this.inviteCode,
     required this.memberIds,
+    this.memberRoles = const {},
   });
 
   Map<String, dynamic> toJson() => {
@@ -183,6 +185,7 @@ class Team {
     'name': name,
     'inviteCode': inviteCode,
     'memberIds': memberIds,
+    'memberRoles': memberRoles,
   };
 
   factory Team.fromJson(Map<String, dynamic> json) => Team(
@@ -190,35 +193,40 @@ class Team {
     name: json['name'],
     inviteCode: json['inviteCode'],
     memberIds: List<String>.from(json['memberIds'] ?? []),
+    memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
   );
 }
 
-// 6. 사용자 (AppUser) 모델
+// 6. 사용자
 class AppUser {
   String id;
   String password;
-  String name;
-  String role;
+  String name; // 기본 이름
   String? profileImage;
 
   AppUser({
     required this.id,
     required this.password,
     required this.name,
-    required this.role,
     this.profileImage,
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'password': password, 'name': name, 'role': role, 'profileImage': profileImage,
+    'id': id,
+    'password': password,
+    'name': name,
+    'profileImage': profileImage,
   };
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    id: json['id'], password: json['password'], name: json['name'], role: json['role'] ?? '팀원', profileImage: json['profileImage'],
+    id: json['id'],
+    password: json['password'],
+    name: json['name'],
+    profileImage: json['profileImage'],
   );
 }
 
-// 7. 채팅 메시지 (ChatMessage) 모델
+// 7. 채팅
 class ChatMessage {
   String id;
   String teamId;
@@ -237,13 +245,22 @@ class ChatMessage {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'teamId': teamId, 'senderId': senderId, 'senderName': senderName, 'content': content, 'sentAt': sentAt.toIso8601String(),
+    'id': id,
+    'teamId': teamId,
+    'senderId': senderId,
+    'senderName': senderName,
+    'content': content,
+    'sentAt': sentAt.toIso8601String(),
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-    id: json['id'], teamId: json['teamId'], senderId: json['senderId'], senderName: json['senderName'], content: json['content'], sentAt: DateTime.parse(json['sentAt']),
+    id: json['id'],
+    teamId: json['teamId'],
+    senderId: json['senderId'],
+    senderName: json['senderName'],
+    content: json['content'],
+    sentAt: DateTime.parse(json['sentAt']),
   );
 }
 
-// 필터 Enum
 enum DateFilter { all, today, week, twoWeeks, oneMonth }

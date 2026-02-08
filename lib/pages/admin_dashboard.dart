@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/team_provider.dart';
 import '../providers/auth_provider.dart';
-import 'system_monitor_page.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -11,94 +10,77 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final authProv = context.watch<AuthProvider>();
-
-    final isDark = teamProv.isDarkMode;
-    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final myId = authProv.currentUser?.id ?? 'me';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text("설정 및 관리", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        title: const Text("설정 및 관리"),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: textColor),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)),
-              child: Row(
-                children: [
-                  CircleAvatar(radius: 30, backgroundColor: Colors.blue, child: Text(authProv.currentUser?.name[0] ?? "U", style: const TextStyle(color: Colors.white, fontSize: 24))),
-                  const SizedBox(width: 16),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(authProv.currentUser?.name ?? "사용자", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-                    Text(authProv.currentUser?.role ?? "팀원", style: const TextStyle(color: Colors.grey)),
-                  ])
-                ],
-              ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionHeader("내 정보"),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: Text(authProv.currentUser?.name ?? "사용자"),
+            subtitle: Text("ID: ${authProv.currentUser?.id}"),
+          ),
+          ListTile(
+            leading: const Icon(Icons.badge),
+            title: const Text("현재 팀 직책"),
+            // [수정 포인트] 최신 메서드 사용
+            subtitle: Text(teamProv.getMyRole(myId), style: const TextStyle(color: Colors.grey)),
+          ),
+          
+          const Divider(),
+          _buildSectionHeader("앱 설정"),
+          
+          ListTile(
+            leading: const Icon(Icons.palette),
+            title: const Text("테마 설정"),
+            // [수정 포인트] 최신 다이얼로그 연결
+            onTap: () => _showThemeDialog(context, teamProv),
+            trailing: Icon(
+              teamProv.currentThemeMode == 'dark' ? Icons.dark_mode : 
+              (teamProv.currentThemeMode == 'light' ? Icons.light_mode : Icons.water_drop)
             ),
-            const SizedBox(height: 32),
-            
-            _buildTile(context, "구글 드라이브 연동", Icons.add_to_drive, Colors.green, cardColor, textColor, onTap: () async {
-              if (!authProv.isGoogleLinked) {
-                final success = await authProv.connectGoogleDrive();
-                if (!context.mounted) return;
-                
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("연동 성공!")));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("연동 실패 (SHA-1 확인 필요)")));
-                }
-              }
-            }),
-            const SizedBox(height: 12),
-            _buildTile(context, "시스템 모니터", Icons.monitor_heart, Colors.redAccent, cardColor, textColor, onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SystemMonitorPage()));
-            }),
-            const SizedBox(height: 12),
-            _buildTile(context, "다크 모드", Icons.dark_mode, Colors.purpleAccent, cardColor, textColor, onTap: () {
-               teamProv.toggleTheme();
-            }),
-            const SizedBox(height: 40),
-            
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent.withValues(alpha: 0.1), elevation: 0),
-                onPressed: () {
-                  authProv.logout();
-                  Navigator.pop(context);
-                },
-                child: const Text("로그아웃", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
-        ),
+          ),
+          
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text("로그아웃", style: TextStyle(color: Colors.red)),
+            onTap: () {
+              authProv.logout();
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTile(BuildContext context, String title, IconData icon, Color iconColor, Color bgColor, Color textColor, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor),
-            const SizedBox(width: 16),
-            Expanded(child: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold))),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
-        ),
-      ),
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
     );
+  }
+
+  void _showThemeDialog(BuildContext context, TeamProvider prov) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text("테마 선택"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(title: const Text("다크 모드"), onTap: () { prov.changeTheme('dark'); Navigator.pop(ctx); }),
+          ListTile(title: const Text("화이트 모드"), onTap: () { prov.changeTheme('light'); Navigator.pop(ctx); }),
+          ListTile(title: const Text("블루 모드"), onTap: () { prov.changeTheme('blue'); Navigator.pop(ctx); }),
+        ],
+      ),
+    ));
   }
 }
