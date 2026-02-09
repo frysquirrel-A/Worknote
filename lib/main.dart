@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart'; 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -19,17 +20,14 @@ import 'tabs/task_tab.dart';
 import 'tabs/messenger_tab.dart';
 import 'tabs/journal_tab.dart'; 
 import 'tabs/gallery_tab.dart'; 
+import 'tabs/schedule_tab.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
 
-  // 1. Hive 초기화 (가장 먼저 실행)
   await Hive.initFlutter();
   
-  // [중요] deleteFromDisk() 코드는 삭제했습니다. (앱 삭제로 대체함)
-
-  // 2. 어댑터 등록
   Hive.registerAdapter(TaskPriorityAdapter());
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
@@ -38,7 +36,6 @@ void main() async {
   Hive.registerAdapter(AppUserAdapter());
   Hive.registerAdapter(ChatMessageAdapter());
 
-  // 3. 박스 열기 (데이터베이스 로드)
   await Hive.openBox('settings');
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Project>('projects');
@@ -66,58 +63,43 @@ class WorkNoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProv = context.watch<AuthProvider>();
     final teamProv = context.watch<TeamProvider>();
+    final authProv = context.watch<AuthProvider>();
 
-    // 테마 설정
-    final darkTheme = ThemeData(
+    final pixelDarkTheme = ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0F172A),
-      primaryColor: const Color(0xFF3B82F6),
-      cardColor: const Color(0xFF1E293B),
-      useMaterial3: true,
-      textTheme: GoogleFonts.notoSansKrTextTheme(ThemeData.dark().textTheme),
-    );
-
-    final lightTheme = ThemeData(
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: Colors.white,
-      primaryColor: const Color(0xFF3B82F6),
-      cardColor: Colors.white,
-      useMaterial3: true,
-      textTheme: GoogleFonts.notoSansKrTextTheme(ThemeData.light().textTheme),
-    );
-
-    final blueTheme = ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF102A43),
-      primaryColor: const Color(0xFF40C4FF),
-      cardColor: const Color(0xFF243B53),
+      scaffoldBackgroundColor: const Color(0xFF0A0E1A), 
+      primaryColor: const Color(0xFF4D88FF), 
+      cardColor: const Color(0xFF161C2C), 
       useMaterial3: true,
       textTheme: GoogleFonts.notoSansKrTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: const Color(0xFFD9E2EC),
+        bodyColor: Colors.white.withValues(alpha: 0.9),
         displayColor: Colors.white,
       ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF0A0E1A).withValues(alpha: 0.95),
+        indicatorColor: const Color(0xFF4D88FF).withValues(alpha: 0.2),
+        labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+      ),
     );
-
-    ThemeData selectedTheme;
-    if (teamProv.currentThemeMode == 'light') selectedTheme = lightTheme;
-    else if (teamProv.currentThemeMode == 'blue') selectedTheme = blueTheme;
-    else selectedTheme = darkTheme;
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'WorkNote',
-      theme: selectedTheme,
+      theme: pixelDarkTheme,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ko', 'KR'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
+      locale: const Locale('ko', 'KR'),
       home: authProv.currentUser == null ? const LoginPage() : const MainScreen(),
     );
   }
@@ -135,6 +117,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _tabs = [
     const HomeTab(),
     const TeamTaskTab(),
+    const ScheduleTab(),
     const JournalTab(), 
     const GalleryTab(), 
     const MessengerTab(),
@@ -144,175 +127,188 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final authProv = context.watch<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: Drawer(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).primaryColor.withValues(alpha: 0.8)),
-              accountName: Row(
-                children: [
-                  Text("${authProv.currentUser?.name} ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  GestureDetector(
-                    onTap: () => _showEditNameDialog(context, authProv),
-                    child: const Icon(Icons.edit, size: 16, color: Colors.white70),
-                  )
-                ],
-              ),
-              accountEmail: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("팀 직책: ${teamProv.getMyRole(myId)}", style: const TextStyle(color: Colors.white70)),
-                  GestureDetector(
-                    onTap: () => _showEditRoleDialog(context, teamProv, myId),
-                    child: const Text("직책 변경 >", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ],
-              ),
-              currentAccountPicture: CircleAvatar(backgroundColor: Colors.white, child: Text(authProv.currentUser?.name[0] ?? "나", style: TextStyle(fontSize: 24, color: Theme.of(context).primaryColor))),
-            ),
-            
-            ExpansionTile(
-              leading: const Icon(Icons.palette),
-              title: const Text("앱 테마 설정"),
-              children: [
-                ListTile(title: const Text("다크 모드 (기본)"), leading: const Icon(Icons.dark_mode), onTap: () => teamProv.changeTheme('dark')),
-                ListTile(title: const Text("화이트 모드"), leading: const Icon(Icons.light_mode), onTap: () => teamProv.changeTheme('light')),
-                ListTile(title: const Text("블루 모드"), leading: const Icon(Icons.water_drop), onTap: () => teamProv.changeTheme('blue')),
-              ],
-            ),
-            
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: [
-                  const Padding(padding: EdgeInsets.all(16), child: Text("내 팀 목록", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-                  ...teamProv.teams.map((t) => ListTile(
-                    leading: Icon(Icons.group_work, color: t.id == teamProv.currentTeamId ? Theme.of(context).primaryColor : Colors.grey),
-                    title: Text(t.name),
-                    onTap: () {
-                      teamProv.switchTeam(t.id);
-                      Navigator.pop(context);
-                    },
-                  )),
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: const Text("새 팀 만들기"),
-                    onTap: () => _showCreateTeamDialog(context, teamProv, myId),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.login),
-                    title: const Text("초대 코드로 팀 참여"),
-                    onTap: () => _showJoinTeamDialog(context, teamProv),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      drawer: _buildPixelDrawer(context, teamProv, authProv),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(-0.8, -0.8),
+            radius: 1.5,
+            colors: [Color(0xFF1A2235), Color(0xFF0A0E1A)],
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(icon: Icon(Icons.menu, color: Theme.of(context).textTheme.bodyLarge?.color), onPressed: () => _scaffoldKey.currentState?.openDrawer()),
-                  const SizedBox(width: 8),
-                  Text(teamProv.currentTeam.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.sort_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(teamProv.currentTeam.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+                    const Spacer(),
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Theme.of(context).primaryColor,
+                      child: Text(authProv.currentUser?.name[0] ?? "U", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(child: _tabs[_selectedIndex]),
-          ],
+              Expanded(child: _tabs[_selectedIndex]),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        height: 70,
         selectedIndex: _selectedIndex,
         onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: '홈'),
-          NavigationDestination(icon: Icon(Icons.check_circle_outline), label: '업무'),
-          NavigationDestination(icon: Icon(Icons.book_outlined), label: '일지'),
-          NavigationDestination(icon: Icon(Icons.photo_library_outlined), label: '사진'),
-          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: '소통'),
+          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: '홈'),
+          NavigationDestination(icon: Icon(Icons.assignment_rounded), label: '업무'),
+          NavigationDestination(icon: Icon(Icons.calendar_today_rounded), label: '스케줄'),
+          NavigationDestination(icon: Icon(Icons.auto_stories_rounded), label: '일지'),
+          NavigationDestination(icon: Icon(Icons.photo_library_rounded), label: '사진'),
+          NavigationDestination(icon: Icon(Icons.forum_rounded), label: '소통'),
         ],
       ),
     );
   }
 
-  void _showEditNameDialog(BuildContext context, AuthProvider prov) {
-    final ctrl = TextEditingController(text: prov.currentUser?.name);
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text("이름 변경"),
-      content: TextField(controller: ctrl),
-      actions: [
-        ElevatedButton(onPressed: () { 
-          prov.updateName(ctrl.text); 
-          if (context.mounted) Navigator.pop(ctx);
-        }, child: const Text("저장")),
-      ],
-    ));
+  Widget _buildPixelDrawer(BuildContext context, TeamProvider teamProv, AuthProvider authProv) {
+    final myId = authProv.currentUser?.id ?? 'me';
+    return Drawer(
+      width: MediaQuery.of(context).size.width * 0.85,
+      backgroundColor: const Color(0xFF0A0E1A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(32), bottomRight: Radius.circular(32))),
+      child: Column(
+        children: [
+          const SizedBox(height: 60),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                CircleAvatar(radius: 35, backgroundColor: Theme.of(context).primaryColor, child: Text(authProv.currentUser?.name[0] ?? "U", style: const TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold))),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(authProv.currentUser?.name ?? "사용자", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const SizedBox(height: 4),
+                      Text("직책: ${teamProv.getMyRole(myId)}", style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          _drawerItem(Icons.add_to_drive_rounded, "구글 드라이브 연동", () {}),
+          _drawerItem(Icons.group_add_rounded, "초대 코드로 팀 참여", () {}),
+          _drawerItem(Icons.add_business_rounded, "새 팀 만들기", () {}),
+          
+          _drawerItem(Icons.refresh_rounded, "시스템 초기화 (Reset)", () => _showResetDialog(context, teamProv.currentTeamId), color: Colors.orangeAccent),
+
+          const Divider(color: Colors.white10, height: 40, indent: 24, endIndent: 24),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: teamProv.teams.map((t) => ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 32),
+                leading: Icon(Icons.hub_rounded, color: t.id == teamProv.currentTeamId ? Theme.of(context).primaryColor : Colors.white24, size: 20),
+                title: Text(t.name, style: TextStyle(color: t.id == teamProv.currentTeamId ? Colors.white : Colors.white.withValues(alpha: 0.5), fontWeight: t.id == teamProv.currentTeamId ? FontWeight.bold : FontWeight.normal)),
+                onTap: () {
+                  teamProv.switchTeam(t.id);
+                  Navigator.pop(context);
+                },
+              )).toList(),
+            ),
+          ),
+          _drawerItem(Icons.logout_rounded, "로그아웃", () => authProv.logout(), color: Colors.redAccent),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
   }
 
-  void _showEditRoleDialog(BuildContext context, TeamProvider prov, String myId) {
-    final ctrl = TextEditingController(text: prov.getMyRole(myId));
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text("이 팀에서의 직책 변경"),
-      content: TextField(controller: ctrl),
-      actions: [
-        ElevatedButton(onPressed: () { 
-          prov.updateMyRole(myId, ctrl.text); 
-          if (context.mounted) Navigator.pop(ctx);
-        }, child: const Text("저장")),
-      ],
-    ));
+  void _showResetDialog(BuildContext context, String currentTeamId) {
+    bool includeSample = true; // [복구] 상태 변수
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF161C2C),
+          title: const Text("시스템 초기화", style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("모든 로컬 데이터를 삭제하시겠습니까?", style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 20),
+              CheckboxListTile(
+                title: const Text("샘플 데이터 포함", style: TextStyle(color: Colors.white)),
+                value: includeSample,
+                onChanged: (v) => setState(() => includeSample = v!),
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: Colors.blueAccent,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (includeSample) {
+                  // [복구] 태스크와 일지 모두 샘플 주입 초기화 실행
+                  await context.read<TaskProvider>().resetSystem(currentTeamId);
+                  await context.read<JournalProvider>().resetSystem(currentTeamId);
+                } else {
+                  // 순수 비우기
+                  await Hive.box<Task>('tasks').clear();
+                  await Hive.box<Project>('projects').clear();
+                  await Hive.box<JournalEntry>('journals').clear();
+                  await context.read<TaskProvider>().loadData();
+                  await context.read<JournalProvider>().loadJournals();
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("시스템이 초기화되었습니다.")));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              child: const Text("초기화 실행"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  void _showCreateTeamDialog(BuildContext context, TeamProvider prov, String myId) {
-     final ctrl = TextEditingController();
-     final roleCtrl = TextEditingController(text: '관리자');
-     showDialog(context: context, builder: (ctx) => AlertDialog(
-       title: const Text("새 팀 생성"),
-       content: Column(
-         mainAxisSize: MainAxisSize.min,
-         children: [
-           TextField(controller: ctrl, decoration: const InputDecoration(labelText: "팀 이름")),
-           TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "내 직책 (예: 팀장)")),
-         ],
-       ),
-       actions: [
-         ElevatedButton(onPressed: () {
-           if(ctrl.text.isNotEmpty) {
-             prov.createTeam(ctrl.text, roleCtrl.text);
-           }
-           if (context.mounted) Navigator.pop(ctx);
-         }, child: const Text("생성")),
-       ],
-     ));
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
+      leading: Icon(icon, color: color ?? Colors.white.withValues(alpha: 0.7), size: 22),
+      title: Text(title, style: TextStyle(color: color ?? Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+      onTap: onTap,
+    );
   }
 
-  void _showJoinTeamDialog(BuildContext context, TeamProvider prov) {
-    final ctrl = TextEditingController();
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text("팀 참여하기"),
-      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: "초대 코드 입력")),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
-        ElevatedButton(onPressed: () async {
-          if(ctrl.text.isNotEmpty) {
-            bool success = await prov.joinTeam(ctrl.text, 'me'); 
-             if (context.mounted) Navigator.pop(ctx);
-             if (!success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("팀을 찾을 수 없습니다.")));
-             }
-          }
-        }, child: const Text("참여")),
-      ],
-    ));
-  }
+  void _showEditNameDialog(BuildContext context, AuthProvider prov) {}
+  void _showCreateTeamDialog(BuildContext context, TeamProvider prov, String myId) {}
+  void _showJoinTeamDialog(BuildContext context, TeamProvider prov) {}
 }

@@ -20,7 +20,6 @@ class GalleryTab extends StatelessWidget {
     final authProv = context.watch<AuthProvider>(); 
 
     final Map<String, List<String>> groupedPhotos = {};
-    
     final teamJournals = journalProv.journals.where((j) => j.teamId == teamProv.currentTeamId).toList();
     
     for (var j in teamJournals) {
@@ -71,8 +70,8 @@ class GalleryTab extends StatelessWidget {
                     
                     MasonryGridView.count(
                       crossAxisCount: 3,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: photos.length,
@@ -81,9 +80,16 @@ class GalleryTab extends StatelessWidget {
                           onTap: () => _openImageViewer(context, photos[photoIndex]),
                           child: Hero(
                             tag: photos[photoIndex],
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: _buildImage(photos[photoIndex]),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: _buildImage(photos[photoIndex]),
+                              ),
                             ),
                           ),
                         );
@@ -93,10 +99,9 @@ class GalleryTab extends StatelessWidget {
                 );
               },
             ),
-      
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blueAccent,
-        elevation: 10,
+        elevation: 8,
         child: const Icon(Icons.camera_alt, color: Colors.white),
         onPressed: () async {
           final picker = ImagePicker();
@@ -111,8 +116,8 @@ class GalleryTab extends StatelessWidget {
             final newEntry = JournalEntry(
               id: const Uuid().v4(),
               teamId: teamProv.currentTeamId,
-              userId: authProv.currentUser?.id ?? 'unknown',
-              userName: authProv.currentUser?.name ?? '익명', 
+              userId: authProv.currentUser?.id ?? 'me',
+              userName: authProv.currentUser?.name ?? '김반장', 
               title: "현장 사진", 
               content: "",    
               date: DateTime.now(),
@@ -145,9 +150,9 @@ class GalleryTab extends StatelessWidget {
 
   Widget _buildImage(String path) {
     if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.white10, child: const Icon(Icons.broken_image, color: Colors.white24)));
+      return Image.network(path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.white10, height: 100, child: const Icon(Icons.broken_image, color: Colors.white24)));
     } else {
-      return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.white10, child: const Icon(Icons.broken_image, color: Colors.white24)));
+      return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.white10, height: 100, child: const Icon(Icons.broken_image, color: Colors.white24)));
     }
   }
 
