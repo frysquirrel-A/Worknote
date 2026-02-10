@@ -1,16 +1,79 @@
 import 'package:flutter/material.dart';
 
-// 1. 업무 우선순위 (Enum)
+// --- Enums ---
 enum TaskPriority { high, medium, low, none }
-
-// 2. 앱 전반적인 톤
 enum AppTone { white, blue, black }
-
-// 3. 필터링 전용 Enum
 enum DateFilter { all, today, week, twoWeeks, oneMonth }
 enum JournalGroupPeriod { day, week, month, quarter, year }
 
-// [1. 업무 모델]
+// --- 1. 팀 모델 ---
+class Team {
+  final String id;
+  String name;
+  String inviteCode;
+  List<String> memberIds;
+  Map<String, String> memberRoles; // {userId: role}
+
+  Team({
+    required this.id, 
+    required this.name, 
+    required this.inviteCode, 
+    required this.memberIds,
+    this.memberRoles = const {},
+  });
+
+  factory Team.fromJson(Map<String, dynamic> json) => Team(
+    id: json['id'],
+    name: json['name'],
+    inviteCode: json['inviteCode'],
+    memberIds: List<String>.from(json['memberIds'] ?? []),
+    memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'name': name, 'inviteCode': inviteCode, 'memberIds': memberIds, 'memberRoles': memberRoles,
+  };
+}
+
+// --- 2. 프로젝트 모델 ---
+class Project {
+  final String id;
+  final String teamId;
+  final String name;
+  final int colorValue; 
+
+  Project({required this.id, required this.teamId, required this.name, required this.colorValue});
+  
+  Color get color => Color(colorValue);
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+    id: json['id'],
+    teamId: json['teamId'] ?? 'default',
+    name: json['name'],
+    colorValue: json['colorValue'] ?? 0xFF2196F3,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'teamId': teamId, 'name': name, 'colorValue': colorValue,
+  };
+}
+
+// --- 3. 사용자 모델 ---
+class AppUser {
+  final String id, password;
+  String name;
+  String? profileImage;
+
+  AppUser({required this.id, required this.password, required this.name, this.profileImage});
+
+  factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
+    id: json['id'], password: json['password'], name: json['name'], profileImage: json['profileImage'],
+  );
+
+  Map<String, dynamic> toJson() => { 'id': id, 'password': password, 'name': name, 'profileImage': profileImage };
+}
+
+// --- 4. 업무(Task) 모델 ---
 class Task {
   final String id, teamId;
   String title;
@@ -49,47 +112,7 @@ class Task {
   };
 }
 
-// [2. 팀 모델]
-class Team {
-  final String id;
-  String name;
-  String inviteCode;
-  List<String> memberIds;
-  Map<String, String> memberRoles; 
-
-  Team({
-    required this.id, required this.name, required this.inviteCode, 
-    required this.memberIds, this.memberRoles = const {},
-  });
-
-  factory Team.fromJson(Map<String, dynamic> json) => Team(
-    id: json['id'], name: json['name'], inviteCode: json['inviteCode'],
-    memberIds: List<String>.from(json['memberIds'] ?? []),
-    memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
-  );
-
-  Map<String, dynamic> toJson() => {
-    'id': id, 'name': name, 'inviteCode': inviteCode, 'memberIds': memberIds, 'memberRoles': memberRoles,
-  };
-}
-
-// [3. 프로젝트 모델]
-class Project {
-  final String id, teamId, name;
-  final int colorValue; 
-
-  Project({required this.id, required this.teamId, required this.name, required this.colorValue});
-  Color get color => Color(colorValue);
-
-  factory Project.fromJson(Map<String, dynamic> json) => Project(
-    id: json['id'], teamId: json['teamId'] ?? 'default', name: json['name'],
-    colorValue: json['colorValue'] ?? 0xFF2196F3,
-  );
-
-  Map<String, dynamic> toJson() => { 'id': id, 'teamId': teamId, 'name': name, 'colorValue': colorValue };
-}
-
-// [4. 일지 모델]
+// --- 5. 일지(JournalEntry) 모델 ---
 class JournalEntry {
   final String id, teamId, userId, userName, title, content;
   String? projectId;
@@ -108,7 +131,7 @@ class JournalEntry {
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
     id: json['id'], teamId: json['teamId'] ?? 'default', userId: json['userId'], userName: json['userName'],
     title: json['title'], content: json['content'], projectId: json['projectId'],
-    date: DateTime.parse(json['date']), updatedAt: DateTime.parse(json['updatedAt']),
+    date: DateTime.parse(json['date']), updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.parse(json['date']),
     photos: List<String>.from(json['photos']), isPrivate: json['isPrivate'] ?? false,
   );
 
@@ -119,22 +142,7 @@ class JournalEntry {
   };
 }
 
-// [5. 사용자 모델]
-class AppUser {
-  final String id, password;
-  String name;
-  String? profileImage;
-
-  AppUser({required this.id, required this.password, required this.name, this.profileImage});
-
-  factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    id: json['id'], password: json['password'], name: json['name'], profileImage: json['profileImage'],
-  );
-
-  Map<String, dynamic> toJson() => { 'id': id, 'password': password, 'name': name, 'profileImage': profileImage };
-}
-
-// [6. 채팅 메시지 모델]
+// --- 6. 채팅 메시지 모델 ---
 class ChatMessage {
   final String id, teamId, senderId, senderName, content;
   final DateTime sentAt;

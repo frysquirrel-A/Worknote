@@ -11,8 +11,6 @@ class TeamProvider extends ChangeNotifier {
   
   List<Team> _teams = [];
   String _currentTeamId = 'default';
-  
-  // 테마 상태: 'dark', 'light', 'blue'
   String _currentThemeMode = 'dark'; 
 
   List<Team> get teams => _teams;
@@ -24,12 +22,10 @@ class TeamProvider extends ChangeNotifier {
     return _teams.firstWhere((t) => t.id == _currentTeamId, orElse: () => _teams.first);
   }
 
-  // 현재 팀에서 나의 직책 가져오기
   String getMyRole(String userId) {
     return currentTeam.memberRoles[userId] ?? '팀원';
   }
 
-  // 현재 팀에서 나의 직책 수정하기
   Future<void> updateMyRole(String userId, String newRole) async {
     currentTeam.memberRoles[userId] = newRole;
     notifyListeners();
@@ -38,8 +34,7 @@ class TeamProvider extends ChangeNotifier {
   }
 
   Future<void> loadTeams() async {
-    _currentThemeMode = _localDb.getSetting('app_theme', defaultValue: 'dark'); // 테마 로드
-
+    _currentThemeMode = _localDb.getSetting('app_theme', defaultValue: 'dark');
     _teams = _localDb.getAll<Team>('teams');
     final lastTeamId = _localDb.getSetting('last_team_id');
     if (lastTeamId != null && _teams.any((t) => t.id == lastTeamId)) {
@@ -49,7 +44,6 @@ class TeamProvider extends ChangeNotifier {
     }
 
     if (_teams.isEmpty) {
-      // 초기 팀 생성시 기본 역할 부여
       await createTeam('메인 프로젝트 팀', '관리자', isSync: false); 
     }
     notifyListeners();
@@ -59,10 +53,6 @@ class TeamProvider extends ChangeNotifier {
       if (data != null && data.isNotEmpty) {
         _teams = data.map((e) => Team.fromJson(e)).toList();
         await _localDb.syncAll<Team>('teams', _teams, (t) => t.id);
-        if (!_teams.any((t) => t.id == _currentTeamId)) {
-          _currentTeamId = _teams.isNotEmpty ? _teams.first.id : 'default';
-          await _localDb.saveSetting('last_team_id', _currentTeamId);
-        }
         notifyListeners();
       }
     } catch (e) {
@@ -96,16 +86,38 @@ class TeamProvider extends ChangeNotifier {
     }
   }
 
+  // [부활] 드라이브 검색을 통한 팀 참여 로직
   Future<bool> joinTeam(String inviteCode, String myId) async {
+    // 1. 이미 가입된 팀인지 확인
     if (_teams.any((t) => t.inviteCode == inviteCode)) {
       switchTeam(_teams.firstWhere((t) => t.inviteCode == inviteCode).id);
       return true;
     }
-    // ... 기존 드라이브 검색 로직은 생략/유지 ...
+
+    // 2. 드라이브에서 해당 코드를 가진 팀 검색
+    try {
+      final data = await _driveService.readJsonData('worknote_teams.json');
+      if (data != null) {
+        final cloudTeams = data.map((e) => Team.fromJson(e)).toList();
+        final targetTeam = cloudTeams.firstWhere(
+          (t) => t.inviteCode == inviteCode, 
+          orElse: () => Team(id: '', name: '', inviteCode: '', memberIds: [])
+        );
+
+        if (targetTeam.id.isNotEmpty) {
+          // 팀 찾음 -> 내 리스트에 추가 및 저장
+          _teams.add(targetTeam);
+          await _localDb.put<Team>('teams', targetTeam.id, targetTeam);
+          switchTeam(targetTeam.id);
+          return true;
+        }
+      }
+    } catch (e) {
+      print("❌ 팀 참여 에러: $e");
+    }
     return false;
   }
 
-  // 테마 변경
   void changeTheme(String mode) {
     _currentThemeMode = mode;
     _localDb.saveSetting('app_theme', mode);

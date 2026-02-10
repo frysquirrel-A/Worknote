@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkNote Master v4.0 | Official Guide & PRD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #020617; color: #e2e8f0; scroll-behavior: smooth; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
+        .sidebar { width: 300px; height: 100vh; position: fixed; left: 0; top: 0; background: #0b1120; border-right: 1px solid #1e293b; z-index: 100; }
+        .content { margin-left: 300px; padding: 60px; max-width: 1200px; }
+        .nav-item { padding: 14px 24px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #64748b; transition: 0.3s; border-radius: 12px; margin: 4px 16px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #f1f5f9; }
+        .nav-item.active { background: #2563eb; color: white; font-weight: 700; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+        .section { display: none; animation: fadeIn 0.5s ease-out; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .feature-card { background: #1e293b; border-radius: 20px; padding: 24px; border: 1px solid #334155; transition: 0.3s; }
+        .feature-card:hover { border-color: #3b82f6; transform: translateY(-5px); }
+        .tag { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .tag-blue { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .tag-purple { background: rgba(168, 85, 247, 0.1); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        code { font-family: 'JetBrains Mono', monospace; background: #0f172a; padding: 2px 6px; border-radius: 4px; color: #fbbf24; }
+    </style>
+</head>
+<body class="flex">
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar flex flex-col">
+        <div class="p-8 border-b border-slate-800">
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                <span class="material-symbols-rounded text-blue-500 text-3xl">deployed_code</span> WorkNote
+            </h1>
+            <p class="text-xs text-slate-500 mt-1 font-bold">Masterpiece v4.0 Guide</p>
+        </div>
+        
+        <div class="flex-1 py-6 overflow-y-auto">
+            <div class="px-8 pb-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Introduction</div>
+            <div class="nav-item active" onclick="showSection('intro')">
+                <span class="material-symbols-rounded">rocket_launch</span> Home
+            </div>
+            
+            <div class="px-8 pb-3 mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Feature Breakdown</div>
+            <div class="nav-item" onclick="showSection('dash')">
+                <span class="material-symbols-rounded">dashboard</span> Dashboard
+            </div>
+            <div class="nav-item" onclick="showSection('task')">
+                <span class="material-symbols-rounded">task_alt</span> Smart Task
+            </div>
+            <div class="nav-item" onclick="showSection('schedule')">
+                <span class="material-symbols-rounded">calendar_month</span> Schedule
+            </div>
+            <div class="nav-item" onclick="showSection('journal')">
+                <span class="material-symbols-rounded">auto_stories</span> Journal & Photo
+            </div>
+            <div class="nav-item" onclick="showSection('messenger')">
+                <span class="material-symbols-rounded">forum</span> Messenger
+            </div>
+            
+            <div class="px-8 pb-3 mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest">System & PRD</div>
+            <div class="nav-item" onclick="showSection('settings')">
+                <span class="material-symbols-rounded">settings</span> Settings & Theme
+            </div>
+            <div class="nav-item" onclick="showSection('prd')">
+                <span class="material-symbols-rounded">description</span> PRD & Roadmap
+            </div>
+        </div>
+
+        <div class="p-6 bg-slate-900/50 border-t border-slate-800">
+            <div class="text-[10px] text-slate-500 text-center font-mono">Build: 2024.02.09.MASTER</div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content">
+        
+        <!-- Section: Intro -->
+        <div id="section-intro" class="section active">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="tag tag-blue">Concept</span>
+                <span class="tag tag-purple">v4.0 Final</span>
+            </div>
+            <h2 class="text-5xl font-black text-white mb-6 leading-tight">현장 협업의 미래,<br><span class="text-blue-500">WorkNote Masterpiece</span></h2>
+            <p class="text-xl text-slate-400 leading-relaxed mb-12 max-w-3xl">
+                WorkNote는 서버 유지비 0원이라는 혁신적인 아키텍처 위에, 최신 프리미엄 디자인(Pixel 9a Optimized)을 결합한 현장 관리 솔루션입니다. 구글 드라이브와 로컬 DB를 결합하여 어디서나 멈추지 않는 업무 환경을 제공합니다.
+            </p>
+
+            <div class="grid grid-cols-3 gap-6 mb-12">
+                <div class="glass p-8 rounded-3xl">
+                    <span class="material-symbols-rounded text-blue-500 text-4xl mb-4">cloud_off</span>
+                    <h4 class="text-lg font-bold text-white mb-2">Offline-First</h4>
+                    <p class="text-sm text-slate-400">지하, 터널 등 통신 불능 지역에서도 모든 기능이 즉시 작동합니다.</p>
+                </div>
+                <div class="glass p-8 rounded-3xl">
+                    <span class="material-symbols-rounded text-green-500 text-4xl mb-4">payments</span>
+                    <h4 class="text-lg font-bold text-white mb-2">Zero Server Cost</h4>
+                    <p class="text-sm text-slate-400">구글 드라이브를 개인 서버로 활용하여 영구적으로 무료 사용이 가능합니다.</p>
+                </div>
+                <div class="glass p-8 rounded-3xl">
+                    <span class="material-symbols-rounded text-purple-500 text-4xl mb-4">security</span>
+                    <h4 class="text-lg font-bold text-white mb-2">Secure Sync</h4>
+                    <p class="text-sm text-slate-400">데이터 소유권이 사용자 본인에게 있으며, 실시간 클라우드 백업을 지원합니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Dashboard -->
+        <div id="section-dash" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">dashboard</span> 홈 대시보드 : 현장 상황실
+            </h3>
+            <div class="space-y-6">
+                <div class="feature-card">
+                    <h4 class="text-white font-bold mb-2">📊 실시간 달성률 차트</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        <code>fl_chart</code>를 기반으로 한 인터랙티브 파이 차트입니다. 팀 전체 업무 대비 완료된 업무의 비율을 실시간으로 계산하여 시각화합니다.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <h4 class="text-white font-bold mb-2">🏗️ 프로젝트별 진행도 리스트</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        각 현장(골조, 전기, 인테리어 등)별로 업무 진행 상황을 개별 막대 그래프로 표시합니다. 어떤 공정이 늦어지고 있는지 한눈에 파악할 수 있습니다.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <h4 class="text-white font-bold mb-2">👥 팀원 아바타 퀵 링크</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        현재 팀에 소속된 멤버들을 가로 스크롤 아바타 리스트로 보여줍니다. 담당자를 확인하고 소통 탭으로 즉시 연결하는 허브 역할을 합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Smart Task -->
+        <div id="section-task" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">task_alt</span> 스마트 업무 관리 시스템
+            </h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="feature-card">
+                    <span class="tag tag-blue mb-4 inline-block">Filtering</span>
+                    <h4 class="text-white font-bold mb-2">4-Way 복합 필터링</h4>
+                    <p class="text-slate-400 text-sm">프로젝트별, 상태별(진행/완료), 중요도별, 기간별(오늘/이번 주) 필터를 조합하여 수천 개의 업무 중 필요한 정보만 즉시 추출합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="tag tag-purple mb-4 inline-block">Sorting</span>
+                    <h4 class="text-white font-bold mb-2">정밀 정렬 시스템</h4>
+                    <p class="text-slate-400 text-sm">마감일 임박순, 작성일 최신순, 중요도 높은 순으로 리스트를 즉시 재배열하여 업무 우선순위 판단을 돕습니다.</p>
+                </div>
+                <div class="feature-card col-span-2">
+                    <h4 class="text-white font-bold mb-2">🚩 업무 상세 카드 디테일</h4>
+                    <ul class="text-sm text-slate-400 space-y-2 mt-4">
+                        <li>• <strong>우선순위 깃발</strong>: 4단계 색상 구분으로 긴급도 표시</li>
+                        <li>• <strong>D-Day 카운터</strong>: 마감 임박 여부를 자동으로 계산하여 경고</li>
+                        <li>• <strong>스와이프 삭제</strong>: 직관적인 제스처로 데이터 관리 편의성 극대화</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Schedule -->
+        <div id="section-schedule" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">calendar_month</span> 타임라인 스케줄러
+            </h3>
+            <div class="feature-card mb-6">
+                <h4 class="text-white font-bold mb-2">🗓️ Table Calendar 연동</h4>
+                <p class="text-slate-400 text-sm mb-4">단순한 달력이 아닙니다. 업무 데이터베이스와 실시간으로 연동되는 스케줄러입니다.</p>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
+                    <ul class="text-xs text-slate-500 space-y-2">
+                        <li>- <strong>Event Dots</strong>: 업무 마감일이 있는 날짜에 자동으로 컬러 닷 표시</li>
+                        <li>- <strong>Day Focus</strong>: 날짜 클릭 시 하단에 해당일 업무 요약 카드 노출</li>
+                        <li>- <strong>Sync</strong>: 달력에서 업무 완료 시 홈 탭 차트에도 즉시 반영</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Journal -->
+        <div id="section-journal" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">auto_stories</span> 현장 일지 & 보안 갤러리
+            </h3>
+            <div class="grid grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-blue-400 font-bold mb-4">📓 작업 일지 (Journal)</h4>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        매일의 현장 상황을 기록합니다. 작성된 일지는 날짜별로 그룹화되어 타임라인 형태로 보존됩니다. <strong>비공개 설정</strong> 기능을 통해 민감한 내용은 본인만 볼 수 있습니다.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-green-400 font-bold mb-4">📸 보안 갤러리 (Gallery)</h4>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        Pinterest 스타일의 <strong>Masonry Grid</strong> 레이아웃을 적용했습니다. 사진 크기에 관계없이 세련되게 배치되며, <strong>Pinch-to-Zoom</strong> 기능을 통해 현장 하자를 정밀하게 검토할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Messenger -->
+        <div id="section-messenger" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">forum</span> 실시간 현장 메신저
+            </h3>
+            <div class="glass p-10 rounded-3xl border-l-8 border-blue-600">
+                <h4 class="text-xl font-black text-white mb-4">"서버 없는 채팅의 구현"</h4>
+                <p class="text-slate-400 leading-relaxed mb-6">
+                    별도의 채팅 서버 없이 구글 드라이브의 폴링(Polling) 기술을 활용해 메시지를 주고받습니다. 팀별로 독립된 채널이 생성되며, 카카오톡 스타일의 익숙한 UI를 통해 현장 팀원들 간의 즉각적인 소통을 지원합니다.
+                </p>
+                <div class="flex gap-4">
+                    <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded text-[10px] font-bold uppercase">Auto Polling</span>
+                    <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded text-[10px] font-bold uppercase">Drive Sync</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Settings -->
+        <div id="section-settings" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">settings</span> 설정 및 개인화
+            </h3>
+            <div class="grid grid-cols-3 gap-6">
+                <div class="p-6 rounded-2xl border-2 border-slate-700 text-center">
+                    <span class="material-symbols-rounded text-3xl mb-2 text-white">dark_mode</span>
+                    <div class="font-bold text-white">Dark Mode</div>
+                </div>
+                <div class="p-6 rounded-2xl border-2 border-white text-center bg-white">
+                    <span class="material-symbols-rounded text-3xl mb-2 text-black">light_mode</span>
+                    <div class="font-bold text-black">White Mode</div>
+                </div>
+                <div class="p-6 rounded-2xl border-2 border-blue-900 text-center bg-blue-900">
+                    <span class="material-symbols-rounded text-3xl mb-2 text-blue-200">water_drop</span>
+                    <div class="font-bold text-blue-200">Blue Mode</div>
+                </div>
+            </div>
+            <p class="mt-8 text-sm text-slate-400">
+                사용자의 취향에 따라 3가지 마스터 테마를 제공하며, 팀별로 나의 직책(소장, 기사 등)을 다르게 설정하여 프로필을 관리할 수 있습니다.
+            </p>
+        </div>
+
+        <!-- Section: PRD -->
+        <div id="section-prd" class="section">
+            <h3 class="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+                <span class="material-symbols-rounded text-blue-500">description</span> PRD & Roadmap
+            </h3>
+            
+            <div class="glass p-8 rounded-3xl mb-10">
+                <h4 class="text-blue-400 font-bold mb-6">✅ 1. 요구사항 정의 (Product Requirements)</h4>
+                <table class="w-full text-sm text-left">
+                    <thead class="text-slate-500 uppercase border-b border-slate-800">
+                        <tr>
+                            <th class="pb-4">Category</th>
+                            <th class="pb-4">Requirement</th>
+                            <th class="pb-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-300">
+                        <tr class="border-b border-slate-800/50">
+                            <td class="py-4 font-bold">Data</td>
+                            <td class="py-4">Offline storage using Hive</td>
+                            <td class="py-4 text-green-500">Done</td>
+                        </tr>
+                        <tr class="border-b border-slate-800/50">
+                            <td class="py-4 font-bold">UI</td>
+                            <td class="py-4">Pixel 9a Optimized Glassmorphism</td>
+                            <td class="py-4 text-green-500">Done</td>
+                        </tr>
+                        <tr class="border-b border-slate-800/50">
+                            <td class="py-4 font-bold">Sync</td>
+                            <td class="py-4">Background Drive Synchronization</td>
+                            <td class="py-4 text-green-500">Done</td>
+                        </tr>
+                        <tr>
+                            <td class="py-4 font-bold">Feature</td>
+                            <td class="py-4">Real-time Push Notification (Drive change)</td>
+                            <td class="py-4 text-orange-500">Planned</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="glass p-8 rounded-3xl border-l-8 border-orange-500">
+                <h4 class="text-orange-400 font-bold mb-4">🚀 2. 향후 고도화 로드맵</h4>
+                <ul class="space-y-4 text-sm text-slate-400">
+                    <li class="flex gap-3">
+                        <span class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold text-[10px]">1</span>
+                        <span><strong>데이터 병합 로직 고도화</strong>: 여러 명이 동시에 수정할 경우를 대비한 정교한 Conflict Resolve 알고리즘 도입</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold text-[10px]">2</span>
+                        <span><strong>PDF 보고서 내보내기</strong>: 일지와 업무 현황을 현장 보고서 양식의 PDF로 즉시 변환하는 기능</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-bold text-[10px]">3</span>
+                        <span><strong>AI 음성 일지 작성</strong>: 현장에서 바쁜 손을 위해 음성으로 일지를 기록하고 텍스트로 변환하는 기능</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function showSection(id) {
+            // Update Navigation
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Update Section
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.getElementById('section-' + id).classList.add('active');
+
+            // Scroll to top of content
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
