@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:uuid/uuid.dart';
 import '../models.dart';
 
 class TaskProvider extends ChangeNotifier {
   List<Task> _tasks = [];
   List<Project> _projects = [];
 
-  // 5대 필터 상태
   String _projectIdFilter = 'all';
   String _statusFilter = '전체';
   TaskPriority? _priorityFilter;
   DateFilter _dateFilter = DateFilter.all;
-  String _memberFilter = 'all';
-  String _sortBy = 'created';
+  String _assigneeFilter = 'all';
 
   List<Task> get tasks => _tasks;
   List<Project> get projects => _projects;
@@ -21,90 +18,58 @@ class TaskProvider extends ChangeNotifier {
   String get statusFilter => _statusFilter;
   TaskPriority? get priorityFilter => _priorityFilter;
   DateFilter get dateFilter => _dateFilter;
-  String get memberFilter => _memberFilter;
-  String get sortBy => _sortBy;
+  String get assigneeFilter => _assigneeFilter;
+
+  // [수정] 중요도 필터 해제 로직 보강
+  void setProjectIdFilter(String? id) { if (id != null) _projectIdFilter = id; notifyListeners(); }
+  void setStatusFilter(String? status) { if (status != null) _statusFilter = status; notifyListeners(); }
+  void setPriorityFilter(TaskPriority? priority) { _priorityFilter = priority; notifyListeners(); } // null이면 전체보기
+  void setDateFilter(DateFilter? date) { if (date != null) _dateFilter = date; notifyListeners(); }
+  void setAssigneeFilter(String? id) { if (id != null) _assigneeFilter = id; notifyListeners(); }
 
   Future<void> loadData() async {
-    var taskBox = Hive.box<Task>('tasks');
-    var projectBox = Hive.box<Project>('projects');
-    _tasks = taskBox.values.toList();
-    _projects = projectBox.values.toList();
+    _tasks = Hive.box<Task>('tasks').values.toList();
+    _projects = Hive.box<Project>('projects').values.toList();
     _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
 
-  Future<void> resetSystem(String currentTeamId) async {
-    var taskBox = Hive.box<Task>('tasks');
-    var projectBox = Hive.box<Project>('projects');
-    await taskBox.clear();
-    await projectBox.clear();
-    _tasks.clear();
-    _projects.clear();
-
-    final dummyProjects = [
-      Project(id: 'p1', teamId: currentTeamId, name: '골조 공사', colorValue: 0xFFEF5350),
-      Project(id: 'p2', teamId: currentTeamId, name: '전기 배선', colorValue: 0xFF42A5F5),
-    ];
-    final dummyTasks = [
-      Task(
-        id: const Uuid().v4(), teamId: currentTeamId, title: "현장 안전 점검 (샘플)",
-        assigneeId: 'me', assigneeName: '나', assigneeEmoji: '👷',
-        projectId: 'p1', createdAt: DateTime.now(),
-        dueDate: DateTime.now().add(const Duration(days: 2)),
-        priority: TaskPriority.high, isDone: false,
-      ),
-      Task(
-        id: const Uuid().v4(), teamId: currentTeamId, title: "자재 발주 확인 (샘플)",
-        assigneeId: 'me', assigneeName: '나', assigneeEmoji: '👷',
-        projectId: null, createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        dueDate: DateTime.now().add(const Duration(days: 5)),
-        priority: TaskPriority.medium, isDone: false,
-      ),
-    ];
-
-    for (var p in dummyProjects) await projectBox.put(p.id, p);
-    for (var t in dummyTasks) await taskBox.put(t.id, t);
-    _projects = dummyProjects;
-    _tasks = dummyTasks;
-    notifyListeners();
-  }
-
-  // [수정] 5가지 복합 필터 로직 완성
   List<Task> getFilteredTasks(String currentTeamId) {
+    final now = DateTime.now();
     return _tasks.where((t) {
       if (t.teamId != currentTeamId) return false;
-      
-      // 1. 프로젝트 필터
-      if (_projectIdFilter != 'all') {
-        if (_projectIdFilter == 'none' && t.projectId != null) return false;
-        if (_projectIdFilter != 'none' && t.projectId != _projectIdFilter) return false;
-      }
-      // 2. 상태 필터
+      if (_projectIdFilter != 'all' && t.projectId != _projectIdFilter) return false;
       if (_statusFilter == '진행 중' && t.isDone) return false;
       if (_statusFilter == '완료됨' && !t.isDone) return false;
-      // 3. 중요도 필터
       if (_priorityFilter != null && t.priority != _priorityFilter) return false;
-      // 4. 작성자 필터
-      if (_memberFilter != 'all' && t.assigneeId != _memberFilter) return false;
-      // 5. 기간 필터
+      if (_assigneeFilter != 'all' && t.assigneeId != _assigneeFilter) return false;
+
       if (_dateFilter != DateFilter.all) {
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        final due = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
-        if (_dateFilter == DateFilter.today && due != today) return false;
-        if (_dateFilter == DateFilter.week && t.dueDate.isAfter(today.add(const Duration(days: 7)))) return false;
+        final taskDate = t.createdAt;
+        if (_dateFilter == DateFilter.today) {
+          if (taskDate.year != now.year || taskDate.month != now.month || taskDate.day != now.day) return false;
+        } else if (_dateFilter == DateFilter.week) {
+          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+          if (taskDate.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day))) return false;
+        } else if (_dateFilter == DateFilter.oneMonth) {
+          if (taskDate.year != now.year || taskDate.month != now.month) return false;
+        } else if (_dateFilter == DateFilter.twoWeeks) {
+          if (taskDate.year != now.year) return false;
+        }
       }
       return true;
     }).toList();
   }
 
-  void setFilter({String? projectId, String? status, TaskPriority? priority, DateFilter? date, String? member}) {
-    if (projectId != null) _projectIdFilter = projectId;
-    if (status != null) _statusFilter = status;
-    if (priority != null || priority == null) _priorityFilter = priority; 
-    if (date != null) _dateFilter = date;
-    if (member != null) _memberFilter = member;
-    notifyListeners();
+  // [수정] 프로젝트 ID를 이름으로 변환 (필터 라벨 표시용)
+  String getProjectName(String id) {
+    if (id == 'all') return "전체 프로젝트";
+    if (id == 'none') return "프로젝트 없음";
+    try {
+      return _projects.firstWhere((p) => p.id == id).name;
+    } catch (e) {
+      return "알 수 없음";
+    }
   }
 
   Future<void> addTask(Task t) async { await Hive.box<Task>('tasks').put(t.id, t); _tasks.add(t); notifyListeners(); }
@@ -116,6 +81,5 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners(); 
   }
   Future<void> deleteTask(String id) async { await Hive.box<Task>('tasks').delete(id); _tasks.removeWhere((t) => t.id == id); notifyListeners(); }
-  Future<void> cycleTaskPriority(Task t) async { t.priority = TaskPriority.values[(t.priority.index + 1) % 4]; await Hive.box<Task>('tasks').put(t.id, t); notifyListeners(); }
-  Future<void> addProject(Project p) async { await Hive.box<Project>('projects').put(p.id, p); _projects.add(p); notifyListeners(); }
+  Future<void> cycleTaskPriority(Task t) async { int next = (t.priority.index + 1) % 4; t.priority = TaskPriority.values[next]; await Hive.box<Task>('tasks').put(t.id, t); notifyListeners(); }
 }

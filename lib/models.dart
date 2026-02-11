@@ -73,11 +73,13 @@ class AppUser {
   Map<String, dynamic> toJson() => { 'id': id, 'password': password, 'name': name, 'profileImage': profileImage };
 }
 
-// --- 4. 업무(Task) 모델 ---
+// --- 4. 업무(Task) 모델 (다중 담당자 및 작성자 필드 추가) ---
 class Task {
   final String id, teamId;
   String title;
-  final String assigneeId, assigneeName, assigneeEmoji;
+  final String creatorId, creatorName; // 작성자 정보
+  final String assigneeId, assigneeName, assigneeEmoji; // 단일 담당자 (호환용)
+  final List<String> assigneeIds, assigneeNames, assigneeEmojis; // 다중 담당자
   String? projectId; 
   final DateTime createdAt, dueDate;
   DateTime updatedAt;
@@ -88,8 +90,11 @@ class Task {
   String? completionReport;
 
   Task({
-    required this.id, required this.teamId, required this.title, required this.assigneeId,
-    required this.assigneeName, required this.assigneeEmoji, this.projectId,
+    required this.id, required this.teamId, required this.title, 
+    required this.creatorId, required this.creatorName,
+    required this.assigneeId, required this.assigneeName, required this.assigneeEmoji,
+    this.assigneeIds = const [], this.assigneeNames = const [], this.assigneeEmojis = const [],
+    this.projectId,
     required this.createdAt, required this.dueDate, DateTime? updatedAt,
     this.completedAt, this.isDone = false, this.priority = TaskPriority.none,
     List<String>? taskNotes, this.completionReport,
@@ -97,7 +102,11 @@ class Task {
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     id: json['id'], teamId: json['teamId'] ?? 'default', title: json['title'],
+    creatorId: json['creatorId'] ?? 'unknown', creatorName: json['creatorName'] ?? '작성자',
     assigneeId: json['assigneeId'], assigneeName: json['assigneeName'], assigneeEmoji: json['assigneeEmoji'],
+    assigneeIds: List<String>.from(json['assigneeIds'] ?? []),
+    assigneeNames: List<String>.from(json['assigneeNames'] ?? []),
+    assigneeEmojis: List<String>.from(json['assigneeEmojis'] ?? []),
     projectId: json['projectId'], createdAt: DateTime.parse(json['createdAt']), dueDate: DateTime.parse(json['dueDate']),
     updatedAt: DateTime.parse(json['updatedAt']), completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
     isDone: json['isDone'], priority: TaskPriority.values[json['priority']], taskNotes: List<String>.from(json['taskNotes']),
@@ -105,7 +114,10 @@ class Task {
   );
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'teamId': teamId, 'title': title, 'assigneeId': assigneeId, 'assigneeName': assigneeName, 'assigneeEmoji': assigneeEmoji,
+    'id': id, 'teamId': teamId, 'title': title, 
+    'creatorId': creatorId, 'creatorName': creatorName,
+    'assigneeId': assigneeId, 'assigneeName': assigneeName, 'assigneeEmoji': assigneeEmoji,
+    'assigneeIds': assigneeIds, 'assigneeNames': assigneeNames, 'assigneeEmojis': assigneeEmojis,
     'projectId': projectId, 'createdAt': createdAt.toIso8601String(), 'dueDate': dueDate.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(), 'completedAt': completedAt?.toIso8601String(), 'isDone': isDone,
     'priority': priority.index, 'taskNotes': taskNotes, 'completionReport': completionReport,

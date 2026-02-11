@@ -15,13 +15,18 @@ class TaskAdapter extends TypeAdapter<Task> {
       id: reader.readString(),
       teamId: reader.readString(),
       title: reader.readString(),
+      creatorId: reader.readString(),
+      creatorName: reader.readString(),
       assigneeId: reader.readString(),
       assigneeName: reader.readString(),
       assigneeEmoji: reader.readString(),
+      assigneeIds: reader.readStringList(),
+      assigneeNames: reader.readStringList(),
+      assigneeEmojis: reader.readStringList(),
       projectId: reader.readBool() ? reader.readString() : null,
       createdAt: DateTime.parse(reader.readString()),
       dueDate: DateTime.parse(reader.readString()),
-      updatedAt: reader.readBool() ? DateTime.parse(reader.readString()) : null,
+      updatedAt: DateTime.parse(reader.readString()),
       completedAt: reader.readBool() ? DateTime.parse(reader.readString()) : null,
       isDone: reader.readBool(),
       priority: TaskPriority.values[reader.readByte()],
@@ -35,15 +40,19 @@ class TaskAdapter extends TypeAdapter<Task> {
     writer.writeString(obj.id);
     writer.writeString(obj.teamId);
     writer.writeString(obj.title);
+    writer.writeString(obj.creatorId);
+    writer.writeString(obj.creatorName);
     writer.writeString(obj.assigneeId);
     writer.writeString(obj.assigneeName);
     writer.writeString(obj.assigneeEmoji);
+    writer.writeStringList(obj.assigneeIds);
+    writer.writeStringList(obj.assigneeNames);
+    writer.writeStringList(obj.assigneeEmojis);
     writer.writeBool(obj.projectId != null);
     if(obj.projectId != null) writer.writeString(obj.projectId!);
     writer.writeString(obj.createdAt.toIso8601String());
     writer.writeString(obj.dueDate.toIso8601String());
-    writer.writeBool(obj.updatedAt != null);
-    if(obj.updatedAt != null) writer.writeString(obj.updatedAt!.toIso8601String());
+    writer.writeString(obj.updatedAt.toIso8601String());
     writer.writeBool(obj.completedAt != null);
     if(obj.completedAt != null) writer.writeString(obj.completedAt!.toIso8601String());
     writer.writeBool(obj.isDone);
@@ -93,7 +102,6 @@ class TeamAdapter extends TypeAdapter<Team> {
   }
 }
 
-// [핵심 수정] role 관련 코드 완전 제거
 class AppUserAdapter extends TypeAdapter<AppUser> {
   @override final int typeId = 5;
   @override

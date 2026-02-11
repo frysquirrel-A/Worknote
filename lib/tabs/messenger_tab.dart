@@ -38,95 +38,123 @@ class _MessengerTabState extends State<MessengerTab> {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final chatProv = context.watch<ChatProvider>();
-    
     final messages = chatProv.getMessages(teamProv.currentTeamId);
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            reverse: true,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            itemCount: messages.length,
-            itemBuilder: (context, index) {
-              final msg = messages[index];
-              final isMe = msg.senderId == 'me';
-              return Align(
-                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                  decoration: BoxDecoration(
-                    color: isMe ? const Color(0xFF3B82F6) : Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isMe ? 20 : 0),
-                      bottomRight: Radius.circular(isMe ? 0 : 20),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9), // 전체 통일된 화이트 배경
+      body: Column(
+        children: [
+          // 1. 메시지 리스트 영역
+          Expanded(
+            child: ListView.builder(
+              reverse: true,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                final isMe = msg.senderId == 'me';
+                return _buildMessageBubble(msg, isMe);
+              },
+            ),
+          ),
+
+          // 2. 하단 입력창 (Pixel Style White Round)
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: "메시지를 입력하세요...",
+                      hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
+                      filled: true,
+                      fillColor: const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!isMe) 
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(msg.senderName, style: const TextStyle(fontSize: 11, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                        ),
-                      Text(msg.content, style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4)),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(DateFormat('a h:mm', 'ko').format(msg.sentAt), 
-                          style: TextStyle(fontSize: 10, color: isMe ? Colors.white60 : Colors.white30)),
-                      ),
-                    ],
-                  ),
                 ),
-              );
-            },
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.8),
-            border: const Border(top: BorderSide(color: Colors.white10)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _ctrl,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "메시지를 입력하세요...",
-                    hintStyle: const TextStyle(color: Colors.white24),
-                    filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: const Color(0xFF3B82F6),
-                child: IconButton(
-                  icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
-                  onPressed: () {
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
                     if (_ctrl.text.trim().isEmpty) return;
-                    chatProv.sendMessage(teamProv.currentTeamId, _ctrl.text, "김반장");
+                    chatProv.sendMessage(teamProv.currentTeamId, _ctrl.text, "관리자");
                     _ctrl.clear();
                   },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
+                  ),
                 ),
-              )
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(dynamic msg, bool isMe) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          if (!isMe)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(msg.senderName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black54)),
+            ),
+          Row(
+            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end, // [수정] bottom -> end (에러 해결)
+            children: [
+              if (isMe) _buildTime(msg.sentAt),
+              const SizedBox(width: 4),
+              Container(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isMe ? const Color(0xFF2563EB) : Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isMe ? 20 : 4),
+                    bottomRight: Radius.circular(isMe ? 4 : 20),
+                  ),
+                  boxShadow: [
+                    if (!isMe) BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))
+                  ],
+                ),
+                child: Text(
+                  msg.content,
+                  style: TextStyle(color: isMe ? Colors.white : const Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 15, height: 1.4),
+                ),
+              ),
+              const SizedBox(width: 4),
+              if (!isMe) _buildTime(msg.sentAt),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTime(DateTime time) {
+    return Text(
+      DateFormat('a h:mm', 'ko').format(time),
+      style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
     );
   }
 }
