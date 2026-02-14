@@ -17,6 +17,15 @@ class _LoginPageState extends State<LoginPage> {
   final _nameCtrl = TextEditingController();
 
   @override
+  void dispose() {
+    // [6-1 수리] 컨트롤러 해제하여 메모리 누수 방지
+    _idCtrl.dispose();
+    _pwCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
 
@@ -32,9 +41,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 16),
               const Text("WORKNOTE", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
               const Text("현장 협업의 시작", style: TextStyle(color: Colors.grey, fontSize: 14)),
-              
               const SizedBox(height: 48),
-
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -46,18 +53,14 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Text(isLoginMode ? "로그인" : "프로필 설정", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
-
                     _buildTextField(_idCtrl, "아이디", Icons.person, false),
                     const SizedBox(height: 12),
                     _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
-                    
                     if (!isLoginMode) ...[
                       const SizedBox(height: 12),
                       _buildTextField(_nameCtrl, "이름 (예: 홍길동)", Icons.badge, false),
                     ],
-
                     const SizedBox(height: 24),
-
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -76,12 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름을 입력해주세요.")));
                               return;
                             }
-                            // [수정 포인트] 인자 3개만 전달
-                            await authProv.signUpLocal(
-                              _idCtrl.text, 
-                              _pwCtrl.text, 
-                              _nameCtrl.text
-                            );
+                            await authProv.signUpLocal(_idCtrl.text, _pwCtrl.text, _nameCtrl.text);
                           }
                         },
                         child: authProv.isLoading 
@@ -92,14 +90,10 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    isLoginMode = !isLoginMode;
-                  });
+                  setState(() { isLoginMode = !isLoginMode; });
                 },
                 child: Text(
                   isLoginMode ? "처음이신가요? 프로필 설정하기" : "이미 계정이 있으신가요? 로그인", 

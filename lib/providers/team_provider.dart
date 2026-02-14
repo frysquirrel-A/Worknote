@@ -18,7 +18,7 @@ class TeamProvider extends ChangeNotifier {
   String get currentThemeMode => _currentThemeMode;
   
   Team get currentTeam {
-    if (_teams.isEmpty) return Team(id: 'default', name: '내 워크스페이스', inviteCode: 'START', memberIds: ['me'], memberRoles: {'me': '관리자'});
+    if (_teams.isEmpty) return Team(id: 'default', name: '내 워크스페이스', inviteCode: 'START', memberIds: ['me']);
     return _teams.firstWhere((t) => t.id == _currentTeamId, orElse: () => _teams.first);
   }
 
@@ -30,7 +30,10 @@ class TeamProvider extends ChangeNotifier {
     currentTeam.memberRoles[userId] = newRole;
     notifyListeners();
     await _localDb.put<Team>('teams', currentTeam.id, currentTeam);
-    await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+    await _driveService.syncJsonData(
+      _teams.map((e) => e.toJson()).toList(), 
+      'worknote_teams.json'
+    );
   }
 
   Future<void> loadTeams() async {
@@ -49,7 +52,10 @@ class TeamProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+      final data = await _driveService.syncJsonData(
+        _teams.map((e) => e.toJson()).toList(), 
+        'worknote_teams.json'
+      );
       if (data != null && data.isNotEmpty) {
         _teams = data.map((e) => Team.fromJson(e)).toList();
         await _localDb.syncAll<Team>('teams', _teams, (t) => t.id);
@@ -72,8 +78,8 @@ class TeamProvider extends ChangeNotifier {
       name: name,
       inviteCode: const Uuid().v4().substring(0, 8).toUpperCase(),
       memberIds: ['me'], 
-      memberRoles: {'me': myRole}, 
     );
+    newTeam.memberRoles['me'] = myRole;
     
     _teams.add(newTeam);
     _currentTeamId = newTeam.id;
@@ -82,19 +88,18 @@ class TeamProvider extends ChangeNotifier {
     notifyListeners();
 
     if (isSync) {
-      await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+      await _driveService.syncJsonData(
+        _teams.map((e) => e.toJson()).toList(), 
+        'worknote_teams.json'
+      );
     }
   }
 
-  // [부활] 드라이브 검색을 통한 팀 참여 로직
   Future<bool> joinTeam(String inviteCode, String myId) async {
-    // 1. 이미 가입된 팀인지 확인
     if (_teams.any((t) => t.inviteCode == inviteCode)) {
       switchTeam(_teams.firstWhere((t) => t.inviteCode == inviteCode).id);
       return true;
     }
-
-    // 2. 드라이브에서 해당 코드를 가진 팀 검색
     try {
       final data = await _driveService.readJsonData('worknote_teams.json');
       if (data != null) {
@@ -105,16 +110,13 @@ class TeamProvider extends ChangeNotifier {
         );
 
         if (targetTeam.id.isNotEmpty) {
-          // 팀 찾음 -> 내 리스트에 추가 및 저장
           _teams.add(targetTeam);
           await _localDb.put<Team>('teams', targetTeam.id, targetTeam);
           switchTeam(targetTeam.id);
           return true;
         }
       }
-    } catch (e) {
-      print("❌ 팀 참여 에러: $e");
-    }
+    } catch (e) { print("❌ 팀 참여 에러: $e"); }
     return false;
   }
 

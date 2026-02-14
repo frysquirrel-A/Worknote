@@ -4,19 +4,31 @@ import 'package:http/http.dart' as http;
 import 'package:googleapis/drive/v3.dart' as drive;
 
 class DriveService {
+  // Singleton pattern
+  static final DriveService _instance = DriveService._internal();
+  factory DriveService() => _instance;
+  DriveService._internal();
+
   drive.DriveApi? _driveApi;
   
-  // 클라이언트 설정 (AuthProvider에서 호출)
+  bool get isReady => _driveApi != null;
+
   void setClient(http.Client client) {
     _driveApi = drive.DriveApi(client);
-    print("✅ Drive API initialized");
+    print("✅ Drive API initialized (Shared Instance)");
   }
 
-  // JSON 데이터 동기화 (다운로드 -> 병합 -> 업로드)
+  void clearClient() {
+    _driveApi = null;
+    print("🧹 Drive API Client cleared");
+  }
+
+  /// JSON 데이터 동기화 (병합 + 항상 업로드)
   Future<List<dynamic>?> syncJsonData(List<dynamic> localData, String fileName) async {
     if (_driveApi == null) return null;
 
     try {
+      // 1. Google Drive에서 fileName 파일 검색 -> fileId 확보
       final fileList = await _driveApi!.files.list(
         q: "name = '$fileName' and trashed = false",
         $fields: "files(id, name)",
@@ -27,50 +39,84 @@ class DriveService {
         fileId = fileList.files!.first.id;
       }
 
+      // 2. remote JSON 다운로드 및 파싱
+      List<dynamic> remoteList = [];
       if (fileId != null) {
         final media = await _driveApi!.files.get(
           fileId,
           downloadOptions: drive.DownloadOptions.fullMedia,
         ) as drive.Media;
         
-        final stream = media.stream;
-        final content = await utf8.decodeStream(stream);
-        
+        final content = await utf8.decodeStream(media.stream);
         if (content.isNotEmpty) {
-          // 서버 데이터 우선 정책 (필요시 병합 로직 추가 가능)
-          return jsonDecode(content) as List<dynamic>;
+          remoteList = jsonDecode(content) as List<dynamic>;
         }
       }
 
-      // 파일이 없거나 내용이 비었으면 로컬 데이터 업로드
-      await _uploadToDrive(localData, fileName, fileId);
-      return localData;
+      // 3. remoteList + localData를 'id' 기준으로 병합(Union)
+      final Map<String, dynamic> mergedMap = {};
+
+      // 우선순위 timestamp 키: updatedAt > sentAt > date > createdAt
+      DateTime? getTimestamp(dynamic item) {
+        if (item is! Map) return null;
+        final keys = ['updatedAt', 'sentAt', 'date', 'createdAt'];
+        for (var key in keys) {
+          if (item.containsKey(key) && item[key] != null) {
+            return DateTime.tryParse(item[key].toString());
+          }
+        }
+        return null;
+      }
+
+      void addToMergedMap(dynamic item) {
+        if (item is! Map) return;
+        final String id = item['id']?.toString() ?? '';
+        if (id.isEmpty) return;
+
+        if (!mergedMap.containsKey(id)) {
+          mergedMap[id] = item;
+        } else {
+          // 충돌 시 최신 데이터 선택
+          final existing = mergedMap[id];
+          final existingTs = getTimestamp(existing) ?? DateTime(1970);
+          final currentTs = getTimestamp(item) ?? DateTime(1970);
+
+          if (currentTs.isAfter(existingTs)) {
+            mergedMap[id] = item;
+          }
+        }
+      }
+
+      for (var item in remoteList) addToMergedMap(item);
+      for (var item in localData) addToMergedMap(item);
+
+      final mergedList = mergedMap.values.toList();
+
+      // 4. 병합된 mergedList를 Drive에 "항상 업로드"
+      await _uploadToDrive(mergedList, fileName, fileId);
+      
+      // 5. return mergedList
+      return mergedList;
     } catch (e) {
-      print("❌ Drive Sync Error: $e");
-      return null;
+      print("❌ Drive Sync Error ($fileName): $e");
+      return null; // 6. 예외 발생 시 null 리턴
     }
   }
 
-  // 데이터 읽기 전용 (팀 초대 등)
   Future<List<dynamic>?> readJsonData(String fileName) async {
     if (_driveApi == null) return null;
     try {
-      final fileList = await _driveApi!.files.list(
-        q: "name = '$fileName' and trashed = false",
-      );
+      final fileList = await _driveApi!.files.list(q: "name = '$fileName' and trashed = false");
       if (fileList.files != null && fileList.files!.isNotEmpty) {
         final fileId = fileList.files!.first.id;
         final media = await _driveApi!.files.get(fileId!, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
         final content = await utf8.decodeStream(media.stream);
         if (content.isNotEmpty) return jsonDecode(content) as List<dynamic>;
       }
-    } catch (e) {
-      print("❌ Drive Read Error: $e");
-    }
+    } catch (e) { print("❌ Drive Read Error: $e"); }
     return null;
   }
 
-  // 사진 업로드
   Future<String?> uploadPhoto(String localPath, String fileName) async {
     if (_driveApi == null) return null;
     try {
@@ -102,7 +148,6 @@ class DriveService {
   }
 }
 
-// 구글 인증 클라이언트
 class GoogleAuthClient extends http.BaseClient {
   final Map<String, String> _headers;
   final http.Client _client = http.Client();

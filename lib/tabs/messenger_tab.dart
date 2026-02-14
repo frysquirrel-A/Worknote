@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/chat_provider.dart';
 import '../providers/team_provider.dart';
+import '../providers/auth_provider.dart';
+import '../models.dart';
 
 class MessengerTab extends StatefulWidget {
   const MessengerTab({super.key});
@@ -38,11 +40,16 @@ class _MessengerTabState extends State<MessengerTab> {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final chatProv = context.watch<ChatProvider>();
+    final authProv = context.watch<AuthProvider>();
+    
+    final myId = authProv.currentUser?.id ?? 'me';
+    final myName = authProv.currentUser?.name ?? '사용자';
     final messages = chatProv.getMessages(teamProv.currentTeamId);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // 전체 통일된 화이트 배경
-      body: Column(
+    // [2-1 수리] Scaffold 제거 및 SafeArea + Column 구조로 변경
+    return Container(
+      color: const Color(0xFFF1F5F9),
+      child: Column(
         children: [
           // 1. 메시지 리스트 영역
           Expanded(
@@ -52,7 +59,7 @@ class _MessengerTabState extends State<MessengerTab> {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
-                final isMe = msg.senderId == 'me';
+                final isMe = msg.senderId == myId;
                 return _buildMessageBubble(msg, isMe);
               },
             ),
@@ -60,7 +67,7 @@ class _MessengerTabState extends State<MessengerTab> {
 
           // 2. 하단 입력창 (Pixel Style White Round)
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 120), // 하단 여백 확보
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -73,7 +80,7 @@ class _MessengerTabState extends State<MessengerTab> {
                 Expanded(
                   child: TextField(
                     controller: _ctrl,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                     decoration: InputDecoration(
                       hintText: "메시지를 입력하세요...",
                       hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
@@ -88,7 +95,8 @@ class _MessengerTabState extends State<MessengerTab> {
                 GestureDetector(
                   onTap: () {
                     if (_ctrl.text.trim().isEmpty) return;
-                    chatProv.sendMessage(teamProv.currentTeamId, _ctrl.text, "관리자");
+                    // [5-1 수리] 4개 인자 전달 (id, name 포함)
+                    chatProv.sendMessage(teamProv.currentTeamId, _ctrl.text, myId, myName);
                     _ctrl.clear();
                   },
                   child: Container(
@@ -105,7 +113,7 @@ class _MessengerTabState extends State<MessengerTab> {
     );
   }
 
-  Widget _buildMessageBubble(dynamic msg, bool isMe) {
+  Widget _buildMessageBubble(ChatMessage msg, bool isMe) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -118,7 +126,7 @@ class _MessengerTabState extends State<MessengerTab> {
             ),
           Row(
             mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end, // [수정] bottom -> end (에러 해결)
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (isMe) _buildTime(msg.sentAt),
               const SizedBox(width: 4),
