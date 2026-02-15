@@ -11,6 +11,7 @@ import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/features/schedule/state/schedule_provider.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,15 @@ Future<void> bootstrap() async {
   await Hive.openBox<AppUser>('users');
   await Hive.openBox<ChatMessage>('messages');
 
+  // Meta boxes (untyped/dynamic)
+  // - task_meta: schedule inclusion, schedule date, completion report timestamps, etc.
+  // - journal_meta: journal kind (note/progress/report), relatedTaskId, progress updates, etc.
+  await Hive.openBox('task_meta');
+  await Hive.openBox('journal_meta');
+
+  // Personal schedules (untyped)
+  await Hive.openBox('schedules');
+
   runApp(
     MultiProvider(
       providers: [
@@ -44,6 +54,7 @@ Future<void> bootstrap() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
       ],
       child: const WorkNoteApp(),
     ),

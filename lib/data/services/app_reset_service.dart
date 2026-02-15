@@ -27,6 +27,13 @@ class AppResetService {
     await Hive.box<Team>('teams').clear();
     await Hive.box<ChatMessage>('messages').clear();
 
+    // Meta boxes
+    await Hive.box('task_meta').clear();
+    await Hive.box('journal_meta').clear();
+    try {
+      await Hive.box('schedules').clear();
+    } catch (_) {}
+
     if (!withSampleData) return;
 
     // 3) 샘플 데이터 주입
@@ -81,6 +88,39 @@ class AppResetService {
     );
     await Hive.box<Task>('tasks').putAll({t1.id: t1, t2.id: t2});
 
+    // Task meta (show in schedule by default for sample)
+    final taskMeta = Hive.box('task_meta');
+    await taskMeta.put(t1.id, {
+      'includeInSchedule': true,
+      // v5: 일정은 기간(DateTimeRange)로 저장
+      'scheduleStart': t1.dueDate.toIso8601String(),
+      'scheduleEnd': t1.dueDate.toIso8601String(),
+    });
+    await taskMeta.put(t2.id, {
+      'includeInSchedule': false,
+      'scheduleStart': t2.dueDate.toIso8601String(),
+      'scheduleEnd': t2.dueDate.toIso8601String(),
+    });
+
+    // Personal schedule sample
+    try {
+      final schedules = Hive.box('schedules');
+      final s1 = {
+        'id': const Uuid().v4(),
+        'teamId': teamId,
+        'userId': myId,
+        'userName': myName,
+        'title': '개인 일정(샘플): 안전 교육',
+        'note': '오전 9시, 교육장',
+        'start': now.add(const Duration(days: 1)).toIso8601String(),
+        'end': now.add(const Duration(days: 1)).toIso8601String(),
+        'isAllDay': true,
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+      };
+      await schedules.put(s1['id'], s1);
+    } catch (_) {}
+
     // Journals
     final j1 = JournalEntry(
       id: const Uuid().v4(),
@@ -96,6 +136,14 @@ class AppResetService {
       isPrivate: false,
     );
     await Hive.box<JournalEntry>('journals').put(j1.id, j1);
+
+    // Journal meta (sample kinds)
+    final journalMeta = Hive.box('journal_meta');
+    await journalMeta.put(j1.id, {
+      'kind': 'note',
+      'relatedTaskId': null,
+      'progressUpdates': <Map<String, dynamic>>[],
+    });
 
     // Messages
     final m1 = ChatMessage(

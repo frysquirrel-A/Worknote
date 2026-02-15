@@ -6,12 +6,113 @@ import 'package:collection/collection.dart';
 
 class JournalProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
+
+  /// Meta storage for journals (untyped Hive box).
+  /// Schema (value: Map):
+  /// - kind: String ('note'|'progress'|'completionReport')
+  /// - relatedTaskId: String? (optional)
+  /// - progressUpdates: List<Map>  (each: {id,text,at,userId,userName})
+  Box get _metaBox => Hive.box('journal_meta');
   
   List<JournalEntry> _journals = [];
   bool _isLoading = false;
 
   List<JournalEntry> get journals => _journals;
   bool get isLoading => _isLoading;
+
+  // --- Meta helpers ---
+  JournalKind getKind(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) {
+      final k = raw['kind']?.toString();
+      return JournalKind.values.firstWhere(
+        (e) => e.name == k,
+        orElse: () => JournalKind.note,
+      );
+    }
+    return JournalKind.note;
+  }
+
+  String? getRelatedTaskId(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) return raw['relatedTaskId']?.toString();
+    return null;
+  }
+
+  List<Map<String, dynamic>> getProgressUpdates(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) {
+      final list = raw['progressUpdates'];
+      if (list is List) {
+        return list
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m.cast()))
+            .toList();
+      }
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<void> setMeta(
+    String journalId, {
+    required JournalKind kind,
+    String? relatedTaskId,
+  }) async {
+    final current = _metaBox.get(journalId);
+    final Map<String, dynamic> next = (current is Map)
+        ? Map<String, dynamic>.from(current.cast())
+        : <String, dynamic>{};
+
+    next['kind'] = kind.name;
+    next['relatedTaskId'] = relatedTaskId;
+    next.putIfAbsent('progressUpdates', () => <Map<String, dynamic>>[]);
+
+    await _metaBox.put(journalId, next);
+    notifyListeners();
+  }
+
+  Future<void> addProgressUpdate({
+    required String journalId,
+    required String text,
+    required String userId,
+    required String userName,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final current = _metaBox.get(journalId);
+    final Map<String, dynamic> next = (current is Map)
+        ? Map<String, dynamic>.from(current.cast())
+        : <String, dynamic>{};
+
+    final List<Map<String, dynamic>> updates = (next['progressUpdates'] is List)
+        ? (next['progressUpdates'] as List)
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m.cast()))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    updates.add({
+      'id': '${DateTime.now().microsecondsSinceEpoch}',
+      'text': trimmed,
+      'at': DateTime.now().toIso8601String(),
+      'userId': userId,
+      'userName': userName,
+    });
+
+    next['progressUpdates'] = updates;
+    await _metaBox.put(journalId, next);
+
+    // Also bump updatedAt for the journal entry itself
+    final idx = _journals.indexWhere((j) => j.id == journalId);
+    if (idx >= 0) {
+      final j = _journals[idx];
+      j.updatedAt = DateTime.now();
+      await Hive.box<JournalEntry>('journals').put(j.id, j);
+    }
+
+    notifyListeners();
+  }
 
   Map<String, List<JournalEntry>> getGroupedJournals(String teamId) {
     final filtered = _journals.where((j) => j.teamId == teamId).toList();
@@ -31,6 +132,23 @@ class JournalProvider extends ChangeNotifier {
     _journals.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
     _setLoading(false);
+  }
+
+  Future<void> updateJournal(JournalEntry entry) async {
+    final box = Hive.box<JournalEntry>('journals');
+    entry.updatedAt = DateTime.now();
+    await box.put(entry.id, entry);
+    final idx = _journals.indexWhere((j) => j.id == entry.id);
+    if (idx >= 0) _journals[idx] = entry;
+    _journals.sort((a, b) => b.date.compareTo(a.date));
+    notifyListeners();
+  }
+
+  Future<void> deleteJournal(String journalId) async {
+    await Hive.box<JournalEntry>('journals').delete(journalId);
+    await _metaBox.delete(journalId);
+    _journals.removeWhere((j) => j.id == journalId);
+    notifyListeners();
   }
 
   // [핵심] 사진 더미 데이터를 포함한 시스템 초기화

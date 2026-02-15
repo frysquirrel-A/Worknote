@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/core/ui/app_palette.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
@@ -104,7 +105,12 @@ class HomeTab extends StatelessWidget {
                     children: [
                       Icon(Icons.circle, size: 10, color: project.color),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                      Expanded(
+                        child: Text(
+                          project.name,
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: project.color),
+                        ),
+                      ),
                       Text("${(pRate * 100).toInt()}%", style: TextStyle(color: project.color, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -122,7 +128,10 @@ class HomeTab extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("$pDone 완료 / $pTotal 전체", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        "$pDone 완료 / $pTotal 전체",
+                        style: const TextStyle(fontSize: 11, color: AppPalette.textMuted, fontWeight: FontWeight.w700),
+                      ),
                     ],
                   )
                 ],
@@ -147,7 +156,14 @@ class HomeTab extends StatelessWidget {
             child: Text(emoji, style: const TextStyle(fontSize: 24)),
           ),
           const SizedBox(height: 6),
-          Text(name, style: TextStyle(fontSize: 12, fontWeight: isMe ? FontWeight.bold : FontWeight.normal)),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isMe ? FontWeight.w900 : FontWeight.w700,
+              color: isMe ? AppPalette.textDark : AppPalette.textMuted,
+            ),
+          ),
         ],
       ),
     );

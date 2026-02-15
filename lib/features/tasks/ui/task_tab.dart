@@ -1,14 +1,89 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
-import 'package:worknote/domain/models.dart';
-import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/team/state/team_provider.dart';
-import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:provider/provider.dart';
 
-class TeamTaskTab extends StatelessWidget {
+import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/domain/models.dart';
+import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/tasks/state/task_provider.dart';
+import 'package:worknote/features/tasks/ui/sheets/add_task_sheet.dart';
+import 'package:worknote/features/tasks/ui/widgets/task_card.dart';
+import 'package:worknote/features/tasks/ui/widgets/task_filter_bar.dart';
+import 'package:worknote/features/tasks/ui/widgets/task_masonry_card.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
+
+/// v5
+/// - 기본: "원래 카드"(TaskCard) 리스트
+/// - 갤러리 카드(TaskMasonryCard)는 아이콘으로 선택
+/// - 날짜 그룹 헤더 탭 → 해당 그룹 접기/펼치기
+/// - 카드 바로 위: 그룹(일/주/월/분기/년) + 정렬(작성/수정/기한/일정/완료)
+/// - "스케줄" 용어를 "일정"으로 통일 + 일정은 기간(DateTimeRange)
+
+enum TaskCardLayout { classic, gallery }
+
+enum TaskGroupPeriod { day, week, month, quarter, year }
+
+enum TaskSortField { createdAt, updatedAt, dueDate, scheduleStart, completedAt }
+
+class TeamTaskTab extends StatefulWidget {
   const TeamTaskTab({super.key});
+
+  @override
+  State<TeamTaskTab> createState() => _TeamTaskTabState();
+}
+
+class _TeamTaskTabState extends State<TeamTaskTab> {
+  // Controls
+  TaskCardLayout _layout = TaskCardLayout.classic; // "원래대로" 기본
+  TaskGroupPeriod _period = TaskGroupPeriod.day;
+  TaskSortField _sortField = TaskSortField.dueDate;
+  bool _newestFirst = true;
+
+  // Date-group UX
+  bool _showGroupToc = true;
+  bool _showGroupHeaders = true;
+  String? _pinnedGroupId;
+  final Set<String> _collapsedGroupIds = <String>{};
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _pinGroup(String id) {
+    setState(() => _pinnedGroupId = id);
+    _scrollToTop();
+  }
+
+  void _clearPin() {
+    if (_pinnedGroupId == null) return;
+    setState(() => _pinnedGroupId = null);
+    _scrollToTop();
+  }
+
+  void _toggleCollapse(String id) {
+    setState(() {
+      if (_collapsedGroupIds.contains(id)) {
+        _collapsedGroupIds.remove(id);
+      } else {
+        _collapsedGroupIds.add(id);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,552 +91,217 @@ class TeamTaskTab extends StatelessWidget {
     final taskProv = context.watch<TaskProvider>();
     final authProv = context.watch<AuthProvider>();
     final myId = authProv.currentUser?.id ?? 'me';
+
     final tasks = taskProv.getFilteredTasks(teamProv.currentTeamId, myId: myId);
 
+    // Group by selected period (based on "타임라인 기준일": 일정 start 우선, 없으면 기한)
+    final Map<String, List<Task>> grouped = <String, List<Task>>{};
+    final Map<String, _GroupInfo> groupInfo = <String, _GroupInfo>{};
+
+    for (final t in tasks) {
+      final base = taskProv.effectiveTimelineDate(t);
+      final g = _groupFor(base, _period);
+      grouped.putIfAbsent(g.id, () => []).add(t);
+      groupInfo[g.id] = g;
+    }
+
+    // Order group keys
+    final baseKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final da = groupInfo[a]?.start ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final db = groupInfo[b]?.start ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return _newestFirst ? db.compareTo(da) : da.compareTo(db);
+      });
+
+    final effectivePinned = baseKeys.contains(_pinnedGroupId) ? _pinnedGroupId : null;
+    final displayKeys = [...baseKeys];
+    if (effectivePinned != null) {
+      displayKeys.remove(effectivePinned);
+      displayKeys.insert(0, effectivePinned);
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: AppPalette.background,
       body: Column(
         children: [
-          _buildHardFixedFilterBar(context, taskProv, teamProv, myId),
+          TaskFilterBar(taskProv: taskProv, teamProv: teamProv, myId: myId),
+
+          // Controls (group/sort/layout)
+          if (tasks.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _TaskViewControls(
+                layout: _layout,
+                period: _period,
+                sortField: _sortField,
+                newestFirst: _newestFirst,
+                showToc: _showGroupToc,
+                showHeaders: _showGroupHeaders,
+                pinnedLabel: effectivePinned == null ? null : (groupInfo[effectivePinned]?.label ?? ''),
+                onToggleLayout: () => setState(() {
+                  _layout = _layout == TaskCardLayout.classic ? TaskCardLayout.gallery : TaskCardLayout.classic;
+                }),
+                onSelectPeriod: (p) => setState(() {
+                  _period = p;
+                  _pinnedGroupId = null;
+                  _collapsedGroupIds.clear();
+                }),
+                onSelectSortField: (f) => setState(() => _sortField = f),
+                onToggleSortOrder: () => setState(() => _newestFirst = !_newestFirst),
+                onToggleToc: () => setState(() => _showGroupToc = !_showGroupToc),
+                onToggleHeaders: () => setState(() => _showGroupHeaders = !_showGroupHeaders),
+              ),
+            ),
+
+          if (tasks.isNotEmpty && _showGroupToc)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _GroupTocRow(
+                groupIds: baseKeys,
+                groupInfo: groupInfo,
+                pinnedGroupId: effectivePinned,
+                onSelect: _pinGroup,
+                onClear: _clearPin,
+              ),
+            ),
+
+          const SizedBox(height: 6),
+
           Expanded(
             child: tasks.isEmpty
                 ? Center(
                     child: Text(
-                      "조건에 맞는 업무가 없습니다.",
+                      '조건에 맞는 업무가 없습니다.',
                       style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold),
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    itemCount: tasks.length,
-                    itemBuilder: (context, index) {
-                      final task = tasks[index];
-                      return _buildStrictFixedCard(context, taskProv, teamProv, task);
-                    },
+                : _GroupedTaskView(
+                    groupIds: displayKeys,
+                    groupInfo: groupInfo,
+                    grouped: grouped,
+                    sortField: _sortField,
+                    newestFirst: _newestFirst,
+                    layout: _layout,
+                    showGroupHeaders: _showGroupHeaders,
+                    isCollapsed: (id) => _collapsedGroupIds.contains(id),
+                    onToggleCollapse: _toggleCollapse,
+                    taskProv: taskProv,
+                    scrollController: _scrollController,
                   ),
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _buildCustomFAB(context, taskProv, teamProv),
+      floatingActionButton: _TaskAddButton(onPressed: () => showAddTaskSheet(context: context)),
     );
   }
+}
 
-  // 필터 바: Row 내부 Expanded(flex:1) 5개를 사용하여 강제 5등분
-  Widget _buildHardFixedFilterBar(BuildContext context, TaskProvider taskProv, TeamProvider teamProv, String myId) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Row(
-        children: [
-          _fixedMenuAnchor("프로젝트", taskProv.projectIdFilter, [
-            _menuEntry('all', "전체 프로젝트", Colors.black87),
-            _menuEntry('none', "프로젝트 없음", Colors.grey),
-            ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((p) => _menuEntry(p.id, p.name, p.color)),
-          ], (v) => taskProv.setProjectIdFilter(v), taskProv),
-          
-          _fixedMenuAnchor("상태", taskProv.statusFilter, [
-            _menuEntry('전체', "전체 상태", Colors.black87),
-            _menuEntry('진행 중', "진행 중", Colors.orange),
-            _menuEntry('완료됨', "완료됨", Colors.green),
-          ], (v) => taskProv.setStatusFilter(v), taskProv),
+class _GroupedTaskView extends StatelessWidget {
+  final List<String> groupIds;
+  final Map<String, _GroupInfo> groupInfo;
+  final Map<String, List<Task>> grouped;
+  final TaskSortField sortField;
+  final bool newestFirst;
+  final TaskCardLayout layout;
+  final bool showGroupHeaders;
+  final bool Function(String groupId) isCollapsed;
+  final ValueChanged<String> onToggleCollapse;
+  final TaskProvider taskProv;
+  final ScrollController scrollController;
 
-          _fixedMenuAnchor("중요도", taskProv.priorityFilter, [
-            _menuEntry(null, "전체 중요도", Colors.black87),
-            _menuEntry(TaskPriority.high, "상", Colors.redAccent),
-            _menuEntry(TaskPriority.medium, "중", Colors.orangeAccent),
-            _menuEntry(TaskPriority.low, "하", Colors.blueAccent),
-            _menuEntry(TaskPriority.none, "-", Colors.grey),
-          ], (v) => taskProv.setPriorityFilter(v), taskProv),
+  const _GroupedTaskView({
+    required this.groupIds,
+    required this.groupInfo,
+    required this.grouped,
+    required this.sortField,
+    required this.newestFirst,
+    required this.layout,
+    required this.showGroupHeaders,
+    required this.isCollapsed,
+    required this.onToggleCollapse,
+    required this.taskProv,
+    required this.scrollController,
+  });
 
-          _fixedMenuAnchor("작성일", taskProv.dateFilter, [
-            _menuEntry(DateFilter.all, "전체 기간", Colors.black87),
-            _menuEntry(DateFilter.today, "오늘", Colors.blueAccent),
-            _menuEntry(DateFilter.week, "최근 7일", Colors.blueAccent),
-            _menuEntry(DateFilter.twoWeeks, "최근 14일", Colors.blueAccent),
-            _menuEntry(DateFilter.oneMonth, "최근 30일", Colors.blueAccent),
-          ], (v) => taskProv.setDateFilter(v), taskProv),
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 100),
+      itemCount: groupIds.length,
+      itemBuilder: (context, index) {
+        final id = groupIds[index];
+        final info = groupInfo[id];
+        final label = info?.label ?? id;
+        final items = [...(grouped[id] ?? const <Task>[])];
 
-          _fixedMenuAnchor("담당자", taskProv.assigneeFilter, [
-            _menuEntry('all', "전체 담당자", Colors.black87),
-            _menuEntry('me', "나", Colors.blueAccent),
-            ...teamProv.currentTeam.memberIds.where((id) => id != myId).map((id) => _menuEntry(id, id, Colors.black87)),
-          ], (v) => taskProv.setAssigneeFilter(v), taskProv),
-        ],
-      ),
-    );
-  }
+        items.sort((a, b) {
+          final da = _dateForSort(taskProv, a, sortField);
+          final db = _dateForSort(taskProv, b, sortField);
+          return newestFirst ? db.compareTo(da) : da.compareTo(db);
+        });
 
-  // [Rule] Expanded로 너비를 가두고, MenuAnchor로 위치를 좌표 고정
-  Widget _fixedMenuAnchor(String label, dynamic currentValue, List<Widget> menuItems, Function(dynamic) onSelected, TaskProvider prov) {
-    final bool isDefault = (currentValue == null || currentValue == 'all' || currentValue == '전체' || currentValue == DateFilter.all);
-    final Color displayColor = isDefault ? Colors.black87 : const Color(0xFF2563EB);
+        final collapsed = isCollapsed(id);
 
-    return Expanded(
-      flex: 1,
-      child: MenuAnchor(
-        alignmentOffset: const Offset(0, 10), // [Rule] 수직 하단 10px 고정
-        style: MenuStyle(
-          backgroundColor: WidgetStateProperty.all(Colors.white),
-          elevation: WidgetStateProperty.all(8),
-          minimumSize: WidgetStateProperty.all(const Size(160, 0)),
-          shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-          alignment: Alignment.bottomLeft, // [Rule] 왼쪽 정렬 하단 개방
-        ),
-        builder: (context, controller, child) {
-          return GestureDetector(
-            onTap: () => controller.isOpen ? controller.close() : controller.open(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 2),
-                Text(
-                  _getDisplayValue(label, currentValue, taskProv: prov),
-                  style: TextStyle(fontSize: 11, color: displayColor, fontWeight: FontWeight.w900),
-                  overflow: TextOverflow.ellipsis, // [Rule] 넘치면 생략
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        },
-        menuChildren: menuItems.map((item) {
-          if (item is _MenuEntryWidget) {
-            return MenuItemButton(onPressed: () => onSelected(item.value), child: item);
-          }
-          return item;
-        }).toList(),
-      ),
-    );
-  }
-
-  // [Rule] 3구역 철저 분리 카드 (40px | Expanded | 60px)
-  Widget _buildStrictFixedCard(BuildContext context, TaskProvider prov, TeamProvider teamProv, Task task) {
-    final project = prov.projects.firstWhere(
-      (p) => p.id == task.projectId, 
-      orElse: () => Project(id: '', teamId: '', name: '일반 업무', colorValue: 0xFF94A3B8)
-    );
-
-    return GestureDetector(
-      onTap: () => _showTaskDetailModal(context, task, prov),
-      child: Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12), // [Rule] 패딩 최소화
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6))],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Zone 1: 좌측 고정 (40px) ---
-            SizedBox(
-              width: 40,
-              child: Column(
-                children: [
-                  const SizedBox(height: 14), 
-                  GestureDetector(
-                    onTap: () => prov.updateTaskStatus(task, !task.isDone),
-                    child: Container(
-                      width: 24, height: 24,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: task.isDone ? const Color(0xFF2563EB) : Colors.white, border: Border.all(color: task.isDone ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1), width: 2)),
-                      child: task.isDone ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => prov.cycleTaskPriority(task),
-                    child: Container(
-                      width: 32, height: 32,
-                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: _getPriorityColor(task.priority), width: 2), color: _getPriorityColor(task.priority).withValues(alpha: 0.05)),
-                      child: Center(child: Text(_getPriorityText(task.priority), style: TextStyle(color: _getPriorityColor(task.priority), fontWeight: FontWeight.w900, fontSize: 13))),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(width: 12),
+            if (showGroupHeaders)
+              _GroupHeader(
+                label: label,
+                count: items.length,
+                collapsed: collapsed,
+                onTap: () => onToggleCollapse(id),
+              )
+            else
+              const SizedBox(height: 4),
 
-            // --- Zone 2: 중앙 가변 (Expanded) ---
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(color: project.color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(4)),
-                    child: Text("#${project.name}", style: TextStyle(color: project.color, fontSize: 9, fontWeight: FontWeight.w900)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(task.title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: task.isDone ? Colors.grey[400] : const Color(0xFF1E293B), decoration: task.isDone ? TextDecoration.lineThrough : null)),
-                  const Divider(color: Color(0xFFF1F5F9), height: 12, thickness: 1),
-
-                  // 날짜 영역: 두 줄 고정(가독성 강화)
+            if (!collapsed)
+              ...[
+                if (layout == TaskCardLayout.classic)
                   Column(
                     children: [
-                      Row(
-                        children: [
-                          _compactDate("작성", task.createdAt, Colors.black45),
-                          const SizedBox(width: 14),
-                          _compactDate("수정", task.updatedAt, const Color(0xFF2563EB)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _compactDate("기한", task.dueDate, task.isDone ? Colors.grey : Colors.redAccent),
-                          const SizedBox(width: 14),
-                          if (task.isDone && task.completedAt != null)
-                            _compactDate("완료", task.completedAt!, const Color(0xFF10B981))
-                          else
-                            _compactText("상태", task.isDone ? "완료" : "진행", task.isDone ? const Color(0xFF10B981) : Colors.black45),
-                        ],
-                      ),
+                      for (final t in items) TaskCard(task: t, taskProv: taskProv),
                     ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            // --- Zone 3: 우측 고정 (60px) ---
-            const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFF1F5F9)),
-            SizedBox(
-              width: 60,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center, // [Rule] 가운데 정렬
-                children: [
-                  const Text("작성자", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  Text(task.creatorName, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black54), overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 8),
-                  const Text("담당", style: TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  Text(task.assigneeEmoji, style: const TextStyle(fontSize: 22)),
-                  Text(task.assigneeName, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.black54), overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-
-  // 유틸리티 함수들
-  Widget _compactDate(String label, DateTime date, Color color) => Row(mainAxisSize: MainAxisSize.min, children: [Text("$label: ", style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.bold)), Text(DateFormat('yy.MM.dd').format(date), style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900))]);
-  Widget _compactText(String label, String value, Color color) => Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text("$label: ", style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
-        Text(value, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900)),
-      ]);
-  Widget _menuEntry(dynamic value, String label, Color color) => _MenuEntryWidget(value: value, label: label, color: color);
-  
-  String _getDisplayValue(String label, dynamic value, {required TaskProvider taskProv}) {
-    if (value == null || value == 'all' || value == '전체' || value == DateFilter.all) return "전체";
-    if (value == 'none') return "없음";
-    if (value == 'me') return "나";
-    if (value is TaskPriority) return _getPriorityText(value);
-    if (value is DateFilter) {
-      if (value == DateFilter.today) return "오늘";
-      if (value == DateFilter.week) return "7일";
-      if (value == DateFilter.twoWeeks) return "14일";
-      if (value == DateFilter.oneMonth) return "30일";
-    }
-    if (label == "프로젝트") return taskProv.getProjectName(value.toString());
-    return value.toString();
-  }
-
-  Widget _buildCustomFAB(BuildContext context, TaskProvider prov, TeamProvider teamProv) => Container(padding: const EdgeInsets.symmetric(horizontal: 20), width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => _showAddTaskModal(context, prov, teamProv), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10), icon: const Icon(Icons.add_rounded, size: 24), label: const Text("ADD TASK", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2))));
-  Color _getPriorityColor(TaskPriority p) => p == TaskPriority.high ? const Color(0xFFEF4444) : (p == TaskPriority.medium ? const Color(0xFFF59E0B) : const Color(0xFF3B82F6));
-  String _getPriorityText(TaskPriority p) => p == TaskPriority.high ? "상" : (p == TaskPriority.medium ? "중" : "하");
-
-  void _showTaskDetailModal(BuildContext context, Task task, TaskProvider prov) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        task.title,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () async {
-                        await prov.deleteTask(task.id);
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      },
-                      icon: const Icon(Icons.delete_outline_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _pill("작성", DateFormat('yyyy.MM.dd').format(task.createdAt), Colors.black54),
-                    _pill("수정", DateFormat('yyyy.MM.dd').format(task.updatedAt), const Color(0xFF2563EB)),
-                    _pill("기한", DateFormat('yyyy.MM.dd').format(task.dueDate), task.isDone ? Colors.grey : Colors.redAccent),
-                    if (task.completedAt != null)
-                      _pill("완료", DateFormat('yyyy.MM.dd').format(task.completedAt!), const Color(0xFF10B981)),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => prov.updateTaskStatus(task, !task.isDone),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: task.isDone ? Colors.grey[300] : const Color(0xFF2563EB),
-                          foregroundColor: task.isDone ? Colors.black87 : Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        icon: Icon(task.isDone ? Icons.undo_rounded : Icons.check_rounded),
-                        label: Text(task.isDone ? "완료 취소" : "완료 처리", style: const TextStyle(fontWeight: FontWeight.w900)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () => prov.cycleTaskPriority(task),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _getPriorityColor(task.priority).withValues(alpha: 0.08),
-                        foregroundColor: _getPriorityColor(task.priority),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text("중요도", style: TextStyle(fontWeight: FontWeight.w900)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                  )
+                else
+                  _HorizontalGalleryRow(items: items, taskProv: taskProv),
               ],
-            ),
-          ),
+
+            const SizedBox(height: 8),
+          ],
         );
       },
     );
   }
+}
 
-  Widget _pill(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        "$label: $value",
-        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12),
-      ),
-    );
-  }
+class _HorizontalGalleryRow extends StatelessWidget {
+  final List<Task> items;
+  final TaskProvider taskProv;
 
-  void _showAddTaskModal(BuildContext context, TaskProvider prov, TeamProvider teamProv) {
-    final authProv = context.read<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
-    final myName = authProv.currentUser?.name ?? '관리자';
+  const _HorizontalGalleryRow({
+    required this.items,
+    required this.taskProv,
+  });
 
-    final titleCtrl = TextEditingController();
-    String? projectId;
-    String assigneeId = myId;
-    DateTime dueDate = DateTime.now();
-    TaskPriority priority = TaskPriority.none;
+  @override
+  Widget build(BuildContext context) {
+    final screenW = MediaQuery.of(context).size.width;
+    // page padding(20*2) + gap(12)
+    final cardW = (screenW - 40 - 12) / 2;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) {
-          return Container(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 18,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("업무 추가", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: titleCtrl,
-                  decoration: InputDecoration(
-                    hintText: "업무 제목",
-                    filled: true,
-                    fillColor: const Color(0xFFF1F5F9),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String?>(
-                        initialValue: projectId,
-                        decoration: InputDecoration(
-                          labelText: "프로젝트",
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text("없음")),
-                          ...prov.projects
-                              .where((p) => p.teamId == teamProv.currentTeamId)
-                              .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
-                        ],
-                        onChanged: (v) => setModalState(() => projectId = v),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: DropdownButtonFormField<TaskPriority>(
-                        initialValue: priority,
-                        decoration: InputDecoration(
-                          labelText: "중요도",
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: TaskPriority.none, child: Text("-")),
-                          DropdownMenuItem(value: TaskPriority.high, child: Text("상")),
-                          DropdownMenuItem(value: TaskPriority.medium, child: Text("중")),
-                          DropdownMenuItem(value: TaskPriority.low, child: Text("하")),
-                        ],
-                        onChanged: (v) => setModalState(() => priority = v ?? TaskPriority.none),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: assigneeId,
-                        decoration: InputDecoration(
-                          labelText: "담당자",
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                        ),
-                        items: [
-                          DropdownMenuItem(value: myId, child: Text("나 ($myName)")),
-                          ...teamProv.currentTeam.memberIds
-                              .where((id) => id != myId)
-                              .map((id) => DropdownMenuItem(value: id, child: Text(id))),
-                        ],
-                        onChanged: (v) => setModalState(() => assigneeId = v ?? myId),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: dueDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) setModalState(() => dueDate = picked);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.event_rounded, size: 18, color: Color(0xFF2563EB)),
-                              const SizedBox(width: 8),
-                              Text(DateFormat('yyyy.MM.dd').format(dueDate), style: const TextStyle(fontWeight: FontWeight.w900)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final title = titleCtrl.text.trim();
-                      if (title.isEmpty) return;
-
-                      final assigneeName = (assigneeId == myId) ? myName : assigneeId;
-                      final task = Task(
-                        id: const Uuid().v4(),
-                        teamId: teamProv.currentTeamId,
-                        title: title,
-                        creatorId: myId,
-                        creatorName: myName,
-                        assigneeId: assigneeId,
-                        assigneeName: assigneeName,
-                        assigneeEmoji: assigneeId == myId ? '👷' : '👤',
-                        projectId: projectId,
-                        createdAt: DateTime.now(),
-                        dueDate: dueDate,
-                        updatedAt: DateTime.now(),
-                        priority: priority,
-                      );
-
-                      await prov.addTask(task);
-                      if (ctx.mounted) Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    icon: const Icon(Icons.save_rounded),
-                    label: const Text("저장", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                  ),
-                ),
-              ],
-            ),
+    return SizedBox(
+      height: 260,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          return SizedBox(
+            width: cardW,
+            child: TaskMasonryCard(task: items[i], taskProv: taskProv),
           );
         },
       ),
@@ -569,10 +309,450 @@ class TeamTaskTab extends StatelessWidget {
   }
 }
 
-class _MenuEntryWidget extends StatelessWidget {
-  final dynamic value;
+class _GroupHeader extends StatelessWidget {
   final String label;
-  final Color color;
-  const _MenuEntryWidget({required this.value, required this.label, required this.color});
-  @override Widget build(BuildContext context) => Container(constraints: const BoxConstraints(minWidth: 140), padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), child: Text(label, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900)));
+  final int count;
+  final bool collapsed;
+  final VoidCallback onTap;
+
+  const _GroupHeader({
+    required this.label,
+    required this.count,
+    required this.collapsed,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 16,
+              decoration: BoxDecoration(color: AppPalette.primary, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppPalette.textDark),
+              ),
+            ),
+            Text(
+              '${count}건',
+              style: const TextStyle(color: AppPalette.textMuted, fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              collapsed ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded,
+              color: AppPalette.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskViewControls extends StatelessWidget {
+  final TaskCardLayout layout;
+  final TaskGroupPeriod period;
+  final TaskSortField sortField;
+  final bool newestFirst;
+  final bool showToc;
+  final bool showHeaders;
+  final String? pinnedLabel;
+
+  final VoidCallback onToggleLayout;
+  final ValueChanged<TaskGroupPeriod> onSelectPeriod;
+  final ValueChanged<TaskSortField> onSelectSortField;
+  final VoidCallback onToggleSortOrder;
+  final VoidCallback onToggleToc;
+  final VoidCallback onToggleHeaders;
+
+  const _TaskViewControls({
+    required this.layout,
+    required this.period,
+    required this.sortField,
+    required this.newestFirst,
+    required this.showToc,
+    required this.showHeaders,
+    required this.pinnedLabel,
+    required this.onToggleLayout,
+    required this.onSelectPeriod,
+    required this.onSelectSortField,
+    required this.onToggleSortOrder,
+    required this.onToggleToc,
+    required this.onToggleHeaders,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              '업무 보기',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppPalette.textDark),
+            ),
+            const SizedBox(width: 8),
+            if (pinnedLabel != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppPalette.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppPalette.primary.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.push_pin_rounded, size: 14, color: AppPalette.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      pinnedLabel!,
+                      style: const TextStyle(color: AppPalette.primary, fontWeight: FontWeight.w900, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            const Spacer(),
+            Tooltip(
+              message: layout == TaskCardLayout.classic ? '카드 디자인: 기본(리스트)' : '카드 디자인: 갤러리',
+              child: IconButton(
+                iconSize: 20,
+                onPressed: onToggleLayout,
+                icon: Icon(layout == TaskCardLayout.classic ? Icons.view_agenda_rounded : Icons.grid_view_rounded),
+                color: AppPalette.primary,
+              ),
+            ),
+            Tooltip(
+              message: showToc ? '날짜 목차 숨기기' : '날짜 목차 보이기',
+              child: IconButton(
+                iconSize: 20,
+                onPressed: onToggleToc,
+                icon: Icon(showToc ? Icons.toc_rounded : Icons.toc_outlined),
+                color: AppPalette.primary,
+              ),
+            ),
+            Tooltip(
+              message: showHeaders ? '그룹 헤더 숨기기' : '그룹 헤더 보이기',
+              child: IconButton(
+                iconSize: 20,
+                onPressed: onToggleHeaders,
+                icon: Icon(showHeaders ? Icons.label_rounded : Icons.label_outline_rounded),
+                color: AppPalette.primary,
+              ),
+            ),
+            Tooltip(
+              message: newestFirst ? '정렬: 최신순(↓)' : '정렬: 오래된순(↑)',
+              child: IconButton(
+                iconSize: 20,
+                onPressed: onToggleSortOrder,
+                icon: Icon(newestFirst ? Icons.south_rounded : Icons.north_rounded),
+                color: AppPalette.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: _chipMenu<TaskGroupPeriod>(
+            label: _periodLabel(period),
+                icon: Icons.view_day_rounded,
+                value: period,
+                items: TaskGroupPeriod.values,
+                itemLabel: _periodLabel,
+                onSelected: onSelectPeriod,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _chipMenu<TaskSortField>(
+            label: _sortLabel(sortField),
+                icon: Icons.sort_rounded,
+                value: sortField,
+                items: TaskSortField.values,
+                itemLabel: _sortLabel,
+                onSelected: onSelectSortField,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _GroupTocRow extends StatelessWidget {
+  final List<String> groupIds;
+  final Map<String, _GroupInfo> groupInfo;
+  final String? pinnedGroupId;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onClear;
+
+  const _GroupTocRow({
+    required this.groupIds,
+    required this.groupInfo,
+    required this.pinnedGroupId,
+    required this.onSelect,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _tocChip(
+            label: '전체',
+            selected: pinnedGroupId == null,
+            onTap: onClear,
+            leading: Icons.all_inclusive_rounded,
+          ),
+          const SizedBox(width: 8),
+          for (final id in groupIds) ...[
+            _tocChip(
+              label: groupInfo[id]?.tocLabel ?? id,
+              selected: pinnedGroupId == id,
+              onTap: () => onSelect(id),
+              leading: pinnedGroupId == id ? Icons.push_pin_rounded : Icons.calendar_today_rounded,
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _tocChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required IconData leading,
+  }) {
+    final bg = selected ? AppPalette.primary : Colors.white;
+    final fg = selected ? Colors.white : AppPalette.textDark;
+    final borderColor = selected ? AppPalette.primary : AppPalette.border;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: borderColor),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(leading, size: 14, color: fg),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w900, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskAddButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _TaskAddButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppPalette.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 10,
+        ),
+        icon: const Icon(Icons.add_rounded, size: 24),
+        label: const Text(
+          '업무 추가',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6),
+        ),
+      ),
+    );
+  }
+}
+
+// --- Helpers ---
+
+class _GroupInfo {
+  final String id;
+  final String label;
+  final String tocLabel;
+  final DateTime start;
+  final DateTime end;
+
+  const _GroupInfo({
+    required this.id,
+    required this.label,
+    required this.tocLabel,
+    required this.start,
+    required this.end,
+  });
+}
+
+_GroupInfo _groupFor(DateTime date, TaskGroupPeriod period) {
+  final d = DateTime(date.year, date.month, date.day);
+  switch (period) {
+    case TaskGroupPeriod.day:
+      final key = DateFormat('yyyy-MM-dd').format(d);
+      return _GroupInfo(
+        id: 'D:$key',
+        label: key,
+        tocLabel: DateFormat('MM/dd').format(d),
+        start: d,
+        end: d,
+      );
+    case TaskGroupPeriod.week:
+      final weekStart = d.subtract(Duration(days: d.weekday - DateTime.monday));
+      final weekEnd = weekStart.add(const Duration(days: 6));
+      final key = DateFormat('yyyy-MM-dd').format(weekStart);
+      final label = '${DateFormat('yyyy-MM-dd').format(weekStart)} ~ ${DateFormat('yyyy-MM-dd').format(weekEnd)}';
+      final toc = '${DateFormat('MM/dd').format(weekStart)}주';
+      return _GroupInfo(id: 'W:$key', label: '주간 $label', tocLabel: toc, start: weekStart, end: weekEnd);
+    case TaskGroupPeriod.month:
+      final start = DateTime(d.year, d.month, 1);
+      final end = DateTime(d.year, d.month + 1, 0);
+      final key = DateFormat('yyyy-MM').format(start);
+      return _GroupInfo(id: 'M:$key', label: '$key', tocLabel: '${start.month}월', start: start, end: end);
+    case TaskGroupPeriod.quarter:
+      final q = ((d.month - 1) ~/ 3) + 1;
+      final startMonth = (q - 1) * 3 + 1;
+      final start = DateTime(d.year, startMonth, 1);
+      final end = DateTime(d.year, startMonth + 3, 0);
+      final key = '${d.year}-Q$q';
+      return _GroupInfo(id: 'Q:$key', label: '$key', tocLabel: 'Q$q', start: start, end: end);
+    case TaskGroupPeriod.year:
+      final start = DateTime(d.year, 1, 1);
+      final end = DateTime(d.year, 12, 31);
+      final key = '${d.year}';
+      return _GroupInfo(id: 'Y:$key', label: key, tocLabel: key, start: start, end: end);
+  }
+}
+
+DateTime _dateForSort(TaskProvider prov, Task t, TaskSortField field) {
+  switch (field) {
+    case TaskSortField.createdAt:
+      return t.createdAt;
+    case TaskSortField.updatedAt:
+      return t.updatedAt;
+    case TaskSortField.dueDate:
+      return t.dueDate;
+    case TaskSortField.scheduleStart:
+      return (prov.effectiveScheduleRange(t)?.start) ?? t.dueDate;
+    case TaskSortField.completedAt:
+      return t.completedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+}
+
+String _periodLabel(TaskGroupPeriod p) {
+  switch (p) {
+    case TaskGroupPeriod.day:
+      return '일';
+    case TaskGroupPeriod.week:
+      return '주';
+    case TaskGroupPeriod.month:
+      return '월';
+    case TaskGroupPeriod.quarter:
+      return '분기';
+    case TaskGroupPeriod.year:
+      return '년';
+  }
+}
+
+String _sortLabel(TaskSortField f) {
+  switch (f) {
+    case TaskSortField.createdAt:
+      return '작성일';
+    case TaskSortField.updatedAt:
+      return '수정일';
+    case TaskSortField.dueDate:
+      return '기한';
+    case TaskSortField.scheduleStart:
+      return '일정';
+    case TaskSortField.completedAt:
+      return '완료일';
+  }
+}
+
+Widget _chipMenu<T>({
+  required String label,
+  required IconData icon,
+  required T value,
+  required List<T> items,
+  required String Function(T) itemLabel,
+  required ValueChanged<T> onSelected,
+}) {
+  return PopupMenuButton<T>(
+    onSelected: onSelected,
+    itemBuilder: (context) {
+      return items
+          .map(
+            (e) => PopupMenuItem<T>(
+              value: e,
+              child: Row(
+                children: [
+                  if (e == value) const Icon(Icons.check_rounded, size: 18) else const SizedBox(width: 18),
+                  const SizedBox(width: 8),
+                  Text(itemLabel(e), style: const TextStyle(fontWeight: FontWeight.w900)),
+                ],
+              ),
+            ),
+          )
+          .toList();
+    },
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppPalette.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppPalette.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w900, color: AppPalette.textDark),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(Icons.expand_more_rounded, color: AppPalette.textMuted),
+        ],
+      ),
+    ),
+  );
 }

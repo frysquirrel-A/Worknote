@@ -6,6 +6,10 @@ enum AppTone { white, blue, black }
 enum DateFilter { all, today, week, twoWeeks, oneMonth }
 enum JournalGroupPeriod { day, week, month, quarter, year }
 
+/// Journal entry semantic type.
+/// Stored in `journal_meta` box to avoid breaking Hive adapters when evolving.
+enum JournalKind { note, progress, completionReport }
+
 // --- 1. 팀 모델 ---
 class Team {
   final String id;
