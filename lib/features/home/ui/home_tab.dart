@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
-import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/features/chat/state/chat_provider.dart';
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  final void Function(String threadId, String title) onOpenChatThread;
+  const HomeTab({super.key, required this.onOpenChatThread});
 
   @override
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
     final authProv = context.watch<AuthProvider>();
+    final chatProv = context.read<ChatProvider>();
 
     final myId = authProv.currentUser?.id ?? 'me';
     final myName = authProv.currentUser?.name ?? '관리자';
@@ -26,7 +31,6 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 인사말 섹션
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -34,54 +38,67 @@ class HomeTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(DateFormat('M월 d일 EEEE', 'ko_KR').format(DateTime.now()), 
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                    style: const TextStyle(fontSize: 13, color: AppColors.hint, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Text("안녕하세요 ${authProv.currentUser?.name ?? '관리자'}님! 👋", 
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.text)),
                 ],
               ),
               CircleAvatar(
                 radius: 24,
-                backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                child: Text(initial, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                child: Text(initial, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
               ),
             ],
           ),
           
           const SizedBox(height: 32),
 
-          // 현재 팀 표시
-          Row(
-            children: [
-              const Icon(Icons.hub_rounded, size: 18, color: Color(0xFF2563EB)),
-              const SizedBox(width: 8),
-              Text(
-                teamProv.currentTeam.name,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-              ),
-            ],
+          GestureDetector(
+            onTap: () => onOpenChatThread(teamProv.currentTeamId, '단체 · ${teamProv.currentTeam.name}'),
+            child: Row(
+              children: [
+                const Icon(Icons.hub_rounded, size: 18, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  teamProv.currentTeam.name,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.hint),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
-          // 팀원 리스트 섹션 (요청: 프로젝트 현황보다 위)
-          const Text("팀원 리스트", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          const Text("팀원 리스트", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
           const SizedBox(height: 12),
           SizedBox(
             height: 90,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildMemberAvatar(myName, "👷", true),
+                GestureDetector(
+                  onTap: () => onOpenChatThread(teamProv.currentTeamId, '단체 · ${teamProv.currentTeam.name}'),
+                  child: _buildMemberAvatar(myName, "👷", true),
+                ),
                 ...teamProv.currentTeam.memberIds
                     .where((id) => id != myId)
-                    .map((id) => _buildMemberAvatar(id, "👤", false)),
+                    .map((uid) {
+                      final name = Hive.box<AppUser>('users').get(uid)?.name ?? uid;
+                      return GestureDetector(
+                        onTap: () {
+                          final tid = chatProv.dmThreadId(teamProv.currentTeamId, myId, uid);
+                          onOpenChatThread(tid, 'DM · $name');
+                        },
+                        child: _buildMemberAvatar(name, "👤", false),
+                      );
+                    }),
               ],
             ),
           ),
           const SizedBox(height: 24),
 
-          // 프로젝트 현황 섹션
-          const Text("프로젝트 현황", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          const Text("프로젝트 현황", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
           const SizedBox(height: 16),
           
           ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((project) {
@@ -94,9 +111,9 @@ class HomeTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: AppColors.border),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(
@@ -105,13 +122,8 @@ class HomeTab extends StatelessWidget {
                     children: [
                       Icon(Icons.circle, size: 10, color: project.color),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          project.name,
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: project.color),
-                        ),
-                      ),
-                      Text("${(pRate * 100).toInt()}%", style: TextStyle(color: project.color, fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.text))),
+                      Text("${(pRate * 100).toInt()}%", style: TextStyle(color: project.color, fontWeight: FontWeight.w900)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -119,7 +131,7 @@ class HomeTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                     child: LinearProgressIndicator(
                       value: pRate,
-                      backgroundColor: const Color(0xFFF1F5F9),
+                      backgroundColor: AppColors.bg,
                       color: project.color,
                       minHeight: 8,
                     ),
@@ -128,17 +140,13 @@ class HomeTab extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "$pDone 완료 / $pTotal 전체",
-                        style: const TextStyle(fontSize: 11, color: AppPalette.textMuted, fontWeight: FontWeight.w700),
-                      ),
+                      Text("$pDone 완료 / $pTotal 전체", style: const TextStyle(fontSize: 11, color: AppColors.hint, fontWeight: FontWeight.bold)),
                     ],
                   )
                 ],
               ),
             );
           }).toList(),
-
           const SizedBox(height: 24),
         ],
       ),
@@ -152,18 +160,11 @@ class HomeTab extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: isMe ? const Color(0xFF2563EB).withValues(alpha: 0.1) : const Color(0xFFF1F5F9),
+            backgroundColor: isMe ? AppColors.primary.withValues(alpha: 0.1) : AppColors.bg,
             child: Text(emoji, style: const TextStyle(fontSize: 24)),
           ),
           const SizedBox(height: 6),
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isMe ? FontWeight.w900 : FontWeight.w700,
-              color: isMe ? AppPalette.textDark : AppPalette.textMuted,
-            ),
-          ),
+          Text(name, style: TextStyle(fontSize: 12, fontWeight: isMe ? FontWeight.bold : FontWeight.normal, color: AppColors.text2)),
         ],
       ),
     );

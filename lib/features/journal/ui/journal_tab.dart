@@ -22,9 +22,8 @@ class _JournalTabState extends State<JournalTab> {
   String _searchQuery = '';
   JournalKind? _kindFilter;
 
-  // Always date-grouped view (v4)
   bool _showDateToc = true;
-  bool _showDateHeaders = false; // default: 카드 내부에 날짜가 있어 헤더는 숨김 권장
+  bool _showDateHeaders = false;
   bool _newestFirst = true;
   String? _pinnedDateKey;
 
@@ -39,24 +38,12 @@ class _JournalTabState extends State<JournalTab> {
   void _scrollToTop() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-      );
+      _scrollController.animateTo(0, duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
     });
   }
 
-  void _pinDate(String dateKey) {
-    setState(() => _pinnedDateKey = dateKey);
-    _scrollToTop();
-  }
-
-  void _clearPin() {
-    if (_pinnedDateKey == null) return;
-    setState(() => _pinnedDateKey = null);
-    _scrollToTop();
-  }
+  void _pinDate(String dateKey) { setState(() => _pinnedDateKey = dateKey); _scrollToTop(); }
+  void _clearPin() { if (_pinnedDateKey == null) return; setState(() => _pinnedDateKey = null); _scrollToTop(); }
 
   @override
   Widget build(BuildContext context) {
@@ -71,96 +58,63 @@ class _JournalTabState extends State<JournalTab> {
       final q = _searchQuery.trim().toLowerCase();
       final matchesSearch = q.isEmpty || j.title.toLowerCase().contains(q) || j.content.toLowerCase().contains(q);
       if (!matchesTeam || !matchesSearch) return false;
-
-      if (_kindFilter != null) {
-        final k = journalProv.getKind(j.id);
-        if (k != _kindFilter) return false;
-      }
+      if (_kindFilter != null && journalProv.getKind(j.id) != _kindFilter) return false;
       return true;
     }).toList();
 
-    // Group by date (yyyy-MM-dd)
     final Map<String, List<JournalEntry>> grouped = {};
     for (final j in allJournals) {
       final k = DateFormat('yyyy-MM-dd').format(DateTime(j.date.year, j.date.month, j.date.day));
       grouped.putIfAbsent(k, () => []).add(j);
     }
 
-    final baseKeys = grouped.keys.toList()
-      ..sort((a, b) => _newestFirst ? b.compareTo(a) : a.compareTo(b));
-
+    final baseKeys = grouped.keys.toList()..sort((a, b) => _newestFirst ? b.compareTo(a) : a.compareTo(b));
     final effectivePinned = baseKeys.contains(_pinnedDateKey) ? _pinnedDateKey : null;
     final displayKeys = [...baseKeys];
-    if (effectivePinned != null) {
-      displayKeys.remove(effectivePinned);
-      displayKeys.insert(0, effectivePinned);
-    }
+    if (effectivePinned != null) { displayKeys.remove(effectivePinned); displayKeys.insert(0, effectivePinned); }
 
     return Scaffold(
-      backgroundColor: AppPalette.background,
+      backgroundColor: AppColors.bg,
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: TextField(
               onChanged: (v) => setState(() => _searchQuery = v),
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 hintText: '일지 내용을 검색하세요...',
-                prefixIcon: const Icon(Icons.search, color: AppPalette.primary),
+                hintStyle: const TextStyle(color: AppColors.hint),
+                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surface,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
           ),
-
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: _JournalKindFilterRow(
-              current: _kindFilter,
-              onChanged: (k) => setState(() => _kindFilter = k),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _JournalKindFilterRow(current: _kindFilter, onChanged: (k) => setState(() => _kindFilter = k)),
           ),
-
           if (allJournals.isNotEmpty)
             DateGroupControls(
-              title: '일지 날짜 보기',
-              dateKeys: baseKeys,
-              pinnedDateKey: effectivePinned,
-              showToc: _showDateToc,
-              showSectionHeaders: _showDateHeaders,
-              newestFirst: _newestFirst,
+              title: '일지 날짜 보기', dateKeys: baseKeys, pinnedDateKey: effectivePinned, showToc: _showDateToc,
+              showSectionHeaders: _showDateHeaders, newestFirst: _newestFirst,
               onToggleToc: () => setState(() => _showDateToc = !_showDateToc),
               onToggleSectionHeaders: () => setState(() => _showDateHeaders = !_showDateHeaders),
               onToggleSortOrder: () => setState(() => _newestFirst = !_newestFirst),
-              onSelectDate: _pinDate,
-              onClearPin: _clearPin,
+              onSelectDate: _pinDate, onClearPin: _clearPin,
             ),
-
           const SizedBox(height: 8),
-
           Expanded(
             child: allJournals.isEmpty
-                ? Center(
-                    child: Text(
-                      '일지가 없습니다. + 버튼으로 작성해보세요.',
-                      style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold),
-                    ),
-                  )
-                : _DateGroupedJournalView(
-                    dateKeys: displayKeys,
-                    grouped: grouped,
-                    showSectionHeaders: _showDateHeaders,
-                    scrollController: _scrollController,
-                  ),
+                ? Center(child: Text('일지가 없습니다.', style: TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
+                : _DateGroupedJournalView(dateKeys: displayKeys, grouped: grouped, showSectionHeaders: _showDateHeaders, scrollController: _scrollController),
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _JournalWriteButton(
-        onPressed: () => showJournalWriteSheet(context: context, myId: myId, myName: myName),
-      ),
+      floatingActionButton: _JournalWriteButton(onPressed: () => showJournalWriteSheet(context: context, myId: myId, myName: myName)),
     );
   }
 }
@@ -168,26 +122,15 @@ class _JournalTabState extends State<JournalTab> {
 class _JournalWriteButton extends StatelessWidget {
   final VoidCallback onPressed;
   const _JournalWriteButton({required this.onPressed});
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      width: double.infinity,
-      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 20), width: double.infinity, height: 50,
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppPalette.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 10,
-        ),
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10),
         icon: const Icon(Icons.add_rounded, size: 24),
-        label: const Text(
-          '일지작성',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6),
-        ),
+        label: const Text('일지작성', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6)),
       ),
     );
   }
@@ -198,55 +141,20 @@ class _DateGroupedJournalView extends StatelessWidget {
   final Map<String, List<JournalEntry>> grouped;
   final bool showSectionHeaders;
   final ScrollController scrollController;
-
-  const _DateGroupedJournalView({
-    required this.dateKeys,
-    required this.grouped,
-    required this.showSectionHeaders,
-    required this.scrollController,
-  });
-
+  const _DateGroupedJournalView({required this.dateKeys, required this.grouped, required this.showSectionHeaders, required this.scrollController});
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-      itemCount: dateKeys.length,
+      controller: scrollController, padding: const EdgeInsets.fromLTRB(20, 8, 20, 100), itemCount: dateKeys.length,
       itemBuilder: (context, index) {
         final key = dateKeys[index];
         final items = (grouped[key] ?? [])..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (showSectionHeaders)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10, top: 6),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 14,
-                      decoration: BoxDecoration(color: AppPalette.primary, borderRadius: BorderRadius.circular(2)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: AppPalette.textDark)),
-                    const Spacer(),
-                    Text(
-                      '${items.length}건',
-                      style: const TextStyle(color: AppPalette.textMuted, fontWeight: FontWeight.w800, fontSize: 12),
-                    ),
-                  ],
-                ),
-              )
-            else
-              const SizedBox(height: 6),
-
-            ...items.map((j) => JournalCard(entry: j)),
-
-            const SizedBox(height: 6),
-          ],
-        );
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (showSectionHeaders) Padding(padding: const EdgeInsets.only(bottom: 10, top: 6), child: Row(children: [Container(width: 4, height: 14, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 8), Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)), const Spacer(), Text('${items.length}건', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w800, fontSize: 12))]))
+          else const SizedBox(height: 6),
+          ...items.map((j) => JournalCard(entry: j)),
+          const SizedBox(height: 6),
+        ]);
       },
     );
   }
@@ -255,54 +163,20 @@ class _DateGroupedJournalView extends StatelessWidget {
 class _JournalKindFilterRow extends StatelessWidget {
   final JournalKind? current;
   final ValueChanged<JournalKind?> onChanged;
-
-  const _JournalKindFilterRow({
-    required this.current,
-    required this.onChanged,
-  });
-
+  const _JournalKindFilterRow({required this.current, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _chip(label: '전체', selected: current == null, onTap: () => onChanged(null)),
-          const SizedBox(width: 8),
-          _chip(label: '일반', selected: current == JournalKind.note, onTap: () => onChanged(JournalKind.note)),
-          const SizedBox(width: 8),
-          _chip(label: '진행', selected: current == JournalKind.progress, onTap: () => onChanged(JournalKind.progress), color: const Color(0xFFF59E0B)),
-          const SizedBox(width: 8),
-          _chip(label: '보고서', selected: current == JournalKind.completionReport, onTap: () => onChanged(JournalKind.completionReport), color: const Color(0xFF10B981)),
-        ],
-      ),
-    );
+    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+      _chip(label: '전체', selected: current == null, onTap: () => onChanged(null)),
+      const SizedBox(width: 8),
+      _chip(label: '일반', selected: current == JournalKind.note, onTap: () => onChanged(JournalKind.note)),
+      const SizedBox(width: 8),
+      _chip(label: '진행', selected: current == JournalKind.progress, onTap: () => onChanged(JournalKind.progress), color: AppColors.warning),
+      const SizedBox(width: 8),
+      _chip(label: '보고서', selected: current == JournalKind.completionReport, onTap: () => onChanged(JournalKind.completionReport), color: AppColors.success),
+    ]));
   }
-
-  Widget _chip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-    Color color = AppPalette.primary,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? color : AppPalette.border),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : AppPalette.textDark,
-            fontWeight: FontWeight.w900,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
+  Widget _chip({required String label, required bool selected, required VoidCallback onTap, Color color = AppColors.primary}) {
+    return GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: selected ? color : AppColors.surface, borderRadius: BorderRadius.circular(999), border: Border.all(color: selected ? color : AppColors.border)), child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.text, fontWeight: FontWeight.w900, fontSize: 12))));
   }
 }

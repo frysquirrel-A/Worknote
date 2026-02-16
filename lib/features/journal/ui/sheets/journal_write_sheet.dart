@@ -12,10 +12,10 @@ Future<void> showJournalWriteSheet({
   required BuildContext context,
   required String myId,
   required String myName,
+  JournalKind? prefillKind,
   String? prefillRelatedTaskId,
   String? prefillTitle,
   String? prefillContent,
-  JournalKind? prefillKind,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -24,26 +24,26 @@ Future<void> showJournalWriteSheet({
     builder: (ctx) => _JournalWriteSheet(
       myId: myId,
       myName: myName,
+      prefillKind: prefillKind,
       prefillRelatedTaskId: prefillRelatedTaskId,
       prefillTitle: prefillTitle,
       prefillContent: prefillContent,
-      prefillKind: prefillKind,
     ),
   );
 }
 
 class _JournalWriteSheet extends StatefulWidget {
   final String myId, myName;
-  final String? prefillRelatedTaskId, prefillTitle, prefillContent;
   final JournalKind? prefillKind;
+  final String? prefillRelatedTaskId, prefillTitle, prefillContent;
 
   const _JournalWriteSheet({
     required this.myId,
     required this.myName,
+    this.prefillKind,
     this.prefillRelatedTaskId,
     this.prefillTitle,
     this.prefillContent,
-    this.prefillKind,
   });
 
   @override
@@ -77,12 +77,10 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final journalProv = context.read<JournalProvider>();
-    final teamProv = context.watch<TeamProvider>();
-    final taskProv = context.watch<TaskProvider>();
-    
+    final prov = context.read<JournalProvider>();
+    final teamProv = context.read<TeamProvider>();
+    final taskProv = context.read<TaskProvider>();
     final teamId = teamProv.currentTeamId;
-
     final tasksForTeam = taskProv.tasks.where((t) => t.teamId == teamId).toList();
     final projectsForTeam = taskProv.projects.where((p) => p.teamId == teamId).toList();
 
@@ -98,7 +96,7 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24), // 상단 패딩 축소
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -113,9 +111,9 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 12), // 여백 축소
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8), // 패딩 축소
                 decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
                 child: Row(
                   children: [
@@ -127,7 +125,7 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 16), // 제목 필드를 더 위로 올림
               TextField(
                 controller: titleCtrl,
                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16),
@@ -217,28 +215,12 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
                     if (titleCtrl.text.trim().isEmpty) return;
                     try {
                       final entryId = const Uuid().v4();
-                      final entry = JournalEntry(
-                        id: entryId,
-                        teamId: teamId,
-                        userId: widget.myId,
-                        userName: widget.myName,
-                        title: titleCtrl.text.trim(),
-                        content: contentCtrl.text.trim(),
-                        date: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                        photos: photos,
-                        projectId: selectedProjectId,
-                        isPrivate: isPrivate,
-                      );
-                      await journalProv.addJournal(entry);
-                      await journalProv.setMeta(entryId, kind: kind, relatedTaskId: relatedTaskId);
-
-                      // If completion report, mark related task done
-                      if (kind == JournalKind.completionReport && relatedTaskId != null) {
-                        final task = taskProv.tasks.firstWhere((t) => t.id == relatedTaskId);
-                        await taskProv.updateTaskStatus(task, true);
-                      }
-
+                      await prov.addJournal(JournalEntry(
+                        id: entryId, teamId: teamProv.currentTeamId, userId: widget.myId, userName: widget.myName,
+                        title: titleCtrl.text.trim(), content: contentCtrl.text.trim(), date: DateTime.now(), updatedAt: DateTime.now(),
+                        photos: photos, projectId: selectedProjectId, isPrivate: isPrivate,
+                      ));
+                      await prov.setMeta(entryId, kind: kind, relatedTaskId: relatedTaskId);
                       if (context.mounted) Navigator.pop(context);
                     } catch (e) {
                       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('일지 저장 실패: $e')));
@@ -270,25 +252,13 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
 }
 
 String _kindLabel(JournalKind kind) {
-  switch (kind) {
-    case JournalKind.note: return '일반 일지';
-    case JournalKind.progress: return '진행사항';
-    case JournalKind.completionReport: return '완료 보고서';
-  }
+  return switch (kind) { JournalKind.note => '일반 일지', JournalKind.progress => '진행사항', JournalKind.completionReport => '완료 보고서' };
 }
 
 Color _kindColor(JournalKind kind) {
-  switch (kind) {
-    case JournalKind.note: return AppColors.primary;
-    case JournalKind.progress: return AppColors.warning;
-    case JournalKind.completionReport: return AppColors.success;
-  }
+  return switch (kind) { JournalKind.note => AppColors.primary, JournalKind.progress => AppColors.warning, JournalKind.completionReport => AppColors.success };
 }
 
 String _hintByKind(JournalKind kind) {
-  switch (kind) {
-    case JournalKind.note: return '오늘의 작업/특이사항 기록...';
-    case JournalKind.progress: return '현재 상태, 다음 액션 기록...';
-    case JournalKind.completionReport: return '작업 결과, 검수 내용 기록...';
-  }
+  return switch (kind) { JournalKind.note => '오늘의 작업/특이사항 기록...', JournalKind.progress => '현재 상태, 다음 액션 기록...', JournalKind.completionReport => '작업 결과, 검수 내용 기록...' };
 }

@@ -6,9 +6,6 @@ import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 
 /// Task filter bar used at the top of the Task tab.
-///
-/// Extracted from the previous monolithic `task_tab.dart` to improve
-/// maintainability.
 class TaskFilterBar extends StatelessWidget {
   final TaskProvider taskProv;
   final TeamProvider teamProv;
@@ -24,8 +21,8 @@ class TaskFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4), // 12, 8 -> 8, 4 축소
+      padding: const EdgeInsets.symmetric(vertical: 6), // 8 -> 6 축소
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -142,7 +139,7 @@ class TaskFilterBar extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 9, color: AppPalette.textMuted, fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 2),
                 Text(

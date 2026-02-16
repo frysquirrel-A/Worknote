@@ -19,7 +19,7 @@ Future<void> bootstrap() async {
 
   await Hive.initFlutter();
 
-  // Hive Adapters
+  // 1. Hive Adapters 등록
   Hive.registerAdapter(TaskPriorityAdapter());
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
@@ -28,8 +28,7 @@ Future<void> bootstrap() async {
   Hive.registerAdapter(AppUserAdapter());
   Hive.registerAdapter(ChatMessageAdapter());
 
-  // Boxes
-  await Hive.openBox('settings');
+  // 2. Typed Boxes 오픈
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Project>('projects');
   await Hive.openBox<JournalEntry>('journals');
@@ -37,13 +36,11 @@ Future<void> bootstrap() async {
   await Hive.openBox<AppUser>('users');
   await Hive.openBox<ChatMessage>('messages');
 
-  // Meta boxes (untyped/dynamic)
-  // - task_meta: schedule inclusion, schedule date, completion report timestamps, etc.
-  // - journal_meta: journal kind (note/progress/report), relatedTaskId, progress updates, etc.
+  // 3. Untyped/Meta Boxes 오픈 (중요: Provider에서 사용 전 미리 오픈)
+  await Hive.openBox('settings');
+  await Hive.openBox('chat_threads');
   await Hive.openBox('task_meta');
   await Hive.openBox('journal_meta');
-
-  // Personal schedules (untyped)
   await Hive.openBox('schedules');
 
   runApp(
@@ -54,7 +51,7 @@ Future<void> bootstrap() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
-        ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
+        ChangeNotifierProvider(create: (_) => ScheduleProvider()),
       ],
       child: const WorkNoteApp(),
     ),

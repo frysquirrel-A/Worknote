@@ -242,7 +242,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: const Color(0xFF2563EB).withOpacity(0.12),
+                backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
                 child: Text(authProv.currentUser?.profileImage ?? (myName.isNotEmpty ? myName[0] : 'U')),
               ),
               title: Text(myName, style: const TextStyle(fontWeight: FontWeight.w900)),

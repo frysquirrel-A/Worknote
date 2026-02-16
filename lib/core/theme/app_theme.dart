@@ -62,7 +62,7 @@ class AppTheme {
         surfaceTintColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       ),
-      cardTheme: CardThemeData( // CardTheme -> CardThemeData 수정
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
