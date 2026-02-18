@@ -77,7 +77,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     );
   }
 
-  // --- [통합 컨트롤 패널] 촘촘한 한 줄 배치 및 아이콘 복귀 ---
+  // --- [상단 컨트롤] 필터칩 통일 및 촘촘한 배치 ---
   Widget _buildIntegratedControlPanel(BuildContext context, TaskProvider taskProv, TeamProvider teamProv, String myId) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -89,24 +89,24 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       ),
       child: Row(
         children: [
-          // 1. 왼쪽: 필터 영역 (가로 스크롤)
+          // 왼쪽: 필터 영역 (가로 스크롤)
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _FilterChipBox(label: "프로젝트", value: _getDisplayValue("프로젝트", _selProjectId, taskProv: taskProv), width: 84, onTap: () => _openFilterSheet("프로젝트 선택", [_option("all", "전체"), _option("none", "없음"), ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((p) => _option(p.id, p.name))], _selProjectId, (v) => setState(() => _selProjectId = v))),
-                  _FilterChipBox(label: "상태", value: _selStatus, width: 84, onTap: () => _openFilterSheet("상태 선택", [_option("진행중", "진행중"), _option("완료", "완료")], _selStatus, (v) => setState(() => _selStatus = v))),
-                  _FilterChipBox(label: "중요도", value: _getPriorityText(_selPriority), width: 84, onTap: () => _openFilterSheet("중요도 선택", [_option(null, "전체"), _option(TaskPriority.high, "상"), _option(TaskPriority.medium, "중"), _option(TaskPriority.low, "하")], _selPriority, (v) => setState(() => _selPriority = v))),
-                  _FilterChipBox(label: "담당자", value: _getDisplayValue("담당자", _selAssignee, taskProv: taskProv), width: 84, onTap: () => _openFilterSheet("담당자 선택", [_option("all", "전체"), _option("me", "나"), ...teamProv.currentTeam.memberIds.where((id) => id != myId).map((id) => _option(id, id))], _selAssignee, (v) => setState(() => _selAssignee = v))),
+                  _FilterChipBox(label: "프로젝트", value: _getDisplayValue("프로젝트", _selProjectId, taskProv: taskProv), onTap: () => _openFilterSheet("프로젝트 선택", [_option("all", "전체"), _option("none", "없음"), ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((p) => _option(p.id, p.name))], _selProjectId, (v) => setState(() => _selProjectId = v))),
+                  _FilterChipBox(label: "상태", value: _selStatus, onTap: () => _openFilterSheet("상태 선택", [_option("진행중", "진행중"), _option("완료", "완료")], _selStatus, (v) => setState(() => _selStatus = v))),
+                  _FilterChipBox(label: "중요도", value: _getPriorityText(_selPriority), onTap: () => _openFilterSheet("중요도 선택", [_option(null, "전체"), _option(TaskPriority.high, "상"), _option(TaskPriority.medium, "중"), _option(TaskPriority.low, "하")], _selPriority, (v) => setState(() => _selPriority = v))),
+                  _FilterChipBox(label: "담당자", value: _getDisplayValue("담당자", _selAssignee, taskProv: taskProv), onTap: () => _openFilterSheet("담당자 선택", [_option("all", "전체"), _option("me", "나"), ...teamProv.currentTeam.memberIds.where((id) => id != myId).map((id) => _option(id, id))], _selAssignee, (v) => setState(() => _selAssignee = v))),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.2)), // 세로 구분선
+          Container(width: 1, height: 24, color: Colors.grey.withOpacity(0.2)),
           const SizedBox(width: 8),
-          // 2. 오른쪽: 컨트롤 영역 (고정)
+          // 오른쪽: 컨트롤 영역 (고정)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -131,7 +131,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
         decoration: BoxDecoration(
           color: isHighlighted ? const Color(0xFF2563EB).withOpacity(0.05) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isHighlighted ? const Color(0xFF2563EB).withOpacity(0.2) : Colors.transparent),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -147,135 +146,60 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
 
   Widget _iconButton(IconData icon, VoidCallback onTap) => Material(color: Colors.transparent, child: InkWell(borderRadius: BorderRadius.circular(8), onTap: onTap, child: Container(width: 36, height: 36, child: Icon(icon, size: 20, color: const Color(0xFF2563EB)))));
 
-  // --- 2. 카드 UI (리스트 모드) ---
-  Widget _buildStrictFixedCard(BuildContext context, TaskProvider prov, TeamProvider teamProv, Task task) {
-    final project = prov.projects.firstWhere((p) => p.id == task.projectId, orElse: () => Project(id: '', teamId: '', name: '일반 업무', colorValue: 0xFF94A3B8));
-    final hasSchedule = prov.isIncludedInSchedule(task.id);
-    final scheduleRange = prov.effectiveScheduleRange(task);
+  // --- [카드 UI] B(집중형) 디자인 ---
+  Widget _buildTaskCard(BuildContext context, Task task) {
+    final taskProv = context.read<TaskProvider>();
+    final journalProv = context.read<JournalProvider>();
+    final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
+    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 6))]),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: () => _showTaskDetailModal(context, task, prov),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCheckbox(prov, task),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildProjectChip(project), const SizedBox(height: 4), _buildTitle(task, maxLines: 1)])),
-                          _buildFixedScheduleIcon(context, prov, task, hasSchedule),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(padding: const EdgeInsets.only(top: 2), child: _buildPriorityBadge(prov, task)),
-                          const SizedBox(width: 10),
-                          Expanded(child: _buildFixedMetaLines(task, scheduleRange, prov)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _buildAuthorZone(task), 
-              ],
-            ),
-          ),
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))]
       ),
-    );
-  }
-
-  Widget _buildAuthorZone(Task task) => SizedBox(
-    width: 88,
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text("담당", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        _buildAssigneeAvatars(task),
-        const SizedBox(height: 6),
-        Text(task.assigneeName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black87), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, maxLines: 1),
-      ],
-    ),
-  );
-
-  Widget _buildFixedMetaLines(Task task, DateTimeRange? scheduleRange, TaskProvider prov) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [_metaText("작성", task.createdAt), const SizedBox(width: 12), _metaText("기한", task.dueDate, isDeadLine: true)]),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Icon(task.isDone ? Icons.check_circle_outline_rounded : Icons.history_rounded, size: 12, color: task.isDone ? Colors.green : Colors.grey),
-            const SizedBox(width: 4),
-            Text(
-              task.isDone ? "완료: ${DateFormat('MM/dd').format(task.completedAt ?? task.updatedAt)}" : "수정: ${DateFormat('MM/dd').format(task.updatedAt)}", 
-              style: TextStyle(fontSize: 10, color: task.isDone ? Colors.green : Colors.grey, fontWeight: FontWeight.bold)
-            ),
-            if (scheduleRange != null) ...[
-              const SizedBox(width: 12),
-              const Icon(Icons.timer_outlined, size: 12, color: Color(0xFF2563EB)),
-              const SizedBox(width: 4),
-              Expanded(child: Text("${DateFormat('MM/dd').format(scheduleRange.start)}~${DateFormat('MM/dd').format(scheduleRange.end)}", style: const TextStyle(fontSize: 10, color: Color(0xFF2563EB), fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  // --- 3. 카드 UI (갤러리 모드) ---
-  Widget _buildGalleryCard(BuildContext context, TaskProvider prov, TeamProvider teamProv, Task task) {
-    final project = prov.projects.firstWhere((p) => p.id == task.projectId, orElse: () => Project(id: '', teamId: '', name: '일반 업무', colorValue: 0xFF94A3B8));
-    final hasSchedule = prov.isIncludedInSchedule(task.id);
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _showTaskDetailModal(context, task, prov),
+          onTap: () => _showTaskDetailModal(context, task, taskProv),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Stack(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Column(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // 1. 상단 Row: 상태, 제목, 중요도
+                Row(
                   children: [
-                    _buildCheckbox(prov, task),
-                    const SizedBox(height: 10),
-                    _buildProjectChip(project),
-                    const SizedBox(height: 4),
-                    _buildTitle(task, maxLines: 1),
+                    _statusPill(task),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(task.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 10),
+                    _priorityPill(task.priority),
+                  ],
+                ),
+                const Divider(height: 20),
+                // 2. 하단 Row: 기한, 아이콘 버튼들
+                Row(
+                  children: [
+                    const Icon(Icons.schedule_rounded, color: Colors.redAccent, size: 14),
+                    const SizedBox(width: 4),
+                    Text("기한: ${DateFormat('MM.dd').format(task.dueDate)}", style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildPriorityBadge(prov, task),
-                        Text(DateFormat('MM/dd').format(task.dueDate), style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w900)),
-                      ],
+                    _cardIconButton(hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined, hasSchedule, () => _showScheduleSetter(context, task, taskProv)),
+                    _cardIconButton(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, relatedJournals.isNotEmpty, () => _showTaskDetailModal(context, task, taskProv)),
+                    // 담당자 아바타 아이콘 버튼
+                    GestureDetector(
+                      onTap: () { /* 담당자 변경 시트 */ },
+                      child: Container(
+                        width: 36, height: 36,
+                        alignment: Alignment.center,
+                        child: CircleAvatar(radius: 12, child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
+                      ),
                     ),
                   ],
                 ),
-                Positioned(top: 0, right: 0, child: Row(children: [if (hasSchedule) const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF2563EB)), const SizedBox(width: 4), Text(task.assigneeEmoji, style: const TextStyle(fontSize: 14))])),
               ],
             ),
           ),
@@ -284,7 +208,39 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     );
   }
 
-  // --- 4. 헬퍼 및 기타 UI ---
+  Widget _statusPill(Task task) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: task.isDone ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+  );
+
+  Widget _priorityPill(TaskPriority priority) => Container(
+    width: 22, height: 22,
+    decoration: BoxDecoration(
+      color: _getPriorityColor(priority).withOpacity(0.1),
+      shape: BoxShape.circle,
+    ),
+    child: Center(child: Text(_getPriorityText(priority), style: TextStyle(color: _getPriorityColor(priority), fontSize: 11, fontWeight: FontWeight.w900))),
+  );
+
+  Widget _cardIconButton(IconData icon, bool isActive, VoidCallback onPressed) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: 36, height: 36,
+          child: Icon(icon, size: 20, color: isActive ? const Color(0xFF2563EB) : Colors.grey.withOpacity(0.7)),
+        ),
+      ),
+    );
+  }
+
+  // --- 헬퍼 및 기타 UI 함수들 ---
   void _openFilterSheet(String title, List<Map<String, dynamic>> options, dynamic currentVal, Function(dynamic) onSelect) {
     showModalBottomSheet(context: context, backgroundColor: Colors.white, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))), builder: (ctx) => Container(padding: const EdgeInsets.symmetric(vertical: 24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const SizedBox(height: 16), ...options.map((opt) => ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 32), title: Text(opt['label'], style: TextStyle(fontWeight: opt['value'] == currentVal ? FontWeight.w900 : FontWeight.normal, color: opt['value'] == currentVal ? const Color(0xFF2563EB) : Colors.black87)), trailing: opt['value'] == currentVal ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB)) : null, onTap: () { onSelect(opt['value']); Navigator.pop(ctx); })), const SizedBox(height: 24)])));
   }
@@ -303,7 +259,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   Widget _buildCheckbox(TaskProvider prov, Task task) => GestureDetector(onTap: () => prov.updateTaskStatus(task, !task.isDone), child: Container(width: 26, height: 26, decoration: BoxDecoration(shape: BoxShape.circle, color: task.isDone ? const Color(0xFF2563EB) : Colors.white, border: Border.all(color: task.isDone ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1), width: 2.5)), child: task.isDone ? const Icon(Icons.check, size: 16, color: Colors.white) : null));
   Widget _buildPriorityBadge(TaskProvider prov, Task task) => Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: _getPriorityColor(task.priority).withOpacity(0.1), borderRadius: BorderRadius.circular(6)), child: Text(_getPriorityText(task.priority), style: TextStyle(color: _getPriorityColor(task.priority), fontWeight: FontWeight.w900, fontSize: 10)));
   Widget _buildAssigneeAvatars(Task task) { final emojis = task.assigneeEmojis.isNotEmpty ? task.assigneeEmojis : [task.assigneeEmoji]; if (emojis.length == 1) return Text(emojis[0], style: const TextStyle(fontSize: 22)); return SizedBox(height: 26, width: 44, child: Stack(children: List.generate(emojis.length > 3 ? 3 : emojis.length, (i) => Positioned(left: i * 10.0, child: Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1)), child: Text(emojis[i], style: const TextStyle(fontSize: 16))))))); }
-  Widget _controlDropdown<T>({required T value, required List<T> items, String Function(T)? labelBuilder, required ValueChanged<T?> onChanged}) => DropdownButtonHideUnderline(child: DropdownButton<T>(value: value, items: items.map((i) => DropdownMenuItem<T>(value: i, child: Text(labelBuilder?.call(i) ?? i.toString(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)))).toList(), onChanged: onChanged, style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold), icon: const Icon(Icons.arrow_drop_down_rounded, size: 20)));
   Widget _buildProjectChip(Project p) => Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: p.color.withOpacity(0.08), borderRadius: BorderRadius.circular(4)), child: Text("#${p.name}", style: TextStyle(color: p.color, fontSize: 9, fontWeight: FontWeight.w900)));
   Widget _buildTitle(Task t, {required int maxLines}) => Text(t.title, maxLines: maxLines, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: t.isDone ? Colors.grey[400] : const Color(0xFF1E293B), decoration: t.isDone ? TextDecoration.lineThrough : null));
   dynamic _getSortValue(Task t, TaskProvider prov) { switch (_sortField) { case TaskSortField.createdAt: return t.createdAt; case TaskSortField.updatedAt: return t.updatedAt; case TaskSortField.dueDate: return t.dueDate; case TaskSortField.completedAt: return t.completedAt ?? DateTime(1900); case TaskSortField.schedule: return prov.isIncludedInSchedule(t.id) ? (prov.effectiveScheduleRange(t)?.start ?? t.dueDate) : t.dueDate; } }
@@ -313,7 +268,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   Widget _buildCustomFAB(BuildContext context, TaskProvider prov, TeamProvider teamProv) => Container(padding: const EdgeInsets.symmetric(horizontal: 20), width: double.infinity, height: 50, child: ElevatedButton.icon(onPressed: () => {}, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10), icon: const Icon(Icons.add_rounded, size: 24), label: const Text("업무 추가", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6))));
   String _getDisplayValue(String label, dynamic value, {required TaskProvider taskProv}) { if (value == null || value == 'all' || value == '전체' || value == DateFilter.all) return "전체"; if (value == 'none') return "없음"; if (value == 'me') return "나"; if (value is TaskPriority) return _getPriorityText(value); if (value is DateFilter) { if (value == DateFilter.today) return "오늘"; if (value == DateFilter.week) return "이번 주"; if (value == DateFilter.oneMonth) return "이번 달"; } if (label == "프로젝트") return taskProv.getProjectName(value.toString()); return value.toString(); }
   Map<String, List<Task>> _groupAndSortTasks(List<Task> tasks, TaskProvider prov) { final Map<String, List<Task>> grouped = groupBy(tasks, (t) { final date = t.createdAt; switch (_groupMode) { case '주': final startOfWeek = date.subtract(Duration(days: date.weekday - 1)); final endOfWeek = startOfWeek.add(const Duration(days: 6)); final weekNum = ((date.day + (startOfWeek.weekday - 1)) / 7).ceil(); return "${date.year}-${date.month.toString().padLeft(2, '0')}-W$weekNum|${DateFormat('MM/dd').format(startOfWeek)}~${DateFormat('MM/dd').format(endOfWeek)}"; case '월': return DateFormat('yyyy-MM').format(date); case '분기': return "${date.year}-Q${((date.month - 1) ~/ 3) + 1}"; case '년': return DateFormat('yyyy').format(date); default: return DateFormat('yyyy-MM-dd').format(date); } }); grouped.forEach((key, list) { list.sort((a, b) { final valA = _getSortValue(a, prov); final valB = _getSortValue(b, prov); return _isDescending ? valB.compareTo(valA) : valA.compareTo(valB); }); _groupExpandedStatus.putIfAbsent(key, () => true); }); return grouped; }
-  Widget _buildTimelineGroup(String groupKey, List<Task> groupTasks, BuildContext context, TaskProvider taskProv, TeamProvider teamProv) { final bool isExpanded = _groupExpandedStatus[groupKey] ?? true; return Container(margin: const EdgeInsets.only(bottom: 12), child: Column(children: [InkWell(onTap: () => setState(() => _groupExpandedStatus[groupKey] = !isExpanded), borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), child: Row(children: [Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(2))), const SizedBox(width: 12), Text(_formatGroupHeader(groupKey), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))), const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF2563EB).withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Text("${groupTasks.length}", style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.bold))), const Spacer(), Icon(isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 22, color: Colors.grey)]))), if (isExpanded) _cardLayout == TaskCardLayout.classic ? Column(children: groupTasks.map((t) => _buildStrictFixedCard(context, taskProv, teamProv, t)).toList()) : Padding(padding: const EdgeInsets.only(top: 8), child: _buildGalleryView(context, taskProv, teamProv, groupTasks))])); }
+  Widget _buildTimelineGroup(String groupKey, List<Task> groupTasks, BuildContext context, TaskProvider taskProv, TeamProvider teamProv) { final bool isExpanded = _groupExpandedStatus[groupKey] ?? true; return Container(margin: const EdgeInsets.only(bottom: 12), child: Column(children: [InkWell(onTap: () => setState(() => _groupExpandedStatus[groupKey] = !isExpanded), borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), child: Row(children: [Container(width: 4, height: 18, decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(2))), const SizedBox(width: 12), Text(_formatGroupHeader(groupKey), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))), const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF2563EB).withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Text("${groupTasks.length}", style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.bold))), const Spacer(), Icon(isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 22, color: Colors.grey)]))), if (isExpanded) _cardLayout == TaskCardLayout.classic ? Column(children: groupTasks.map((t) => _buildTaskCard(context, t)).toList()) : Padding(padding: const EdgeInsets.only(top: 8), child: _buildGalleryView(context, taskProv, teamProv, groupTasks))])); }
   String _formatGroupHeader(String key) { if (_groupMode == '일') { try { return DateFormat('yyyy.MM.dd (E)', 'ko_KR').format(DateTime.parse(key)); } catch (_) { return key; } } if (_groupMode == '주') { final parts = key.split('|'); final dateParts = parts[0].split('-'); return "${dateParts[1]}월 ${dateParts[2].substring(1)}주 (${parts[1]})"; } if (_groupMode == '월') return "${key.split('-')[0]}년 ${key.split('-')[1]}월"; if (_groupMode == '분기') return "${key.split('-')[0]}년 ${key.split('-')[1]}"; if (_groupMode == '년') return "${key}년"; return key; }
-  Widget _buildGalleryView(BuildContext context, TaskProvider prov, TeamProvider teamProv, List<Task> tasks) => GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, mainAxisExtent: 160), itemCount: tasks.length, itemBuilder: (context, i) => _buildGalleryCard(context, prov, teamProv, tasks[i]));
+  Widget _buildGalleryView(BuildContext context, TaskProvider prov, TeamProvider teamProv, List<Task> tasks) => GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, mainAxisExtent: 140), itemCount: tasks.length, itemBuilder: (context, i) => _buildGalleryCard(context, prov, teamProv, tasks[i]));
 }
