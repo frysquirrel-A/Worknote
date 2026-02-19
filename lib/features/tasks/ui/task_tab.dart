@@ -14,7 +14,7 @@ import 'package:worknote/features/tasks/ui/widgets/task_filter_bar.dart';
 import 'package:worknote/features/tasks/ui/widgets/task_masonry_card.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 
-/// v5 - Masterpiece Integration
+/// v5 - Masterpiece Integration with Filter Bar Sync
 enum TaskCardLayout { classic, gallery }
 enum TaskGroupPeriod { day, week, month, quarter, year }
 enum TaskSortField { createdAt, updatedAt, dueDate, scheduleStart, completedAt }
@@ -32,6 +32,9 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   TaskGroupPeriod _period = TaskGroupPeriod.day;
   TaskSortField _sortField = TaskSortField.dueDate;
   bool _isDescending = true;
+
+  // 그룹 구분 보기 상태 변수 (TaskFilterBar로 전달됨)
+  bool _showGroupHeaders = true;
 
   // Filter Local State
   String _selProjectId = 'all';
@@ -110,14 +113,13 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       backgroundColor: AppPalette.background,
       body: Column(
         children: [
-          // 상단 통합 컨트롤 바
+          // 상단 통합 컨트롤 바 (모든 필터 및 토글 포함)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
             child: TaskFilterBar(
               taskProv: taskProv,
               teamProv: teamProv,
               myId: myId,
-              
               groupValue: _periodLabel(_period),
               groupItems: TaskGroupPeriod.values.map((p) => _periodLabel(p)).toList(),
               onGroupChanged: (v) {
@@ -127,19 +129,15 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
                   _collapsedGroupIds.clear();
                 });
               },
-              
               sortValue: _sortField,
               sortItems: TaskSortField.values,
               onSortChanged: (v) => setState(() => _sortField = v ?? TaskSortField.dueDate),
-              
               newestFirst: _isDescending,
               onToggleNewestFirst: () => setState(() => _isDescending = !_isDescending),
-              
               isGallery: _layout == TaskCardLayout.gallery,
               onToggleGallery: () => setState(() {
                 _layout = _layout == TaskCardLayout.classic ? TaskCardLayout.gallery : TaskCardLayout.classic;
               }),
-              
               selProjectId: _selProjectId,
               onProjectChanged: (v) => setState(() => _selProjectId = v ?? 'all'),
               selStatus: _selStatus,
@@ -148,29 +146,95 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
               onPriorityChanged: (v) => setState(() => _selPriority = v),
               selAssignee: _selAssignee,
               onAssigneeChanged: (v) => setState(() => _selAssignee = v ?? 'all'),
+              // [요구사항 1] 탭 토글 상태 및 콜백 연결
+              showGroupHeaders: _showGroupHeaders,
+              onToggleGroupHeaders: () => setState(() => _showGroupHeaders = !_showGroupHeaders),
             ),
           ),
 
+          // 리스트 렌더링 분기
           Expanded(
             child: filteredTasks.isEmpty
                 ? Center(child: Text('조건에 맞는 업무가 없습니다.', style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold)))
-                : _GroupedTaskView(
-                    groupIds: displayKeys,
-                    groupInfo: groupInfo,
-                    grouped: grouped,
-                    sortField: _sortField,
-                    newestFirst: _isDescending,
-                    layout: _layout,
-                    isCollapsed: (id) => _collapsedGroupIds.contains(id),
-                    onToggleCollapse: _toggleCollapse,
-                    taskProv: taskProv,
-                    scrollController: _scrollController,
-                  ),
+                : _showGroupHeaders 
+                  ? _GroupedTaskView(
+                      groupIds: displayKeys,
+                      groupInfo: groupInfo,
+                      grouped: grouped,
+                      sortField: _sortField,
+                      newestFirst: _isDescending,
+                      layout: _layout,
+                      isCollapsed: (id) => _collapsedGroupIds.contains(id),
+                      onToggleCollapse: _toggleCollapse,
+                      taskProv: taskProv,
+                      scrollController: _scrollController,
+                    )
+                  : _FlatTaskView(
+                      tasks: filteredTasks,
+                      sortField: _sortField,
+                      newestFirst: _isDescending,
+                      layout: _layout,
+                      taskProv: taskProv,
+                      scrollController: _scrollController,
+                    ),
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _TaskAddButton(onPressed: () => showAddTaskSheet(context: context)),
+    );
+  }
+}
+
+class _FlatTaskView extends StatelessWidget {
+  final List<Task> tasks;
+  final TaskSortField sortField;
+  final bool newestFirst;
+  final TaskCardLayout layout;
+  final TaskProvider taskProv;
+  final ScrollController scrollController;
+
+  const _FlatTaskView({
+    required this.tasks,
+    required this.sortField,
+    required this.newestFirst,
+    required this.layout,
+    required this.taskProv,
+    required this.scrollController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sortedTasks = [...tasks];
+    sortedTasks.sort((a, b) {
+      final da = _dateForSort(taskProv, a, sortField);
+      final db = _dateForSort(taskProv, b, sortField);
+      return newestFirst ? db.compareTo(da) : da.compareTo(db);
+    });
+
+    if (layout == TaskCardLayout.gallery) {
+      return GridView.builder(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: 160,
+        ),
+        itemCount: sortedTasks.length,
+        itemBuilder: (ctx, i) => TaskMasonryCard(task: sortedTasks[i], taskProv: taskProv),
+      );
+    }
+
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+      itemCount: sortedTasks.length,
+      itemBuilder: (ctx, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: TaskCard(task: sortedTasks[i], taskProv: taskProv),
+      ),
     );
   }
 }
@@ -260,8 +324,9 @@ class _HorizontalGalleryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final cardW = (screenW - 40 - 12) / 2;
-    return SizedBox(
-      height: 260,
+    return Container(
+      height: 170,
+      margin: const EdgeInsets.only(top: 4, bottom: 8),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -318,7 +383,7 @@ class _TaskAddButton extends StatelessWidget {
   }
 }
 
-// --- Helpers ---
+// Helpers
 class _GroupInfo {
   final String id; final String label; final DateTime start; final DateTime end;
   const _GroupInfo({required this.id, required this.label, required this.start, required this.end});
@@ -359,15 +424,5 @@ DateTime _dateForSort(TaskProvider prov, Task t, TaskSortField field) {
     case TaskSortField.dueDate: return t.dueDate;
     case TaskSortField.scheduleStart: return (prov.effectiveScheduleRange(t)?.start) ?? t.dueDate;
     case TaskSortField.completedAt: return t.completedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-  }
-}
-
-String _sortLabel(TaskSortField f) {
-  switch (f) {
-    case TaskSortField.dueDate: return '마감일';
-    case TaskSortField.createdAt: return '생성일';
-    case TaskSortField.updatedAt: return '수정일';
-    case TaskSortField.scheduleStart: return '일정시작';
-    case TaskSortField.completedAt: return '완료일';
   }
 }

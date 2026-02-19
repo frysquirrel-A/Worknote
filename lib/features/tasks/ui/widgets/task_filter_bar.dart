@@ -3,10 +3,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/tasks/ui/task_tab.dart'; // TaskSortField enum
+import 'package:worknote/features/tasks/ui/task_tab.dart'; 
 import 'package:worknote/features/team/state/team_provider.dart';
 
-// Member 클래스
 class Member {
   final String id;
   final String name;
@@ -37,6 +36,8 @@ class TaskFilterBar extends StatelessWidget {
     required this.onPriorityChanged,
     required this.selAssignee,
     required this.onAssigneeChanged,
+    required this.showGroupHeaders,
+    required this.onToggleGroupHeaders,
   });
 
   final TaskProvider taskProv;
@@ -69,59 +70,62 @@ class TaskFilterBar extends StatelessWidget {
   final String selAssignee;
   final ValueChanged<String?> onAssigneeChanged;
 
+  final bool showGroupHeaders;
+  final VoidCallback onToggleGroupHeaders;
+
   @override
   Widget build(BuildContext context) {
-    // Hive에서 직접 멤버 정보 조회하여 Member 리스트 생성
     final userBox = Hive.box<AppUser>('users');
     final members = teamProv.currentTeam.memberIds.map((id) {
       final user = userBox.get(id);
       return Member(id: id, name: user?.name ?? id);
     }).toList();
 
-    // [핵심 변경] 가로 스크롤(SingleChildScrollView) 제거
-    // 대신 Column + Row(Expanded) 조합으로 화면에 딱 맞춤
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.white, // 배경색 추가하여 깔끔하게
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.white,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // --- 1단: 필터 영역 (프로젝트, 상태, 중요도, 담당자) ---
           Row(
             children: [
-              _filterItem(
+              _filterItem<String>(
                 context: context,
                 label: _projectDisplay(selProjectId, taskProv.projects),
+                icon: Icons.folder_open_rounded,
                 isActive: selProjectId != 'all',
-                items: ['all', ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((e) => e.id)],
+                items: ['all', 'none', ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((e) => e.id)],
                 value: selProjectId,
-                itemLabel: (v) => v == 'all' ? '전체 프로젝트' : (taskProv.projects.firstWhere((p) => p.id == v, orElse: () => Project(id: '', teamId: '', name: '알 수 없음', colorValue: 0)).name),
+                itemLabel: (v) => v == 'all' ? '전체' : (v == 'none' ? '없음' : taskProv.projects.firstWhere((p) => p.id == v).name),
                 onSelected: onProjectChanged,
               ),
               const SizedBox(width: 8),
-              _filterItem(
+              _filterItem<String>(
                 context: context,
                 label: _statusDisplay(selStatus),
+                icon: Icons.check_circle_outline_rounded,
                 isActive: selStatus != 'all',
                 items: ['all', '진행중', '완료'],
                 value: selStatus,
-                itemLabel: (v) => v == 'all' ? '전체 상태' : v,
+                itemLabel: (v) => v == 'all' ? '전체' : v,
                 onSelected: onStatusChanged,
               ),
               const SizedBox(width: 8),
-              _filterItem(
+              _filterItem<TaskPriority?>(
                 context: context,
                 label: _priorityDisplay(selPriority),
+                icon: Icons.flag_outlined,
                 isActive: selPriority != null,
                 items: [null, ...TaskPriority.values.where((p) => p != TaskPriority.none)],
                 value: selPriority,
-                itemLabel: (v) => v == null ? '전체 중요도' : _priorityDisplay(v),
-                onSelected: onPriorityChanged,
+                itemLabel: (v) => v == null ? '전체' : _priorityDisplay(v),
+                onSelected: (v) => onPriorityChanged(v),
               ),
               const SizedBox(width: 8),
-              _filterItem(
+              _filterItem<String>(
                 context: context,
                 label: _assigneeDisplay(selAssignee, members, myId),
+                icon: Icons.person_outline_rounded,
                 isActive: selAssignee != 'all',
                 items: ['all', ...members.map((m) => m.id)],
                 value: selAssignee,
@@ -130,14 +134,12 @@ class TaskFilterBar extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 8), // 줄바꿈 간격
-
-          // --- 2단: 보기 설정 영역 (그룹, 정렬, 순서, 뷰모드) ---
+          const SizedBox(height: 8),
           Row(
             children: [
               _dropdownItem(
                 context: context,
+                icon: Icons.dns_rounded,
                 value: groupValue,
                 items: groupItems,
                 onChanged: onGroupChanged,
@@ -145,54 +147,29 @@ class TaskFilterBar extends StatelessWidget {
               const SizedBox(width: 8),
               _dropdownItem(
                 context: context,
+                icon: Icons.sort_rounded,
                 value: sortValue,
                 items: sortItems,
                 onChanged: onSortChanged,
-                labelBuilder: (v) => _sortLabel(v),
+                labelBuilder: (v) => _sortLabel(v as TaskSortField),
               ),
               const SizedBox(width: 8),
-              
-              // 순서 변경 버튼 (Expanded로 너비 맞춤)
-              Expanded(
-                child: InkWell(
-                  onTap: onToggleNewestFirst,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Icon(
-                      newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                      color: AppColors.text2,
-                      size: 18,
-                    ),
-                  ),
-                ),
+              _iconBtnItem(
+                icon: newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                isActive: false,
+                onTap: onToggleNewestFirst,
               ),
               const SizedBox(width: 8),
-
-              // 뷰 모드 변경 버튼 (Expanded로 너비 맞춤)
-              Expanded(
-                child: InkWell(
-                  onTap: onToggleGallery,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: isGallery ? AppPalette.primary.withValues(alpha: 0.1) : AppColors.bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isGallery ? AppPalette.primary : AppColors.border),
-                    ),
-                    child: Icon(
-                      isGallery ? Icons.grid_view_rounded : Icons.list_alt_rounded,
-                      color: isGallery ? AppPalette.primary : AppColors.text2,
-                      size: 18,
-                    ),
-                  ),
-                ),
+              _iconBtnItem(
+                icon: isGallery ? Icons.grid_view_rounded : Icons.list_alt_rounded,
+                isActive: isGallery,
+                onTap: onToggleGallery,
+              ),
+              const SizedBox(width: 8),
+              _iconBtnItem(
+                icon: showGroupHeaders ? Icons.label_rounded : Icons.label_outline_rounded,
+                isActive: showGroupHeaders,
+                onTap: onToggleGroupHeaders,
               ),
             ],
           ),
@@ -201,22 +178,18 @@ class TaskFilterBar extends StatelessWidget {
     );
   }
 
-  // --- Helpers ---
-
-  // Expanded를 사용하여 1/N 크기로 강제 배분
   Widget _filterItem<T>({
     required BuildContext context,
     required String label,
+    required IconData icon,
     required bool isActive,
     required List<T> items,
     required T value,
     required String Function(T) itemLabel,
     required ValueChanged<T> onSelected,
   }) {
-    final fg = isActive ? AppPalette.primary : AppColors.text2;
-    final bg = isActive ? AppPalette.primary.withValues(alpha: 0.1) : AppColors.bg;
-    final border = isActive ? AppPalette.primary : AppColors.border;
-    final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
+    final fgColor = isActive ? AppPalette.primary : AppTextColor.secondary;
+    final borderColor = isActive ? AppPalette.primary : AppPalette.border;
 
     return Expanded(
       child: GestureDetector(
@@ -232,32 +205,56 @@ class TaskFilterBar extends StatelessWidget {
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: items.map((item) => ListTile(
-                  title: Text(itemLabel(item), style: TextStyle(
-                    fontWeight: item == value ? FontWeight.bold : FontWeight.normal,
-                    color: item == value ? AppPalette.primary : AppColors.text,
-                  )),
-                  trailing: item == value ? const Icon(Icons.check, color: AppPalette.primary) : null,
-                  onTap: () => Navigator.pop(ctx, item),
-                )).toList(),
+                children: [
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final isSelected = item == value;
+                        return ListTile(
+                          title: Text(itemLabel(item), style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? AppPalette.primary : AppTextColor.primary,
+                          )),
+                          trailing: isSelected ? const Icon(Icons.check, color: AppPalette.primary) : null,
+                          onTap: () => Navigator.pop(ctx, item),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           );
           if (picked != null) onSelected(picked);
         },
         child: Container(
-          height: 36, // 높이 고정
-          alignment: Alignment.center,
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: border),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor),
           ),
-          child: Text(
-            label, 
-            style: TextStyle(color: fg, fontWeight: fontWeight, fontSize: 11),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+          child: Row(
+            children: [
+              Icon(icon, size: 14, color: fgColor),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label, 
+                  style: TextStyle(color: fgColor, fontWeight: isActive ? FontWeight.bold : FontWeight.normal, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Icons.arrow_drop_down_rounded, size: 16, color: fgColor),
+            ],
           ),
         ),
       ),
@@ -266,34 +263,42 @@ class TaskFilterBar extends StatelessWidget {
 
   Widget _dropdownItem<T>({
     required BuildContext context,
+    required IconData icon,
     required T value,
     required List<T> items,
     required ValueChanged<T?> onChanged,
     String Function(T)? labelBuilder,
   }) {
-    // 드롭다운도 Expanded로 공간 차지
     return Expanded(
-      flex: 2, // 드롭다운은 버튼보다 조금 더 넓게 (글자가 길어서)
+      flex: 3, 
       child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        height: 38,
+        padding: const EdgeInsets.only(left: 8),
         decoration: BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppPalette.border),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<T>(
             value: value,
-            isExpanded: true, // 내부 텍스트 꽉 차게
+            isExpanded: true, 
             isDense: true,
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.hint),
-            style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 11, color: AppColors.text),
+            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppTextColor.hint),
+            style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 11, color: AppTextColor.primary),
             items: items.map((e) => DropdownMenuItem(
               value: e, 
-              child: Text(
-                labelBuilder != null ? labelBuilder(e) : e.toString(),
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Icon(icon, size: 14, color: AppTextColor.hint),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      labelBuilder != null ? labelBuilder(e) : e.toString(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             )).toList(),
             onChanged: onChanged,
@@ -303,21 +308,43 @@ class TaskFilterBar extends StatelessWidget {
     );
   }
 
-  // --- Display Logics ---
+  Widget _iconBtnItem({required IconData icon, required bool isActive, required VoidCallback onTap}) {
+    return Expanded(
+      flex: 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: isActive ? AppPalette.primary.withValues(alpha: 0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isActive ? AppPalette.primary : AppPalette.border),
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? AppPalette.primary : AppTextColor.secondary,
+            size: 18,
+          ),
+        ),
+      ),
+    );
+  }
 
   String _projectDisplay(String id, List<Project> projects) {
-    if (id == 'all') return '프로젝트';
-    final name = projects.firstWhere((p) => p.id == id, orElse: () => Project(id: '', teamId: '', name: '-', colorValue: 0)).name;
-    return name;
+    if (id == 'all') return '전체';
+    final found = projects.where((p) => p.id == id).toList();
+    if(found.isEmpty) return id == 'none' ? '없음' : '전체';
+    return found.first.name;
   }
 
   String _statusDisplay(String status) {
-    if (status == 'all') return '상태';
+    if (status == 'all') return '전체';
     return status;
   }
 
   String _priorityDisplay(TaskPriority? p) {
-    if (p == null) return '중요도';
+    if (p == null) return '전체';
     return switch (p) {
       TaskPriority.high => '높음',
       TaskPriority.medium => '중간',
@@ -327,20 +354,19 @@ class TaskFilterBar extends StatelessWidget {
   }
 
   String _assigneeDisplay(String id, List<Member> members, String myId) {
-    if (id == 'all') return '담당자';
+    if (id == 'all') return '전체';
     if (id == myId) return '나';
-    final m = members.firstWhere((m) => m.id == id, orElse: () => Member(id: '', name: '미정'));
-    return m.name;
+    final found = members.where((m) => m.id == id).toList();
+    return found.isEmpty ? '미정' : found.first.name;
   }
 
   String _sortLabel(TaskSortField f) {
     return switch (f) {
-      TaskSortField.dueDate => '마감일순',
-      TaskSortField.createdAt => '생성일순',
-      TaskSortField.updatedAt => '수정일순',
-      TaskSortField.scheduleStart => '일정순',
-      TaskSortField.completedAt => '완료일순',
-      _ => '정렬',
+      TaskSortField.dueDate => '마감',
+      TaskSortField.createdAt => '생성',
+      TaskSortField.updatedAt => '수정',
+      TaskSortField.scheduleStart => '일정',
+      TaskSortField.completedAt => '완료',
     };
   }
 }

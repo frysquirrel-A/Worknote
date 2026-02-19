@@ -81,22 +81,39 @@ class _MainShellState extends State<MainShell> {
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, -2))],
         ),
         child: SafeArea(
-          child: NavigationBar(
-            height: 60,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-            indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            destinations: const [
-              NavigationDestination(icon: Icon(Icons.dashboard_outlined, size: 22), selectedIcon: Icon(Icons.dashboard_rounded, size: 22, color: Color(0xFF2563EB)), label: '홈'),
-              NavigationDestination(icon: Icon(Icons.check_circle_outline_rounded, size: 22), selectedIcon: Icon(Icons.check_circle_rounded, size: 22, color: Color(0xFF2563EB)), label: '업무'),
-              NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), selectedIcon: Icon(Icons.calendar_month_rounded, size: 22, color: Color(0xFF2563EB)), label: '일정'),
-              NavigationDestination(icon: Icon(Icons.edit_note_rounded, size: 22), selectedIcon: Icon(Icons.edit_note_rounded, size: 22, color: Color(0xFF2563EB)), label: '일지'),
-              NavigationDestination(icon: Icon(Icons.photo_library_outlined, size: 22), selectedIcon: Icon(Icons.photo_library_rounded, size: 22, color: Color(0xFF2563EB)), label: '사진'),
-              NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded, size: 22), selectedIcon: Icon(Icons.chat_bubble_rounded, size: 22, color: Color(0xFF2563EB)), label: '소통'),
-            ],
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              // [요구사항 1, 2] 비활성 탭 색상 진하게 변경 및 활성 탭 유지
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12);
+                }
+                return const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 12);
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const IconThemeData(color: Color(0xFF2563EB));
+                }
+                return const IconThemeData(color: Colors.black87);
+              }),
+            ),
+            child: NavigationBar(
+              height: 60,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.dashboard_outlined, size: 22), label: '홈'),
+                NavigationDestination(icon: Icon(Icons.check_circle_outline_rounded, size: 22), label: '업무'),
+                NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), label: '일정'),
+                NavigationDestination(icon: Icon(Icons.edit_note_rounded, size: 22), label: '일지'),
+                NavigationDestination(icon: Icon(Icons.photo_library_outlined, size: 22), label: '사진'),
+                NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded, size: 22), label: '소통'),
+              ],
+            ),
           ),
         ),
       ),
