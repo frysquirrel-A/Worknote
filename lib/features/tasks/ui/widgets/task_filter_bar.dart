@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
 import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/tasks/ui/task_tab.dart'; // TaskSortField enum
+import 'package:worknote/features/tasks/ui/task_sort_field.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/domain/models.dart';
 
-// Member 클래스
-class Member {
-  final String id;
-  final String name;
-  Member({required this.id, required this.name});
-}
-
+/// 상단 필터/컨트롤 바
+/// - 좌측: (프로젝트/상태/중요도/담당자) 필터 박스 (가로 스크롤)
+/// - 중앙: 구분선(세로 막대)
+/// - 우측: 그룹/정렬 박스 + 순서/보기 아이콘(텍스트 없음)
+///
+/// 디자인 규칙:
+/// - 둥근 모서리 박스 + 약한 음영
+/// - 선택 여부와 무관하게 테두리는 진하게(가독성)
 class TaskFilterBar extends StatelessWidget {
   const TaskFilterBar({
     super.key,
@@ -37,6 +38,8 @@ class TaskFilterBar extends StatelessWidget {
     required this.onPriorityChanged,
     required this.selAssignee,
     required this.onAssigneeChanged,
+    required this.showGroupHeaders,
+    required this.onToggleGroupHeaders,
   });
 
   final TaskProvider taskProv;
@@ -58,141 +61,186 @@ class TaskFilterBar extends StatelessWidget {
   final VoidCallback onToggleGallery;
 
   final String selProjectId;
-  final ValueChanged<String?> onProjectChanged;
+  final ValueChanged<String> onProjectChanged;
 
-  final String selStatus;
-  final ValueChanged<String?> onStatusChanged;
+  final String selStatus; // '진행중' | '완료'
+  final ValueChanged<String> onStatusChanged;
 
-  final TaskPriority? selPriority;
+  final TaskPriority? selPriority; // 'all' | 'high' | 'medium' | 'low'
   final ValueChanged<TaskPriority?> onPriorityChanged;
 
-  final String selAssignee;
-  final ValueChanged<String?> onAssigneeChanged;
+  final String selAssignee; // 'all' | 'me' | memberId
+  final ValueChanged<String> onAssigneeChanged;
+
+  final bool showGroupHeaders;
+  final VoidCallback onToggleGroupHeaders;
+
+  // --- Assignee helpers ----------------------------------------------------
+  // TaskProvider.assigneeFilter 는 'all' | 'me' | '<memberId>' 형태로 저장합니다.
+  List<String> _assigneeItems() {
+    final ids = List<String>.from(teamProv.currentTeam.memberIds)..sort();
+    final items = <String>['all', 'me'];
+    items.addAll(ids.where((id) => id != myId));
+    return items;
+  }
+
+  String _assigneeLabel(String assigneeKey) {
+    if (assigneeKey == 'all') return '전체';
+    if (assigneeKey == 'me') return '나';
+
+    // 사용자 이름이 있으면 표시 (없으면 id 그대로)
+    try {
+      final usersBox = Hive.box<AppUser>('users');
+      final u = usersBox.get(assigneeKey);
+      return (u?.name ?? '').isNotEmpty ? u!.name : assigneeKey;
+    } catch (_) {
+      return assigneeKey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Hive에서 직접 멤버 정보 조회하여 Member 리스트 생성
-    final userBox = Hive.box<AppUser>('users');
-    final members = teamProv.currentTeam.memberIds.map((id) {
-      final user = userBox.get(id);
-      return Member(id: id, name: user?.name ?? id);
-    }).toList();
-
-    // [핵심 변경] 가로 스크롤(SingleChildScrollView) 제거
-    // 대신 Column + Row(Expanded) 조합으로 화면에 딱 맞춤
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.white, // 배경색 추가하여 깔끔하게
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 14,
+            offset: Offset(0, 6),
+            color: Color(0x14000000),
+          ),
+        ],
+        border: Border.all(color: Colors.black87, width: 1),
+      ),
+      child: Row(
         children: [
-          // --- 1단: 필터 영역 (프로젝트, 상태, 중요도, 담당자) ---
-          Row(
-            children: [
-              _filterItem(
-                context: context,
-                label: _projectDisplay(selProjectId, taskProv.projects),
-                isActive: selProjectId != 'all',
-                items: ['all', ...taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).map((e) => e.id)],
-                value: selProjectId,
-                itemLabel: (v) => v == 'all' ? '전체 프로젝트' : (taskProv.projects.firstWhere((p) => p.id == v, orElse: () => Project(id: '', teamId: '', name: '알 수 없음', colorValue: 0)).name),
-                onSelected: onProjectChanged,
+          // LEFT: filters (scroll)
+          Flexible(
+            fit: FlexFit.loose,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _twoLineBox(
+                    label: '프로젝트',
+                    value: _projectLabel(selProjectId),
+                    onTap: () => _pickFromSheet(
+                      context: context,
+                      title: '프로젝트 선택',
+                      current: selProjectId,
+                      items: _projectItems(),
+                      itemLabel: (id) => _projectLabel(id),
+                      onPicked: (v) => onProjectChanged(v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _twoLineBox(
+                    label: '상태',
+                    value: selStatus,
+                    onTap: () => _pickFromSheet(
+                      context: context,
+                      title: '상태 선택',
+                      current: selStatus,
+                      items: const ['진행중', '완료'],
+                      itemLabel: (s) => s,
+                      onPicked: (v) => onStatusChanged(v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _twoLineBox(
+                    label: '중요도',
+                    value: _priorityDisplay(selPriority),
+                    onTap: () => _pickFromSheet<Object>(
+                      context: context,
+                      title: '중요도 선택',
+                      current: selPriority ?? _SheetItem.all,
+                      items: const [
+                        _SheetItem.all,
+                        TaskPriority.high,
+                        TaskPriority.medium,
+                        TaskPriority.low,
+                        TaskPriority.none,
+                      ],
+                      itemLabel: (v) {
+                        if (v == _SheetItem.all) return '전체';
+                        if (v is TaskPriority) return _priorityDisplay(v);
+                        return v.toString();
+                      },
+                      onPicked: (picked) {
+                        if (picked == _SheetItem.all) {
+                          onPriorityChanged(null);
+                        } else {
+                          onPriorityChanged(picked as TaskPriority);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _twoLineBox(
+                    label: '담당자',
+                    value: _assigneeLabel(selAssignee),
+                    onTap: () => _pickFromSheet(
+                      context: context,
+                      title: '담당자 선택',
+                      current: selAssignee,
+                      items: _assigneeItems(),
+                      itemLabel: (id) => _assigneeLabel(id),
+                      onPicked: (v) => onAssigneeChanged(v),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _filterItem(
-                context: context,
-                label: _statusDisplay(selStatus),
-                isActive: selStatus != 'all',
-                items: ['all', '진행중', '완료'],
-                value: selStatus,
-                itemLabel: (v) => v == 'all' ? '전체 상태' : v,
-                onSelected: onStatusChanged,
-              ),
-              const SizedBox(width: 8),
-              _filterItem(
-                context: context,
-                label: _priorityDisplay(selPriority),
-                isActive: selPriority != null,
-                items: [null, ...TaskPriority.values.where((p) => p != TaskPriority.none)],
-                value: selPriority,
-                itemLabel: (v) => v == null ? '전체 중요도' : _priorityDisplay(v),
-                onSelected: onPriorityChanged,
-              ),
-              const SizedBox(width: 8),
-              _filterItem(
-                context: context,
-                label: _assigneeDisplay(selAssignee, members, myId),
-                isActive: selAssignee != 'all',
-                items: ['all', ...members.map((m) => m.id)],
-                value: selAssignee,
-                itemLabel: (v) => _assigneeDisplay(v, members, myId),
-                onSelected: onAssigneeChanged,
-              ),
-            ],
+            ),
           ),
 
-          const SizedBox(height: 8), // 줄바꿈 간격
+          const SizedBox(width: 10),
+          Container(width: 1, height: 28, color: AppPalette.border),
+          const SizedBox(width: 10),
 
-          // --- 2단: 보기 설정 영역 (그룹, 정렬, 순서, 뷰모드) ---
+          // RIGHT: group/sort boxes + icons
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _dropdownItem(
-                context: context,
+              _twoLineBox(
+                label: '분류',
                 value: groupValue,
-                items: groupItems,
-                onChanged: onGroupChanged,
-              ),
-              const SizedBox(width: 8),
-              _dropdownItem(
-                context: context,
-                value: sortValue,
-                items: sortItems,
-                onChanged: onSortChanged,
-                labelBuilder: (v) => _sortLabel(v),
-              ),
-              const SizedBox(width: 8),
-              
-              // 순서 변경 버튼 (Expanded로 너비 맞춤)
-              Expanded(
-                child: InkWell(
-                  onTap: onToggleNewestFirst,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Icon(
-                      newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                      color: AppColors.text2,
-                      size: 18,
-                    ),
-                  ),
+                minWidth: 78,
+                onTap: () => _pickFromSheet(
+                  context: context,
+                  title: '분류 선택',
+                  current: groupValue,
+                  items: groupItems,
+                  itemLabel: (s) => s,
+                  onPicked: (v) => onGroupChanged(v),
                 ),
               ),
               const SizedBox(width: 8),
-
-              // 뷰 모드 변경 버튼 (Expanded로 너비 맞춤)
-              Expanded(
-                child: InkWell(
-                  onTap: onToggleGallery,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: isGallery ? AppPalette.primary.withValues(alpha: 0.1) : AppColors.bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isGallery ? AppPalette.primary : AppColors.border),
-                    ),
-                    child: Icon(
-                      isGallery ? Icons.grid_view_rounded : Icons.list_alt_rounded,
-                      color: isGallery ? AppPalette.primary : AppColors.text2,
-                      size: 18,
-                    ),
-                  ),
+              _twoLineBox(
+                label: '기간',
+                value: _sortLabel(sortValue),
+                minWidth: 86,
+                onTap: () => _pickFromSheet(
+                  context: context,
+                  title: '정렬 선택',
+                  current: sortValue,
+                  items: sortItems,
+                  itemLabel: (s) => _sortLabel(s),
+                  onPicked: (v) => onSortChanged(v),
                 ),
+              ),
+              const SizedBox(width: 8),
+              _iconBtn(
+                icon: newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                tooltip: newestFirst ? '내림차순' : '오름차순',
+                onTap: onToggleNewestFirst,
+              ),
+              const SizedBox(width: 8),
+              _iconBtn(
+                icon: isGallery ? Icons.grid_view_outlined : Icons.view_agenda_outlined,
+                tooltip: isGallery ? '갤러리 보기' : '리스트 보기',
+                onTap: onToggleGallery,
               ),
             ],
           ),
@@ -201,146 +249,179 @@ class TaskFilterBar extends StatelessWidget {
     );
   }
 
-  // --- Helpers ---
-
-  // Expanded를 사용하여 1/N 크기로 강제 배분
-  Widget _filterItem<T>({
-    required BuildContext context,
-    required String label,
-    required bool isActive,
-    required List<T> items,
-    required T value,
-    required String Function(T) itemLabel,
-    required ValueChanged<T> onSelected,
-  }) {
-    final fg = isActive ? AppPalette.primary : AppColors.text2;
-    final bg = isActive ? AppPalette.primary.withValues(alpha: 0.1) : AppColors.bg;
-    final border = isActive ? AppPalette.primary : AppColors.border;
-    final fontWeight = isActive ? FontWeight.bold : FontWeight.normal;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          final picked = await showModalBottomSheet<T>(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: items.map((item) => ListTile(
-                  title: Text(itemLabel(item), style: TextStyle(
-                    fontWeight: item == value ? FontWeight.bold : FontWeight.normal,
-                    color: item == value ? AppPalette.primary : AppColors.text,
-                  )),
-                  trailing: item == value ? const Icon(Icons.check, color: AppPalette.primary) : null,
-                  onTap: () => Navigator.pop(ctx, item),
-                )).toList(),
-              ),
-            ),
-          );
-          if (picked != null) onSelected(picked);
-        },
-        child: Container(
-          height: 36, // 높이 고정
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: border),
-          ),
-          child: Text(
-            label, 
-            style: TextStyle(color: fg, fontWeight: fontWeight, fontSize: 11),
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
+  List<String> _projectItems() {
+    // project list from provider
+    final items = <String>['all', 'none'];
+    for (final p in taskProv.projects) {
+      items.add(p.id);
+    }
+    return items;
   }
 
-  Widget _dropdownItem<T>({
-    required BuildContext context,
-    required T value,
-    required List<T> items,
-    required ValueChanged<T?> onChanged,
-    String Function(T)? labelBuilder,
-  }) {
-    // 드롭다운도 Expanded로 공간 차지
-    return Expanded(
-      flex: 2, // 드롭다운은 버튼보다 조금 더 넓게 (글자가 길어서)
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            value: value,
-            isExpanded: true, // 내부 텍스트 꽉 차게
-            isDense: true,
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.hint),
-            style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 11, color: AppColors.text),
-            items: items.map((e) => DropdownMenuItem(
-              value: e, 
-              child: Text(
-                labelBuilder != null ? labelBuilder(e) : e.toString(),
-                overflow: TextOverflow.ellipsis,
-              ),
-            )).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- Display Logics ---
-
-  String _projectDisplay(String id, List<Project> projects) {
-    if (id == 'all') return '프로젝트';
-    final name = projects.firstWhere((p) => p.id == id, orElse: () => Project(id: '', teamId: '', name: '-', colorValue: 0)).name;
-    return name;
-  }
-
-  String _statusDisplay(String status) {
-    if (status == 'all') return '상태';
-    return status;
+  String _projectLabel(String id) {
+    if (id == 'all') return '전체';
+    if (id == 'none') return '없음';
+    for (final p in taskProv.projects) {
+      if (p.id == id) return p.name;
+    }
+    return '전체';
   }
 
   String _priorityDisplay(TaskPriority? p) {
-    if (p == null) return '중요도';
-    return switch (p) {
-      TaskPriority.high => '높음',
-      TaskPriority.medium => '중간',
-      TaskPriority.low => '낮음',
-      TaskPriority.none => '없음',
-    };
-  }
-
-  String _assigneeDisplay(String id, List<Member> members, String myId) {
-    if (id == 'all') return '담당자';
-    if (id == myId) return '나';
-    final m = members.firstWhere((m) => m.id == id, orElse: () => Member(id: '', name: '미정'));
-    return m.name;
+    switch (p) {
+      case null:
+        return '전체';
+      case TaskPriority.high:
+        return '상';
+      case TaskPriority.medium:
+        return '중';
+      case TaskPriority.low:
+        return '하';
+      case TaskPriority.none:
+        return '없음';
+    }
   }
 
   String _sortLabel(TaskSortField f) {
-    return switch (f) {
-      TaskSortField.dueDate => '마감일순',
-      TaskSortField.createdAt => '생성일순',
-      TaskSortField.updatedAt => '수정일순',
-      TaskSortField.scheduleStart => '일정순',
-      TaskSortField.completedAt => '완료일순',
-      _ => '정렬',
-    };
+    switch (f) {
+      case TaskSortField.createdAt:
+        return '작성일';
+      case TaskSortField.updatedAt:
+        return '수정일';
+      case TaskSortField.dueDate:
+        return '기한';
+      case TaskSortField.scheduleStart:
+        return '계획';
+      case TaskSortField.completedAt:
+        return '완료일';
+    }
   }
+
+  Widget _twoLineBox({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+    double minWidth = 92,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        constraints: BoxConstraints(minWidth: minWidth),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.black87, width: 1),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 10,
+              offset: Offset(0, 4),
+              color: Color(0x12000000),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.black54)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _iconBtn({required IconData icon, required String tooltip, required VoidCallback onTap}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black87, width: 1),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 10,
+              offset: Offset(0, 4),
+              color: Color(0x12000000),
+            )
+          ],
+        ),
+        child: Tooltip(
+          message: tooltip,
+          child: Icon(icon, size: 18, color: AppPalette.primary),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFromSheet<T>({
+    required BuildContext context,
+    required String title,
+    required T current,
+    required List<T> items,
+    required String Function(T) itemLabel,
+    required ValueChanged<T> onPicked,
+  }) async {
+    final picked = await showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(99))),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(height: 10),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final it = items[i];
+                      final isSel = it == current;
+                      return ListTile(
+                        title: Text(itemLabel(it), style: const TextStyle(fontWeight: FontWeight.w700)),
+                        trailing: isSel ? const Icon(Icons.check_rounded, color: Color(0xFF2563EB)) : null,
+                        onTap: () => Navigator.pop(ctx, it),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (picked != null) {
+      onPicked(picked);
+    }
+  }
+}
+
+/// BottomSheet에서 "전체"를 표현하기 위한 sentinel.
+enum _SheetItem {
+  all,
 }

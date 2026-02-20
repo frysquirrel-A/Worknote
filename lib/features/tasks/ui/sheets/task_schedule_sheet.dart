@@ -6,7 +6,7 @@ import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 
-/// 업무 카드/상세에서 빠르게 "일정(기간)"만 수정하는 미니 시트
+/// 업무 카드/상세에서 빠르게 "계획(기간)"만 수정하는 미니 시트
 Future<void> showTaskScheduleSheet({
   required BuildContext context,
   required Task task,
@@ -51,7 +51,7 @@ Future<void> showTaskScheduleSheet({
                     const Icon(Icons.calendar_month_rounded, color: AppPalette.primary),
                     const SizedBox(width: 8),
                     const Expanded(
-                      child: Text('일정 설정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      child: Text('계획 설정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
@@ -77,8 +77,8 @@ Future<void> showTaskScheduleSheet({
                           setModalState(() => includeInSchedule = v);
                           await persist();
                         },
-                        title: const Text('일정에 포함', style: TextStyle(fontWeight: FontWeight.w900)),
-                        subtitle: const Text('일정 탭에서 기간 일정으로 표시'),
+                        title: const Text('계획에 포함', style: TextStyle(fontWeight: FontWeight.w900)),
+                        subtitle: const Text('계획 탭에서 기간 계획으로 표시'),
                       ),
                       if (includeInSchedule)
                         Padding(
@@ -107,7 +107,7 @@ Future<void> showTaskScheduleSheet({
                                 children: [
                                   const Icon(Icons.date_range_rounded, size: 18, color: AppPalette.primary),
                                   const SizedBox(width: 8),
-                                  const Text('일정 기간', style: TextStyle(fontWeight: FontWeight.w900)),
+                                  const Text('계획 기간', style: TextStyle(fontWeight: FontWeight.w900)),
                                   const Spacer(),
                                   Text(
                                     '${DateFormat('yy.MM.dd').format(range.start)} ~ ${DateFormat('yy.MM.dd').format(range.end)}',

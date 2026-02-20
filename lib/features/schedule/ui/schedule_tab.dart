@@ -43,7 +43,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showPersonalScheduleSheet(context: context, teamId: teamId, myId: myId, myName: myName),
         backgroundColor: AppColors.primary, foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded), label: const Text('일정 추가', style: TextStyle(fontWeight: FontWeight.w900)),
+        icon: const Icon(Icons.add_rounded), label: const Text('계획 추가', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: Column(children: [
         Container(
@@ -73,7 +73,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
         ),
         Expanded(
           child: selectedEvents.isEmpty
-              ? Center(child: Text(_selectedDay == null ? '날짜를 선택해 주세요' : '일정이 없습니다.', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
+              ? Center(child: Text(_selectedDay == null ? '날짜를 선택해 주세요' : '계획이 없습니다.', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
               : ListView.builder(padding: const EdgeInsets.fromLTRB(20, 0, 20, 120), itemCount: selectedEvents.length, itemBuilder: (context, index) { final e = selectedEvents[index]; return _eventTile(context: context, e: e, taskProv: taskProv, scheduleProv: scheduleProv); }),
         ),
       ]),
@@ -89,7 +89,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
       final eDate = DateTime(r.end.year, r.end.month, r.end.day);
       final isStart = d.isAtSameMomentAs(s); final isEnd = d.isAtSameMomentAs(eDate);
       final color = e.type == _EventType.task ? AppColors.primary : AppColors.warning;
-      return Container(height: 5, margin: EdgeInsets.only(bottom: 2, left: isStart ? 4 : 0, right: isEnd ? 4 : 0), decoration: BoxDecoration(color: color.withOpacity(0.8), borderRadius: BorderRadius.horizontal(left: isStart ? const Radius.circular(4) : Radius.zero, right: isEnd ? const Radius.circular(4) : Radius.zero)));
+      return Container(height: 5, margin: EdgeInsets.only(bottom: 2, left: isStart ? 4 : 0, right: isEnd ? 4 : 0), decoration: BoxDecoration(color: color.withValues(alpha: 0.8), borderRadius: BorderRadius.horizontal(left: isStart ? const Radius.circular(4) : Radius.zero, right: isEnd ? const Radius.circular(4) : Radius.zero)));
     }).toList());
   }
 
@@ -129,8 +129,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
         padding: EdgeInsets.only(left: 20, right: 20, top: 18, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
         decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
         child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('일정 설정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)), const SizedBox(height: 16),
-          TextField(controller: titleCtrl, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold), decoration: const InputDecoration(hintText: '일정 제목')), const SizedBox(height: 12),
+          const Text('계획 설정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)), const SizedBox(height: 16),
+          TextField(controller: titleCtrl, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold), decoration: const InputDecoration(hintText: '계획 제목')), const SizedBox(height: 12),
           InkWell(onTap: () async { final picked = await showDateRangePicker(context: ctx, firstDate: DateTime(2020), lastDate: DateTime(2100), initialDateRange: range); if (picked != null) setModalState(() => range = picked); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)), child: Row(children: [const Icon(Icons.date_range_rounded, size: 18, color: AppColors.primary), const SizedBox(width: 8), const Text('기간', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.text2)), const Spacer(), Text('${DateFormat('yy.MM.dd').format(range.start)} ~ ${DateFormat('yy.MM.dd').format(range.end)}', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary))]))),
           const SizedBox(height: 16),
           TextField(controller: noteCtrl, maxLines: 3, style: const TextStyle(color: AppColors.text), decoration: const InputDecoration(hintText: '메모(선택)')), const SizedBox(height: 20),

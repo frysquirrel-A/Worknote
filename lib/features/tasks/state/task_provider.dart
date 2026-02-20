@@ -48,6 +48,20 @@ class TaskProvider extends ChangeNotifier {
   DateFilter get dateFilter => _dateFilter;
   String get assigneeFilter => _assigneeFilter;
 
+  /// 홈 탭 등에서 간단 통계/리스트를 만들 때 사용합니다.
+  /// (현재 필터 UI 상태와 무관하게 팀 기준으로 전체 업무를 반환)
+  List<Task> tasksForTeam(String teamId) {
+    return _tasks.where((t) => t.teamId == teamId).toList();
+  }
+
+  /// 프로젝트별 진행률(0.0~1.0)
+  double projectProgress(String projectId) {
+    final list = _tasks.where((t) => t.projectId == projectId).toList();
+    if (list.isEmpty) return 0;
+    final done = list.where((t) => t.isDone).length;
+    return done / list.length;
+  }
+
   // [수정] 각 필터 독립 함수 (간섭 방지)
   void setProjectIdFilter(String? id) { if (id != null) _projectIdFilter = id; notifyListeners(); }
   void setStatusFilter(String? status) { if (status != null) _statusFilter = status; notifyListeners(); }
@@ -68,7 +82,7 @@ class TaskProvider extends ChangeNotifier {
     if (box == null) {
       // 박스가 아직 열리지 않은 경우(핫리스타트/초기화 타이밍 등) 크래시 방지.
       // meta 데이터가 없던 시절(legacy)처럼 "일단 포함"으로 동작.
-      _ensureMetaBox().catchError((_) {});
+      _ensureMetaBox().then((_) {}, onError: (_) {});
       return true;
     }
 
@@ -80,7 +94,7 @@ class TaskProvider extends ChangeNotifier {
   DateTimeRange? getScheduleRange(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      _ensureMetaBox().catchError((_) {});
+      _ensureMetaBox().then((_) {}, onError: (_) {});
       return null;
     }
 
@@ -150,7 +164,7 @@ class TaskProvider extends ChangeNotifier {
   DateTime? getCompletionReportAt(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      _ensureMetaBox().catchError((_) {});
+      _ensureMetaBox().then((_) {}, onError: (_) {});
       return null;
     }
 

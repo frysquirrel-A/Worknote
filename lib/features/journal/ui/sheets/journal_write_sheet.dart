@@ -133,7 +133,7 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                value: safeRelatedTaskId,
+                initialValue: safeRelatedTaskId,
                 dropdownColor: AppColors.surface,
                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(labelText: '관련 업무(선택)', labelStyle: const TextStyle(color: AppColors.text2), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
@@ -142,7 +142,7 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                value: safeProjectId,
+                initialValue: safeProjectId,
                 dropdownColor: AppColors.surface,
                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(labelText: '프로젝트(선택)', labelStyle: const TextStyle(color: AppColors.text2), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
@@ -150,7 +150,18 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
                 onChanged: (v) => setState(() => selectedProjectId = v),
               ),
               const SizedBox(height: 8),
-              SwitchListTile(activeColor: AppColors.primary, contentPadding: EdgeInsets.zero, value: isPrivate, onChanged: (v) => setState(() => isPrivate = v), title: const Text('비공개 일지', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.text, fontSize: 14)), subtitle: const Text('팀원에게 보이지 않음', style: TextStyle(color: AppColors.hint, fontSize: 12))),
+              SwitchListTile(
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primary.withValues(alpha: 0.25),
+                contentPadding: EdgeInsets.zero,
+                value: isPrivate,
+                onChanged: (v) => setState(() => isPrivate = v),
+                title: const Text(
+                  '비공개 일지',
+                  style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.text, fontSize: 14),
+                ),
+                subtitle: const Text('팀원에게 보이지 않음', style: TextStyle(color: AppColors.hint, fontSize: 12)),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [

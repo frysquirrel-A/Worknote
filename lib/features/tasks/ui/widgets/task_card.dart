@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
-import 'package:worknote/features/tasks/ui/sheets/task_schedule_sheet.dart';
+import 'package:worknote/features/journal/state/journal_provider.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -14,202 +15,167 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final project = taskProv.projects.firstWhere(
-      (p) => p.id == task.projectId,
-      orElse: () => Project(id: '', teamId: '', name: '일반 업무', colorValue: AppColors.muted.value),
-    );
-
-    final includedInSchedule = taskProv.isIncludedInSchedule(task.id);
+    final journalProv = context.watch<JournalProvider>();
+    final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
     final scheduleRange = taskProv.effectiveScheduleRange(task);
+    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
 
-    // 정렬을 위한 기준 높이값
-    const double metaTopOffset = 54; 
-
-    return GestureDetector(
-      onTap: () => showTaskDetailSheet(context: context, task: task),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6))],
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Zone 1: Left (Checkbox + Absolute Priority Badge)
-              SizedBox(
-                width: 48,
-                child: Stack(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))]
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => showTaskDetailSheet(context: context, task: task),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Column(
+              children: [
+                // 1. 상단 Row: 상태, 제목, 중요도 + [신규] 캘린더 토글
+                Row(
                   children: [
-                    Positioned(
-                      top: 10,
-                      left: 4,
-                      child: GestureDetector(
-                        onTap: () => taskProv.updateTaskStatus(task, !task.isDone),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: task.isDone ? AppColors.primary : AppColors.surface,
-                            border: Border.all(color: task.isDone ? AppColors.primary : AppColors.border, width: 2),
-                          ),
-                          child: task.isDone ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                        ),
-                      ),
+                    _statusPill(task),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        task.title, 
+                        style: TextStyle(
+                          fontSize: 15, 
+                          fontWeight: FontWeight.w900, 
+                          color: task.isDone ? AppTextColor.hint : AppTextColor.primary,
+                          decoration: task.isDone ? TextDecoration.lineThrough : null,
+                        ), 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis
+                      )
                     ),
-                    Positioned(
-                      top: metaTopOffset - 4, // 중앙 메타 블록의 첫 줄 시작 위치에 배지 중심 고정
-                      left: 1,
-                      child: GestureDetector(
-                        onTap: () => taskProv.cycleTaskPriority(task),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _priorityColor(task.priority), width: 1.5),
-                            color: _priorityColor(task.priority).withValues(alpha: 0.08),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _priorityText(task.priority),
-                              style: TextStyle(color: _priorityColor(task.priority), fontWeight: FontWeight.w900, fontSize: 12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(width: 10),
+                    _priorityPill(task.priority),
+                    const SizedBox(width: 8),
+                    // [요구사항 1, 3] 캘린더 아이콘 상단 이동 및 토글
+                    _buildScheduleToggle(context, hasSchedule, scheduleRange),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-
-              // Zone 2: Middle (Title + Meta Block)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const Divider(height: 24, color: AppColors.border),
+                // 2. 하단 Row: 기한, 계획(FittedBox), 기능 아이콘, 담당자
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(color: project.color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(4)),
-                      child: Text('#${project.name}', style: TextStyle(color: project.color, fontSize: 9, fontWeight: FontWeight.w900)),
-                    ),
-                    const SizedBox(height: 2),
+                    const Icon(Icons.event_note_rounded, color: AppColors.danger, size: 14),
+                    const SizedBox(width: 4),
                     Text(
-                      task.title,
-                      maxLines: 1, // 레이아웃 고정을 위해 1줄 제한
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: task.isDone ? AppColors.muted : AppColors.text,
-                        decoration: task.isDone ? TextDecoration.lineThrough : null,
+                      "기한: ${DateFormat('MM.dd').format(task.dueDate)}", 
+                      style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w800)
+                    ),
+                    if (hasSchedule && scheduleRange != null) ...[
+                      const SizedBox(width: 12),
+                      // [요구사항 2] '계획' FittedBox 적용하여 전체 표시
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "계획: ${DateFormat('MM.dd').format(scheduleRange.start)}~${DateFormat('MM.dd').format(scheduleRange.end)}",
+                            style: const TextStyle(color: AppPalette.primary, fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ),
                       ),
+                    ],
+                    const Spacer(),
+                    // 기능 아이콘 (일지)
+                    _cardIconButton(
+                      icon: relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, 
+                      isActive: relatedJournals.isNotEmpty, 
+                      onPressed: () => showTaskDetailSheet(context: context, task: task)
                     ),
-                    const SizedBox(height: 10), // 메타 블록 시작 지점 고정
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              _compactDate('작성', task.createdAt, AppColors.hint),
-                              _compactDate('기한', task.dueDate, task.isDone ? AppColors.muted : AppColors.danger),
-                              if (task.isDone && task.completedAt != null)
-                                _compactDate('완료', task.completedAt!, AppColors.success)
-                              else
-                                _compactDate('수정', task.updatedAt, AppColors.hint),
-                              if (includedInSchedule && scheduleRange != null)
-                                _compactRange('일정', scheduleRange, AppColors.warning),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: '일정 설정',
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => showTaskScheduleSheet(context: context, task: task),
-                          icon: Icon(
-                            includedInSchedule ? Icons.calendar_month_rounded : Icons.calendar_month_outlined,
-                            color: includedInSchedule ? AppColors.primary : AppColors.muted,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(width: 8),
+                    // [요구사항 3] 담당자 영역 레이아웃 정상화 (고정 폭 및 여백 확보)
+                    _buildAuthorZone(task),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-
-              // Zone 3: Right (Author + Assignee)
-              const VerticalDivider(width: 1, thickness: 1, color: AppColors.bg),
-              SizedBox(
-                width: 72,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('작성자', style: TextStyle(fontSize: 8, color: AppColors.muted, fontWeight: FontWeight.bold)),
-                    Text(task.creatorName, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.text2), overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 8),
-                    const Text('담당', style: TextStyle(fontSize: 8, color: AppColors.muted, fontWeight: FontWeight.bold)),
-                    Text(task.assigneeEmoji, style: const TextStyle(fontSize: 22)),
-                    Text(task.assigneeName, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.text2), overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-Widget _compactDate(String label, DateTime date, Color color) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text('$label: ', style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
-      Text(DateFormat('yy.MM.dd').format(date), style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900)),
-    ],
+  Widget _buildScheduleToggle(BuildContext context, bool hasSchedule, DateTimeRange? range) {
+    return GestureDetector(
+      onTap: () => taskProv.setScheduleOptions(
+        taskId: task.id, 
+        includeInSchedule: !hasSchedule, 
+        range: range
+      ),
+      child: Container(
+        width: 32, height: 32,
+        alignment: Alignment.center,
+        child: Icon(
+          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_month_outlined, 
+          size: 20, 
+          color: hasSchedule ? AppPalette.primary : Colors.grey[400]
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthorZone(Task task) {
+    return Container(
+      width: 88,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              task.assigneeName, 
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.text2), 
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 6),
+          CircleAvatar(
+            radius: 12, 
+            backgroundColor: AppColors.bg,
+            child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusPill(Task task) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: task.isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? AppColors.success : AppColors.warning, fontSize: 10, fontWeight: FontWeight.bold)),
   );
-}
 
-Widget _compactRange(String label, DateTimeRange? range, Color color) {
-  if (range == null) return const SizedBox();
-  final s = DateFormat('yy.MM.dd').format(range.start);
-  final e = DateFormat('yy.MM.dd').format(range.end);
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text('$label: ', style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
-      Text(s == e ? s : '$s~$e', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900)),
-    ],
-  );
-}
+  Widget _priorityPill(TaskPriority p) {
+    final color = p == TaskPriority.high ? AppColors.danger : (p == TaskPriority.medium ? AppColors.warning : AppColors.primary);
+    final text = p == TaskPriority.high ? '상' : (p == TaskPriority.medium ? '중' : '하');
+    if (p == TaskPriority.none) return const SizedBox.shrink();
+    return Container(
+      width: 22, height: 22,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.2))),
+      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900))),
+    );
+  }
 
-Color _priorityColor(TaskPriority p) {
-  return switch (p) {
-    TaskPriority.high => AppColors.danger,
-    TaskPriority.medium => AppColors.warning,
-    TaskPriority.low => AppColors.primary,
-    TaskPriority.none => AppColors.muted,
-  };
-}
-
-String _priorityText(TaskPriority p) {
-  return switch (p) {
-    TaskPriority.high => '상',
-    TaskPriority.medium => '중',
-    TaskPriority.low => '하',
-    TaskPriority.none => '-',
-  };
+  Widget _cardIconButton({required IconData icon, required bool isActive, required VoidCallback onPressed}) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 32, height: 32,
+        child: Icon(icon, size: 18, color: isActive ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)),
+      ),
+    );
+  }
 }
