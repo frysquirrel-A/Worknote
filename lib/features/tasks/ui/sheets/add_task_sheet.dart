@@ -7,29 +7,32 @@ import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 /// 업무 추가 바텀시트를 표시하는 함수
 Future<void> showAddTaskSheet({required BuildContext context}) {
-  return showModalBottomSheet<void>(
+  final titleCtrl = TextEditingController();
+
+  final future = showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => const _AddTaskSheet(),
+    builder: (ctx) => _AddTaskSheet(titleCtrl: titleCtrl),
   );
+
+  return future.whenComplete(() {
+    titleCtrl.dispose();
+  });
 }
 
 class _AddTaskSheet extends StatefulWidget {
-  const _AddTaskSheet({super.key});
+  final TextEditingController titleCtrl;
+  const _AddTaskSheet({required this.titleCtrl});
 
   @override
   State<_AddTaskSheet> createState() => _AddTaskSheetState();
 }
 
 class _AddTaskSheetState extends State<_AddTaskSheet> {
-  // [요구사항 1] 컨트롤러를 State 내부에서 관리하여 생명주기 안전성 확보
-  late TextEditingController _titleCtrl;
-  
   String? projectId;
   late String assigneeId;
   DateTime dueDate = DateTime.now();
@@ -40,225 +43,211 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   @override
   void initState() {
     super.initState();
-    _titleCtrl = TextEditingController();
-    // 초기 담당자 설정을 위해 read 사용 (불필요한 리빌드 방지)
+    // 초기값 설정을 위해 Provider를 한번만 읽습니다.
     final authProv = context.read<AuthProvider>();
     assigneeId = authProv.currentUser?.id ?? 'me';
   }
 
   @override
-  void dispose() {
-    // [요구사항 1] 위젯 소멸 시 컨트롤러도 함께 안전하게 해제
-    _titleCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final teamProv = context.watch<TeamProvider>();
-    final taskProv = context.watch<TaskProvider>();
     final authProv = context.watch<AuthProvider>();
+    final teamProv = context.watch<TeamProvider>();
+    final prov = context.watch<TaskProvider>();
 
     final myId = authProv.currentUser?.id ?? 'me';
     final myName = authProv.currentUser?.name ?? '관리자';
-    
-    // Hive에서 사용자 목록 가져오기
-    final userBox = Hive.box<AppUser>('users');
-    final members = teamProv.currentTeam.memberIds.map((id) => userBox.get(id)).whereType<AppUser>().toList();
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 18,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('새 업무 등록', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)),
-            const SizedBox(height: 16),
-            
+            const Text('업무 추가', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)),
+            const SizedBox(height: 14),
             TextField(
-              controller: _titleCtrl,
-              autofocus: true,
-              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
+              controller: widget.titleCtrl,
+              style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
-                hintText: '업무 제목을 입력하세요',
-                hintStyle: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.normal),
+                hintText: '업무 제목',
                 filled: true,
                 fillColor: AppColors.bg,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: assigneeId,
-                    dropdownColor: AppColors.surface,
-                    decoration: InputDecoration(
-                      labelText: '담당자', 
-                      labelStyle: const TextStyle(color: AppColors.text2),
-                      filled: true, 
-                      fillColor: Colors.white, 
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
-                    ),
-                    items: members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.id == myId ? '나 (${m.name})' : m.name))).toList(),
-                    onChanged: (v) => setState(() => assigneeId = v!),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     value: projectId,
                     dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
-                      labelText: '프로젝트', 
+                      labelText: '프로젝트',
                       labelStyle: const TextStyle(color: AppColors.text2),
-                      filled: true, 
-                      fillColor: Colors.white, 
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
+                      filled: true,
+                      fillColor: AppColors.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('일반 업무')),
-                      ...taskProv.projects
+                      const DropdownMenuItem(value: null, child: Text('없음')),
+                      ...prov.projects
                           .where((p) => p.teamId == teamProv.currentTeamId)
                           .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
                     ],
                     onChanged: (v) => setState(() => projectId = v),
                   ),
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<TaskPriority>(
+                    value: priority,
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      labelText: '중요도',
+                      labelStyle: const TextStyle(color: AppColors.text2),
+                      filled: true,
+                      fillColor: AppColors.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: TaskPriority.none, child: Text('-')),
+                      DropdownMenuItem(value: TaskPriority.high, child: Text('상')),
+                      DropdownMenuItem(value: TaskPriority.medium, child: Text('중')),
+                      DropdownMenuItem(value: TaskPriority.low, child: Text('하')),
+                    ],
+                    onChanged: (v) => setState(() => priority = v ?? TaskPriority.none),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
-                  child: GestureDetector(
+                  child: DropdownButtonFormField<String>(
+                    value: assigneeId,
+                    dropdownColor: AppColors.surface,
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      labelText: '담당자',
+                      labelStyle: const TextStyle(color: AppColors.text2),
+                      filled: true,
+                      fillColor: AppColors.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: myId, child: Text('나 ($myName)')),
+                      ...teamProv.currentTeam.memberIds
+                          .where((id) => id != myId)
+                          .map((id) => DropdownMenuItem(value: id, child: Text(id))),
+                    ],
+                    onChanged: (v) => setState(() => assigneeId = v ?? myId),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
                     onTap: () async {
-                      final picked = await showDatePicker(context: context, initialDate: dueDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: dueDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
                       if (picked != null) setState(() => dueDate = picked);
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                      decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('기한', style: TextStyle(fontSize: 10, color: AppColors.hint)), Text(DateFormat('yyyy.MM.dd').format(dueDate), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text))]),
-                          const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+                          const Icon(Icons.event_rounded, size: 18, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(DateFormat('yyyy.MM.dd').format(dueDate), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)),
                         ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<TaskPriority>(
-                    value: priority,
-                    dropdownColor: AppColors.surface,
-                    decoration: InputDecoration(
-                      labelText: '중요도', 
-                      labelStyle: const TextStyle(color: AppColors.text2),
-                      filled: true, 
-                      fillColor: Colors.white, 
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: TaskPriority.none, child: Text('없음')),
-                      DropdownMenuItem(value: TaskPriority.low, child: Text('낮음')),
-                      DropdownMenuItem(value: TaskPriority.medium, child: Text('중간')),
-                      DropdownMenuItem(value: TaskPriority.high, child: Text('높음', style: TextStyle(color: AppColors.danger))),
-                    ],
-                    onChanged: (v) => setState(() => priority = v!),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
-
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
+              child: Column(
                 children: [
-                  const Text('달력(일정)에 표시하기', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                  Switch(
-                    value: includeInSchedule,
+                  SwitchListTile(
                     activeColor: AppColors.primary,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                    value: includeInSchedule,
                     onChanged: (v) => setState(() => includeInSchedule = v),
+                    title: const Text('일정에 포함', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)),
+                    subtitle: const Text('일정 탭에서 표시', style: TextStyle(color: AppColors.hint)),
                   ),
+                  if (includeInSchedule)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                            initialDateRange: scheduleRange,
+                          );
+                          if (picked != null) setState(() => scheduleRange = picked);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              const Text('일정', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)),
+                              const Spacer(),
+                              Text('${DateFormat('yy.MM.dd').format(scheduleRange.start)} ~ ${DateFormat('yy.MM.dd').format(scheduleRange.end)}', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-            if (includeInSchedule) ...[
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () async {
-                  final picked = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2030), initialDateRange: scheduleRange);
-                  if (picked != null) setState(() => scheduleRange = picked);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(border: Border.all(color: AppColors.primary.withOpacity(0.3)), borderRadius: BorderRadius.circular(12), color: AppColors.primary.withOpacity(0.05)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.date_range_rounded, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text('${DateFormat('yy.MM.dd').format(scheduleRange.start)} ~ ${DateFormat('yy.MM.dd').format(scheduleRange.end)}', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final title = _titleCtrl.text.trim();
+                  final title = widget.titleCtrl.text.trim();
                   if (title.isEmpty) return;
-                  
-                  // [요구사항 3] 저장 시점의 Provider 참조 최적화
-                  final currentTaskProv = context.read<TaskProvider>();
-                  final currentTeamProv = context.read<TeamProvider>();
-                  
                   final assigneeName = (assigneeId == myId) ? myName : assigneeId;
                   final newTaskId = const Uuid().v4();
                   final task = Task(
-                    id: newTaskId, 
-                    teamId: currentTeamProv.currentTeamId, 
-                    title: title, 
-                    creatorId: myId, 
-                    creatorName: myName,
-                    assigneeId: assigneeId, 
-                    assigneeName: assigneeName, 
-                    assigneeEmoji: assigneeId == myId ? '👷' : '👤',
-                    projectId: projectId, 
-                    createdAt: DateTime.now(), 
-                    dueDate: dueDate, 
-                    updatedAt: DateTime.now(), 
-                    priority: priority,
+                    id: newTaskId, teamId: teamProv.currentTeamId, title: title, creatorId: myId, creatorName: myName,
+                    assigneeId: assigneeId, assigneeName: assigneeName, assigneeEmoji: assigneeId == myId ? '👷' : '👤',
+                    projectId: projectId, createdAt: DateTime.now(), dueDate: dueDate, updatedAt: DateTime.now(), priority: priority,
                   );
-                  
-                  await currentTaskProv.addTask(task);
-                  await currentTaskProv.setScheduleOptions(taskId: newTaskId, includeInSchedule: includeInSchedule, range: includeInSchedule ? scheduleRange : null);
-                  
-                  // [요구사항 2] 비동기 작업 후 mounted 체크 필수
-                  if (!mounted) return;
-                  Navigator.pop(context);
+                  await prov.addTask(task);
+                  await prov.setScheduleOptions(taskId: newTaskId, includeInSchedule: includeInSchedule, range: includeInSchedule ? scheduleRange : null);
+                  if (mounted) Navigator.pop(context);
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: AppPalette.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 icon: const Icon(Icons.save_rounded),
                 label: const Text('저장', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
               ),
