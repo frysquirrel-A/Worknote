@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/data/services/drive_service.dart';
 import 'package:collection/collection.dart';
@@ -138,6 +141,21 @@ class JournalProvider extends ChangeNotifier {
     final box = Hive.box<JournalEntry>('journals');
     entry.updatedAt = DateTime.now();
     await box.put(entry.id, entry);
+
+    // Outbox: journal upsert
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: entry.teamId,
+        entity: 'journal',
+        action: 'put',
+        entityId: entry.id,
+        payload: {
+          'title': entry.title,
+          'date': entry.date.toIso8601String(),
+        },
+      ),
+    );
+
     final idx = _journals.indexWhere((j) => j.id == entry.id);
     if (idx >= 0) _journals[idx] = entry;
     _journals.sort((a, b) => b.date.compareTo(a.date));
@@ -145,8 +163,25 @@ class JournalProvider extends ChangeNotifier {
   }
 
   Future<void> deleteJournal(String journalId) async {
-    await Hive.box<JournalEntry>('journals').delete(journalId);
+    final box = Hive.box<JournalEntry>('journals');
+    final before = box.get(journalId);
+
+    await box.delete(journalId);
     await _metaBox.delete(journalId);
+
+    // Outbox: journal delete
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: before?.teamId ?? 'unknown',
+        entity: 'journal',
+        action: 'delete',
+        entityId: journalId,
+        payload: {
+          'title': before?.title ?? '',
+        },
+      ),
+    );
+
     _journals.removeWhere((j) => j.id == journalId);
     notifyListeners();
   }
@@ -206,6 +241,21 @@ class JournalProvider extends ChangeNotifier {
   Future<void> addJournal(JournalEntry entry) async {
     var box = Hive.box<JournalEntry>('journals');
     await box.put(entry.id, entry);
+
+    // Outbox: journal create
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: entry.teamId,
+        entity: 'journal',
+        action: 'put',
+        entityId: entry.id,
+        payload: {
+          'title': entry.title,
+          'date': entry.date.toIso8601String(),
+        },
+      ),
+    );
+
     _journals.insert(0, entry);
     notifyListeners();
   }

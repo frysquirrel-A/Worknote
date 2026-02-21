@@ -1,439 +1,1373 @@
-# 엔지니어용 컨텍스트 (3개 파일 통합)
+# 엔지니어용 컨텍스트 (오프라인 동기화 및 시스템 모니터링 고도화용)
 
 ---
-## 1. lib/features/tasks/ui/widgets/task_card.dart
+## 1. lib/core/crash/crash_reporter.dart
 ```dart
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/domain/models.dart';
-import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
+import 'dart:async';
 
-class TaskCard extends StatelessWidget {
-  final Task task;
-  final TaskProvider taskProv;
+import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 
-  const TaskCard({super.key, required this.task, required this.taskProv});
+/// Lightweight crash reporter that persists fatal/non-fatal errors into Hive.
+class CrashReporter {
+  CrashReporter._();
 
-  @override
-  Widget build(BuildContext context) {
-    final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
-    final scheduleRange = taskProv.effectiveScheduleRange(task);
+  static final CrashReporter instance = CrashReporter._();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))]
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => showTaskDetailSheet(context: context, task: task),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // [좌측 Zone]: 상태 표시와 중요도를 위아래로 깔끔하게 배치
-                Column(
-                  children: [
-                    _statusCircle(task.isDone),
-                    const SizedBox(height: 8),
-                    _priorityPill(task.priority),
-                  ],
-                ),
-                const SizedBox(width: 14),
+  static const String boxName = 'crash_logs';
 
-                // [중앙 Zone]: 텍스트와 2줄 날짜 정보
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 제목
-                      Text(
-                        task.title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: task.isDone ? AppColors.hint : AppColors.text,
-                          decoration: task.isDone ? TextDecoration.lineThrough : null,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis
-                      ),
-                      const SizedBox(height: 8),
+  Box<Map>? _box;
+  final List<Map<String, dynamic>> _buffer = <Map<String, dynamic>>[];
 
-                      // 날짜 정보 Line 1 (작성, 기한, 수정)
-                      Wrap(
-                        spacing: 8, runSpacing: 4,
-                        children: [
-                          Text("작성: ${_fmtDate(task.createdAt)}", style: const TextStyle(color: AppColors.text2, fontSize: 11, fontWeight: FontWeight.w600)),
-                          Text("수정: ${_fmtDate(task.updatedAt)}", style: const TextStyle(color: AppColors.text2, fontSize: 11, fontWeight: FontWeight.w600)),
-                          Text("기한: ${_fmtDate(task.dueDate)}", style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w900)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
+  bool get isReady => _box != null && _box!.isOpen;
 
-                      // 날짜 정보 Line 2 (완료, 계획) - 조건부 표시
-                      Wrap(
-                        spacing: 8, runSpacing: 4,
-                        children: [
-                          if (task.isDone && task.completedAt != null)
-                            Text("완료: ${_fmtDate(task.completedAt)}", style: const TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w900)),
-                          if (hasSchedule && scheduleRange != null)
-                            Text("계획: ${_fmtDate(scheduleRange.start)}~${_fmtDate(scheduleRange.end)}", style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w800)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+  Future<void> init() async {
+    if (isReady) return;
+    _box = await Hive.openBox<Map>(boxName);
 
-                const SizedBox(width: 10),
-
-                // [우측 Zone]: 담당자 및 캘린더 아이콘 세로 배치
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildAuthorZone(task),
-                    const SizedBox(height: 12),
-                    _buildScheduleToggle(context, hasSchedule, scheduleRange),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    // Flush anything we captured before Hive was ready.
+    if (_buffer.isNotEmpty) {
+      for (final entry in List<Map<String, dynamic>>.from(_buffer)) {
+        try {
+          await _box!.add(entry);
+        } catch (_) {
+          // If even flushing fails, drop silently to avoid infinite loops.
+        }
+      }
+      _buffer.clear();
+    }
   }
 
-  String _fmtDate(DateTime? d) {
-    if (d == null) return '-';
-    return DateFormat('yy.MM.dd').format(d);
-  }
+  Future<void> record(
+    Object error,
+    StackTrace stack, {
+    String? hint,
+    String severity = 'error',
+    Map<String, Object?> extra = const {},
+  }) async {
+    final entry = <String, dynamic>{
+      'ts': DateTime.now().toIso8601String(),
+      'severity': severity,
+      'error': error.toString(),
+      'stack': stack.toString(),
+      'hint': hint ?? '',
+      'extra': extra.map((k, v) => MapEntry(k, v?.toString() ?? '')),
+    };
 
-  Widget _buildScheduleToggle(BuildContext context, bool hasSchedule, DateTimeRange? range) {
-    return GestureDetector(
-      onTap: () => taskProv.setScheduleOptions(taskId: task.id, includeInSchedule: !hasSchedule, range: range ?? DateTimeRange(start: task.dueDate, end: task.dueDate)),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 32, height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: hasSchedule ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: hasSchedule ? Colors.transparent : AppColors.border)
-        ),
-        child: Icon(hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_month_outlined, size: 18, color: hasSchedule ? AppColors.primary : AppColors.hint),
-      ),
-    );
-  }
-
-  Widget _buildAuthorZone(Task task) {
-    return Column(
-      children: [
-        CircleAvatar(radius: 12, backgroundColor: AppColors.bg, child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
-        const SizedBox(height: 4),
-        Text(task.assigneeName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.text2)),
-      ],
-    );
-  }
-
-  Widget _statusCircle(bool isDone) {
-    return Container(
-      width: 24, height: 24,
-      decoration: BoxDecoration(
-        color: isDone ? AppColors.success.withValues(alpha: 0.1) : Colors.transparent,
-        shape: BoxShape.circle,
-        border: Border.all(color: isDone ? AppColors.success : AppColors.border, width: 2)
-      ),
-      child: isDone ? const Icon(Icons.check_rounded, size: 16, color: AppColors.success) : null,
-    );
-  }
-
-  Widget _priorityPill(TaskPriority p) {
-    final color = p == TaskPriority.high ? AppColors.danger : (p == TaskPriority.medium ? AppColors.warning : AppColors.primary);
-    final text = p == TaskPriority.high ? '상' : (p == TaskPriority.medium ? '중' : '하');
-    if (p == TaskPriority.none) return const SizedBox.shrink();
-    return Container(
-      width: 24, height: 24,
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.2))),
-      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)))
-    );
-  }
-}
-```
-
----
-## 2. lib/features/tasks/ui/widgets/task_masonry_card.dart
-```dart
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/domain/models.dart';
-import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
-import 'package:worknote/features/journal/state/journal_provider.dart';
-
-class TaskMasonryCard extends StatelessWidget {
-  final Task task;
-  final TaskProvider taskProv;
-
-  const TaskMasonryCard({super.key, required this.task, required this.taskProv});
-
-  @override
-  Widget build(BuildContext context) {
-    final journalProv = context.watch<JournalProvider>();
-    final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
-    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => showTaskDetailSheet(context: context, task: task),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. 상단: 상태 및 중요도 배지
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _statusPill(task),
-                    _priorityPill(task.priority),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // 2. 제목 (최대 2줄)
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    color: task.isDone ? AppTextColor.hint : AppTextColor.primary,
-                    decoration: task.isDone ? TextDecoration.lineThrough : null,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis
-                ),
-                const Spacer(),
-
-                // 3. 하단 메타 정보 (아이콘 기반)
-                const Divider(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        DateFormat('MM.dd').format(task.dueDate),
-                        style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w800)
-                      ),
-                    ),
-
-                    // ✨ [핵심 연동] 캘린더 아이콘 터치 시 일정 탭 등록/해제 토글
-                    GestureDetector(
-                      onTap: () {
-                        // 현재 상태의 반대값으로 토글
-                        final newStatus = !hasSchedule;
-                        taskProv.setScheduleOptions(
-                          taskId: task.id,
-                          includeInSchedule: newStatus,
-                          // 기존 설정된 기간이 없으면 마감일(dueDate)을 기본값으로 저장
-                          range: taskProv.getScheduleRange(task.id) ?? DateTimeRange(start: task.dueDate, end: task.dueDate)
-                        );
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: hasSchedule ? AppPalette.primary.withValues(alpha: 0.1) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6)
-                        ),
-                        child: Icon(
-                          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined,
-                          size: 16,
-                          color: hasSchedule ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-
-                    Icon(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, size: 16, color: relatedJournals.isNotEmpty ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)),
-                    const SizedBox(width: 6),
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor: AppColors.bg,
-                      child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 10)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _statusPill(Task task) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: task.isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? AppColors.success : AppColors.warning, fontSize: 9, fontWeight: FontWeight.bold)),
-  );
-
-  Widget _priorityPill(TaskPriority priority) {
-    final color = priority == TaskPriority.high ? AppColors.danger : (priority == TaskPriority.medium ? AppColors.warning : AppColors.primary);
-    final text = priority == TaskPriority.high ? '상' : (priority == TaskPriority.medium ? '중' : '하');
-    if (priority == TaskPriority.none) return const SizedBox.shrink();
-    return Container(
-      width: 18, height: 18,
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900))),
-    );
-  }
-}
-```
-
----
-## 3. lib/app/main_shell.dart
-```dart
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import 'package:worknote/features/auth/state/auth_provider.dart';
-import 'package:worknote/features/team/state/team_provider.dart';
-import 'package:worknote/features/chat/state/chat_provider.dart';
-import 'package:worknote/app/widgets/master_drawer.dart';
-
-import 'package:worknote/features/home/ui/home_tab.dart';
-import 'package:worknote/features/tasks/ui/task_tab.dart';
-import 'package:worknote/features/schedule/ui/schedule_tab.dart';
-import 'package:worknote/features/journal/ui/journal_tab.dart';
-import 'package:worknote/features/gallery/ui/gallery_tab.dart';
-import 'package:worknote/features/chat/ui/messenger_tab.dart';
-
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
-
-  @override
-  State<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends State<MainShell> {
-  int _selectedIndex = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _didMigrateLegacy = false;
-
-  void _openChatThread(String threadId, String? title) {
-    context.read<ChatProvider>().setActiveThread(threadId, title: title ?? '채팅');
-    setState(() => _selectedIndex = 5);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final teamProv = context.watch<TeamProvider>();
-    final authProv = context.watch<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
-
-    if (!_didMigrateLegacy && authProv.currentUser != null) {
-      _didMigrateLegacy = true;
-      Future.microtask(() => teamProv.migrateLegacyMeToUser(myId));
+    if (isReady) {
+      try {
+        await _box!.add(entry);
+      } catch (_) {
+        // Buffer if disk write fails.
+        _buffer.add(entry);
+      }
+      return;
     }
 
-    final List<Widget> tabs = [
-      HomeTab(onOpenChatThread: _openChatThread),
-      const TeamTaskTab(),
-      const ScheduleTab(),
-      const JournalTab(),
-      const GalleryTab(),
-      const MessengerTab(),
-    ];
+    // Not ready yet.
+    _buffer.add(entry);
+  }
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_open_rounded, size: 28, color: Colors.black87),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-        title: const Text(
-          "WORKNOTE Master",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 20),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active_outlined, color: Colors.black87),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      drawer: const MasterDrawer(),
-      body: tabs[_selectedIndex],
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(top: 4, bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, -2))],
-        ),
-        child: SafeArea(
-          child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              // [요구사항 1, 2] 비활성 탭 색상 진하게 변경 및 활성 탭 유지
-              labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12);
-                }
-                return const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 12);
-              }),
-              iconTheme: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return const IconThemeData(color: Color(0xFF2563EB));
-                }
-                return const IconThemeData(color: Colors.black87);
-              }),
-            ),
-            child: NavigationBar(
-              height: 60,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
-              indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.dashboard_outlined, size: 22), label: '홈'),
-                NavigationDestination(icon: Icon(Icons.check_circle_outline_rounded, size: 22), label: '업무'),
-                NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), label: '계획'),
-                NavigationDestination(icon: Icon(Icons.edit_note_rounded, size: 22), label: '일지'),
-                NavigationDestination(icon: Icon(Icons.photo_library_outlined, size: 22), label: '사진'),
-                NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded, size: 22), label: '소통'),
-              ],
-            ),
-          ),
-        ),
-      ),
+  /// Convenience helper for catching and persisting FlutterErrorDetails.
+  Future<void> recordFlutterError(FlutterErrorDetails details, {String? hint}) async {
+    final stack = details.stack ?? StackTrace.current;
+    await record(
+      details.exception,
+      stack,
+      hint: hint ?? details.context?.toDescription() ?? 'FlutterError',
+      severity: details.exceptionAsString().contains('RenderFlex') ? 'ui' : 'error',
     );
   }
+
+  /// Basic stats for UI.
+  int get count => _box?.length ?? 0;
+
+  /// Returns newest-first entries (best-effort).
+  List<Map> latest({int limit = 20}) {
+    final box = _box;
+    if (box == null || !box.isOpen) return const [];
+
+    final total = box.length;
+    final start = (total - limit).clamp(0, total);
+
+    final out = <Map>[];
+    for (var i = total - 1; i >= start; i--) {
+      final v = box.getAt(i);
+      if (v != null) out.add(v);
+    }
+    return out;
+  }
+
+  Future<void> clear() async {
+    final box = _box;
+    if (box == null || !box.isOpen) return;
+    await box.clear();
+  }
+}
+```
+
+---
+## 2. lib/data/migrations/hive_migrations.dart
+```dart
+import 'package:hive/hive.dart';
+
+/// Versioned Hive migrations.
+class HiveMigrations {
+  static const String metaBoxName = 'app_meta';
+  static const String schemaKey = 'schema_version';
+
+  /// Increment when a data migration is introduced.
+  static const int latestSchemaVersion = 2;
+
+  /// Runs required migrations exactly once per version.
+  static Future<void> run() async {
+    final meta = await Hive.openBox<int>(metaBoxName);
+    final current = meta.get(schemaKey, defaultValue: 1) ?? 1;
+
+    if (current >= latestSchemaVersion) return;
+
+    for (var v = current; v < latestSchemaVersion; v++) {
+      final next = v + 1;
+      await _migrate(v, next);
+      await meta.put(schemaKey, next);
+    }
+  }
+
+  static Future<void> _migrate(int from, int to) async {
+    // Add new migrations here.
+    if (from == 1 && to == 2) {
+      await _migrateTaskMetaScheduleDate();
+    }
+  }
+
+  /// Migrates legacy `scheduleDate` meta into `scheduleStart`/`scheduleEnd`.
+  static Future<void> _migrateTaskMetaScheduleDate() async {
+    // Meta box is untyped intentionally.
+    final metaBox = await Hive.openBox('task_meta');
+
+    // Iterate through all keys to find maps containing scheduleDate.
+    for (final dynamic key in metaBox.keys) {
+      final dynamic raw = metaBox.get(key);
+      if (raw is! Map) continue;
+
+      final map = Map<String, dynamic>.from(raw);
+      if (!map.containsKey('scheduleDate')) {
+        // Ensure defaults exist.
+        map.putIfAbsent('scheduleInclude', () => true);
+        await metaBox.put(key, map);
+        continue;
+      }
+
+      final sched = map['scheduleDate'];
+      map.remove('scheduleDate');
+
+      // Only write new fields if absent.
+      map.putIfAbsent('scheduleStart', () => sched);
+      map.putIfAbsent('scheduleEnd', () => sched);
+      map.putIfAbsent('scheduleInclude', () => true);
+
+      await metaBox.put(key, map);
+    }
+  }
+}
+```
+
+---
+## 3. lib/data/sync/sync_outbox.dart
+```dart
+import 'package:hive/hive.dart';
+
+/// Outbox pattern for eventual consistency / remote sync.
+class SyncOutbox {
+  SyncOutbox._();
+
+  static final SyncOutbox instance = SyncOutbox._();
+
+  static const String boxName = 'sync_outbox';
+
+  Box<Map>? _box;
+
+  bool get isReady => _box != null && _box!.isOpen;
+
+  Future<void> init() async {
+    if (isReady) return;
+    _box = await Hive.openBox<Map>(boxName);
+  }
+
+  Future<void> enqueue({
+    required String teamId,
+    required String entity,
+    required String action,
+    required String entityId,
+    Map<String, Object?> payload = const {},
+  }) async {
+    final entry = <String, dynamic>{
+      'ts': DateTime.now().toIso8601String(),
+      'teamId': teamId,
+      'entity': entity,
+      'action': action,
+      'entityId': entityId,
+      'payload': payload.map((k, v) => MapEntry(k, v?.toString() ?? '')),
+    };
+
+    if (!isReady) {
+      // Best effort: attempt to init lazily.
+      try {
+        await init();
+      } catch (_) {
+        return;
+      }
+    }
+
+    try {
+      await _box!.add(entry);
+    } catch (_) {
+      // Swallow: outbox should never crash UX.
+    }
+  }
+
+  int get count => _box?.length ?? 0;
+
+  Future<void> clear() async {
+    final box = _box;
+    if (box == null || !box.isOpen) return;
+    await box.clear();
+  }
+}
+```
+
+---
+## 4. lib/app/bootstrap.dart
+```dart
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import 'package:worknote/app/worknote_app.dart';
+import 'package:worknote/core/crash/crash_reporter.dart';
+import 'package:worknote/data/hive/hive_adapters.dart';
+import 'package:worknote/data/migrations/hive_migrations.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
+import 'package:worknote/domain/models.dart';
+import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/chat/state/chat_provider.dart';
+import 'package:worknote/features/journal/state/journal_provider.dart';
+import 'package:worknote/features/tasks/state/task_provider.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/features/schedule/state/schedule_provider.dart';
+
+void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
+  if (!Hive.isAdapterRegistered(adapter.typeId)) {
+    Hive.registerAdapter(adapter);
+  }
+}
+
+Future<void> bootstrap() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ko_KR', null);
+
+  await Hive.initFlutter();
+
+  // 1) Hive Adapters 등록
+  _safeRegisterAdapter(TaskPriorityAdapter());
+  _safeRegisterAdapter(TaskAdapter());
+  _safeRegisterAdapter(ProjectAdapter());
+  _safeRegisterAdapter(JournalEntryAdapter());
+  _safeRegisterAdapter(TeamAdapter());
+  _safeRegisterAdapter(AppUserAdapter());
+  _safeRegisterAdapter(ChatMessageAdapter());
+
+  // 2) Typed Boxes 오픈
+  await Hive.openBox<Task>('tasks');
+  await Hive.openBox<Project>('projects');
+  await Hive.openBox<JournalEntry>('journals');
+  await Hive.openBox<Team>('teams');
+  await Hive.openBox<AppUser>('users');
+  await Hive.openBox<ChatMessage>('messages');
+
+  // 3) Untyped/Meta Boxes 오픈
+  await Hive.openBox('settings');
+  await Hive.openBox('chat_threads');
+  await Hive.openBox('task_meta');
+  await Hive.openBox('journal_meta');
+  await Hive.openBox('schedules');
+
+  // 4) Infra boxes
+  await CrashReporter.instance.init();
+  await SyncOutbox.instance.init();
+
+  // 5) Migrations
+  await HiveMigrations.run();
+
+  // 6) Global error hooks
+  FlutterError.onError = (FlutterErrorDetails details) {
+    unawaited(CrashReporter.instance.recordFlutterError(details));
+    FlutterError.presentError(details);
+  };
+
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    unawaited(CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'));
+    return true;
+  };
+
+  // 7) Run app
+  runZonedGuarded(
+    () {
+      runApp(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => TeamProvider()..loadTeams()),
+            ChangeNotifierProvider(create: (_) => TaskProvider()..loadData()),
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
+            ChangeNotifierProvider(create: (_) => ChatProvider()),
+            ChangeNotifierProvider(create: (_) => ScheduleProvider()),
+          ],
+          child: const WorkNoteApp(),
+        ),
+      );
+    },
+    (Object error, StackTrace stack) {
+      unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
+    },
+  );
+}
+```
+
+---
+## 5. lib/features/tasks/state/task_provider.dart
+```dart
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
+import 'package:worknote/domain/models.dart';
+
+class TaskProvider extends ChangeNotifier {
+  TaskProvider();
+
+  // ---- In-memory data ----
+  List<Task> _tasks = [];
+  List<Project> _projects = [];
+
+  static const String _metaBoxName = 'task_meta';
+
+  // ---- Filters ----
+  String _projectIdFilter = 'all';
+  String _statusFilter = '전체';
+  TaskPriority? _priorityFilter;
+  DateFilter _dateFilter = DateFilter.all;
+  String _assigneeFilter = 'all';
+
+  // ---- Perf caches ----
+  final Map<String, List<Task>> _tasksForTeamCache = {};
+  String? _filteredCacheKey;
+  List<Task>? _filteredCache;
+  final Map<String, double> _projectProgressCache = {};
+
+  // ---- Exposed state ----
+  List<Task> get tasks => _tasks;
+  List<Project> get projects => _projects;
+
+  String get projectIdFilter => _projectIdFilter;
+  String get statusFilter => _statusFilter;
+  TaskPriority? get priorityFilter => _priorityFilter;
+  DateFilter get dateFilter => _dateFilter;
+  String get assigneeFilter => _assigneeFilter;
+
+  // ---- Hive helpers ----
+  Box? _metaBoxOrNull() {
+    if (Hive.isBoxOpen(_metaBoxName)) return Hive.box(_metaBoxName);
+    return null;
+  }
+
+  Future<Box> _ensureMetaBox() async {
+    if (Hive.isBoxOpen(_metaBoxName)) return Hive.box(_metaBoxName);
+    return Hive.openBox(_metaBoxName);
+  }
+
+  Future<Box<Task>> _ensureTaskBox() async {
+    if (Hive.isBoxOpen('tasks')) return Hive.box<Task>('tasks');
+    return Hive.openBox<Task>('tasks');
+  }
+
+  Future<Box<Project>> _ensureProjectBox() async {
+    if (Hive.isBoxOpen('projects')) return Hive.box<Project>('projects');
+    return Hive.openBox<Project>('projects');
+  }
+
+  void _invalidateAllCaches() {
+    _tasksForTeamCache.clear();
+    _filteredCacheKey = null;
+    _filteredCache = null;
+    _projectProgressCache.clear();
+  }
+
+  void _invalidateFilteredCache() {
+    _filteredCacheKey = null;
+    _filteredCache = null;
+  }
+
+  List<Task> tasksForTeam(String teamId) {
+    final cached = _tasksForTeamCache[teamId];
+    if (cached != null) return cached;
+    final list = _tasks.where((t) => t.teamId == teamId).toList();
+    _tasksForTeamCache[teamId] = list;
+    return list;
+  }
+
+  double projectProgress(String projectId, {String? teamId}) {
+    final cacheKey = '${teamId ?? '*'}|$projectId';
+    final cached = _projectProgressCache[cacheKey];
+    if (cached != null) return cached;
+
+    Iterable<Task> list = _tasks;
+    if (teamId != null) {
+      list = list.where((t) => t.teamId == teamId);
+    }
+    list = list.where((t) => t.projectId == projectId);
+
+    final items = list.toList();
+    if (items.isEmpty) {
+      _projectProgressCache[cacheKey] = 0;
+      return 0;
+    }
+    final done = items.where((t) => t.isDone).length;
+    final progress = done / items.length;
+    _projectProgressCache[cacheKey] = progress;
+    return progress;
+  }
+
+  void setProjectIdFilter(String? id) {
+    final next = id ?? _projectIdFilter;
+    if (_projectIdFilter == next) return;
+    _projectIdFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setStatusFilter(String? status) {
+    final next = status ?? _statusFilter;
+    if (_statusFilter == next) return;
+    _statusFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setPriorityFilter(TaskPriority? priority) {
+    if (_priorityFilter == priority) return;
+    _priorityFilter = priority;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setDateFilter(DateFilter? date) {
+    final next = date ?? _dateFilter;
+    if (_dateFilter == next) return;
+    _dateFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setAssigneeFilter(String? id) {
+    final next = id ?? _assigneeFilter;
+    if (_assigneeFilter == next) return;
+    _assigneeFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void resetTeamScopedFilters() {
+    _projectIdFilter = 'all';
+    _statusFilter = '전체';
+    _priorityFilter = null;
+    _dateFilter = DateFilter.all;
+    _assigneeFilter = 'all';
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  Map<String, dynamic> _metaMapOf(dynamic raw) {
+    if (raw is Map) {
+      final out = <String, dynamic>{};
+      for (final entry in raw.entries) {
+        final k = entry.key;
+        if (k is String) {
+          out[k] = entry.value;
+        }
+      }
+      return out;
+    }
+    return <String, dynamic>{};
+  }
+
+  Future<void> loadData() async {
+    final tbox = await _ensureTaskBox();
+    final pbox = await _ensureProjectBox();
+
+    _tasks = tbox.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _projects = pbox.values.toList();
+
+    _invalidateAllCaches();
+    unawaited(_ensureMetaBox().catchError((_) {}));
+    notifyListeners();
+  }
+
+  bool isIncludedInSchedule(String taskId) {
+    final box = _metaBoxOrNull();
+    if (box == null) {
+      unawaited(_ensureMetaBox().catchError((_) {}));
+      return true;
+    }
+    final raw = box.get(taskId);
+    if (raw is Map) return raw['scheduleInclude'] != false;
+    return true;
+  }
+
+  DateTimeRange? getScheduleRange(String taskId) {
+    final box = _metaBoxOrNull();
+    if (box == null) {
+      unawaited(_ensureMetaBox().catchError((_) {}));
+      return null;
+    }
+    final raw = box.get(taskId);
+    if (raw is Map) {
+      final start = DateTime.tryParse((raw['scheduleStart'] ?? '').toString());
+      final end = DateTime.tryParse((raw['scheduleEnd'] ?? '').toString());
+      if (start != null && end != null) return DateTimeRange(start: start, end: end);
+      final legacy = DateTime.tryParse((raw['scheduleDate'] ?? '').toString());
+      if (legacy != null) return DateTimeRange(start: legacy, end: legacy);
+    }
+    return null;
+  }
+
+  DateTime effectiveTimelineDate(Task task) => isIncludedInSchedule(task.id) ? (getScheduleRange(task.id)?.start ?? task.dueDate) : task.dueDate;
+  DateTimeRange? effectiveScheduleRange(Task task) => isIncludedInSchedule(task.id) ? (getScheduleRange(task.id) ?? DateTimeRange(start: task.dueDate, end: task.dueDate)) : null;
+
+  bool isScheduledOnDay(String taskId, DateTime day) {
+    if (!isIncludedInSchedule(taskId)) return false;
+    final range = getScheduleRange(taskId);
+    if (range == null) return false;
+    final d = DateTime(day.year, day.month, day.day);
+    final s = DateTime(range.start.year, range.start.month, range.start.day);
+    final e = DateTime(range.end.year, range.end.month, range.end.day);
+    return !d.isBefore(s) && !d.isAfter(e);
+  }
+
+  Future<void> setScheduleOptions({required String taskId, required bool includeInSchedule, DateTimeRange? range}) async {
+    final box = await _ensureMetaBox();
+    final current = box.get(taskId);
+    final next = _metaMapOf(current);
+    next['scheduleInclude'] = includeInSchedule;
+    next['scheduleStart'] = range?.start.toIso8601String();
+    next['scheduleEnd'] = range?.end.toIso8601String();
+    next.remove('scheduleDate');
+    await box.put(taskId, next);
+
+    try {
+      final t = (await _ensureTaskBox()).get(taskId);
+      unawaited(SyncOutbox.instance.enqueue(teamId: t?.teamId ?? 'unknown', entity: 'task', action: 'meta_schedule', entityId: taskId, payload: {'include': includeInSchedule.toString(), 'start': range?.start.toIso8601String() ?? '', 'end': range?.end.toIso8601String() ?? ''}));
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> addTask(Task t) async {
+    final box = await _ensureTaskBox();
+    await box.put(t.id, t);
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: t.teamId,
+      entity: 'task',
+      action: 'put',
+      entityId: t.id,
+      payload: t.toJson(),
+    ));
+
+    _tasks.add(t);
+    _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> updateTask(Task t) async {
+    final box = await _ensureTaskBox();
+    t.updatedAt = DateTime.now();
+    await box.put(t.id, t);
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: t.teamId,
+      entity: 'task',
+      action: 'put',
+      entityId: t.id,
+      payload: t.toJson(),
+    ));
+
+    final idx = _tasks.indexWhere((item) => item.id == t.id);
+    if (idx >= 0) _tasks[idx] = t;
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> updateTaskStatus(Task t, bool done) async {
+    t.isDone = done;
+    t.completedAt = done ? DateTime.now() : null;
+    t.updatedAt = DateTime.now();
+
+    final box = await _ensureTaskBox();
+    await box.put(t.id, t);
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: t.teamId,
+      entity: 'task',
+      action: 'status',
+      entityId: t.id,
+      payload: {'isDone': done.toString(), 'completedAt': t.completedAt?.toIso8601String() ?? ''},
+    ));
+
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> deleteTask(String id) async {
+    final box = await _ensureTaskBox();
+    final Task? before = box.get(id);
+    await box.delete(id);
+
+    try { final mbox = await _ensureMetaBox(); await mbox.delete(id); } catch (_) {}
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: before?.teamId ?? 'unknown',
+      entity: 'task',
+      action: 'delete',
+      entityId: id,
+      payload: {'title': before?.title ?? ''},
+    ));
+
+    _tasks.removeWhere((t) => t.id == id);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> addProject(Project p) async {
+    final box = await _ensureProjectBox();
+    await box.put(p.id, p);
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: p.teamId,
+      entity: 'project',
+      action: 'put',
+      entityId: p.id,
+      payload: p.toJson(),
+    ));
+
+    _projects.add(p);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> deleteProject(String id) async {
+    final box = await _ensureProjectBox();
+    final Project? before = box.get(id);
+    await box.delete(id);
+
+    unawaited(SyncOutbox.instance.enqueue(
+      teamId: before?.teamId ?? 'unknown',
+      entity: 'project',
+      action: 'delete',
+      entityId: id,
+      payload: {'name': before?.name ?? ''},
+    ));
+
+    _projects.removeWhere((p) => p.id == id);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  List<Task> getFilteredTasks(String currentTeamId, {String? myId}) {
+    final cacheKey = [currentTeamId, _projectIdFilter, _statusFilter, _priorityFilter?.name ?? 'all', _dateFilter.name, _assigneeFilter, myId ?? '', _tasks.length.toString()].join('|');
+    if (_filteredCacheKey == cacheKey && _filteredCache != null) return _filteredCache!;
+
+    final now = DateTime.now();
+    DateTime? from;
+    switch (_dateFilter) {
+      case DateFilter.all: from = null; break;
+      case DateFilter.today: from = DateTime(now.year, now.month, now.day); break;
+      case DateFilter.week: from = now.subtract(const Duration(days: 7)); break;
+      case DateFilter.twoWeeks: from = now.subtract(const Duration(days: 14)); break;
+      case DateFilter.oneMonth: from = now.subtract(const Duration(days: 30)); break;
+    }
+
+    final list = _tasks.where((t) {
+      if (t.teamId != currentTeamId) return false;
+      if (_projectIdFilter != 'all') {
+        if (_projectIdFilter == 'none') { if (t.projectId != null) return false; }
+        else { if (t.projectId != _projectIdFilter) return false; }
+      }
+      if (_statusFilter == '진행 중' && t.isDone) return false;
+      if (_statusFilter == '완료됨' && !t.isDone) return false;
+      if (_priorityFilter != null && t.priority != _priorityFilter) return false;
+      if (_assigneeFilter != 'all') {
+        final filterId = (_assigneeFilter == 'me') ? (myId ?? 'me') : _assigneeFilter;
+        if (t.assigneeId != filterId && !t.assigneeIds.contains(filterId)) return false;
+      }
+      if (from != null && t.createdAt.isBefore(from)) return false;
+      return true;
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    _filteredCacheKey = cacheKey;
+    _filteredCache = list;
+    return list;
+  }
+
+  String getProjectName(String? id) {
+    if (id == null || id == 'none') return '없음';
+    if (id == 'all') return '전체';
+    return _projects.firstWhere((p) => p.id == id, orElse: () => Project(id: '', teamId: '', name: '알 수 없음', colorValue: 0)).name;
+  }
+}
+```
+
+---
+## 6. lib/features/journal/state/journal_provider.dart
+```dart
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
+import 'package:worknote/domain/models.dart';
+import 'package:worknote/data/services/drive_service.dart';
+import 'package:collection/collection.dart';
+
+class JournalProvider extends ChangeNotifier {
+  final DriveService _driveService = DriveService();
+
+  Box get _metaBox => Hive.box('journal_meta');
+
+  List<JournalEntry> _journals = [];
+  bool _isLoading = false;
+
+  List<JournalEntry> get journals => _journals;
+  bool get isLoading => _isLoading;
+
+  JournalKind getKind(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) {
+      final k = raw['kind']?.toString();
+      return JournalKind.values.firstWhere(
+        (e) => e.name == k,
+        orElse: () => JournalKind.note,
+      );
+    }
+    return JournalKind.note;
+  }
+
+  String? getRelatedTaskId(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) return raw['relatedTaskId']?.toString();
+    return null;
+  }
+
+  List<Map<String, dynamic>> getProgressUpdates(String journalId) {
+    final raw = _metaBox.get(journalId);
+    if (raw is Map) {
+      final list = raw['progressUpdates'];
+      if (list is List) {
+        return list
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m.cast()))
+            .toList();
+      }
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<void> setMeta(
+    String journalId, {
+    required JournalKind kind,
+    String? relatedTaskId,
+  }) async {
+    final current = _metaBox.get(journalId);
+    final Map<String, dynamic> next = (current is Map)
+        ? Map<String, dynamic>.from(current.cast())
+        : <String, dynamic>{};
+
+    next['kind'] = kind.name;
+    next['relatedTaskId'] = relatedTaskId;
+    next.putIfAbsent('progressUpdates', () => <Map<String, dynamic>>[]);
+
+    await _metaBox.put(journalId, next);
+    notifyListeners();
+  }
+
+  Future<void> addProgressUpdate({
+    required String journalId,
+    required String text,
+    required String userId,
+    required String userName,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    final current = _metaBox.get(journalId);
+    final Map<String, dynamic> next = (current is Map)
+        ? Map<String, dynamic>.from(current.cast())
+        : <String, dynamic>{};
+
+    final List<Map<String, dynamic>> updates = (next['progressUpdates'] is List)
+        ? (next['progressUpdates'] as List)
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m.cast()))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    updates.add({
+      'id': '${DateTime.now().microsecondsSinceEpoch}',
+      'text': trimmed,
+      'at': DateTime.now().toIso8601String(),
+      'userId': userId,
+      'userName': userName,
+    });
+
+    next['progressUpdates'] = updates;
+    await _metaBox.put(journalId, next);
+
+    final idx = _journals.indexWhere((j) => j.id == journalId);
+    if (idx >= 0) {
+      final j = _journals[idx];
+      j.updatedAt = DateTime.now();
+      await Hive.box<JournalEntry>('journals').put(j.id, j);
+    }
+
+    notifyListeners();
+  }
+
+  Map<String, List<JournalEntry>> getGroupedJournals(String teamId) {
+    final filtered = _journals.where((j) => j.teamId == teamId).toList();
+    return groupBy(filtered, (JournalEntry j) => j.date.toIso8601String().substring(0, 10));
+  }
+
+  Future<void> loadJournals() async {
+    _isLoading = true;
+    notifyListeners();
+    var box = Hive.box<JournalEntry>('journals');
+    _journals = box.values.toList();
+    _journals.sort((a, b) => b.date.compareTo(a.date));
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> updateJournal(JournalEntry entry) async {
+    final box = Hive.box<JournalEntry>('journals');
+    entry.updatedAt = DateTime.now();
+    await box.put(entry.id, entry);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: entry.teamId,
+        entity: 'journal',
+        action: 'put',
+        entityId: entry.id,
+        payload: {
+          'title': entry.title,
+          'date': entry.date.toIso8601String(),
+        },
+      ),
+    );
+
+    final idx = _journals.indexWhere((j) => j.id == entry.id);
+    if (idx >= 0) _journals[idx] = entry;
+    _journals.sort((a, b) => b.date.compareTo(a.date));
+    notifyListeners();
+  }
+
+  Future<void> deleteJournal(String journalId) async {
+    final box = Hive.box<JournalEntry>('journals');
+    final before = box.get(journalId);
+
+    await box.delete(journalId);
+    await _metaBox.delete(journalId);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: before?.teamId ?? 'unknown',
+        entity: 'journal',
+        action: 'delete',
+        entityId: journalId,
+        payload: {
+          'title': before?.title ?? '',
+        },
+      ),
+    );
+
+    _journals.removeWhere((j) => j.id == journalId);
+    notifyListeners();
+  }
+
+  Future<void> addJournal(JournalEntry entry) async {
+    var box = Hive.box<JournalEntry>('journals');
+    await box.put(entry.id, entry);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: entry.teamId,
+        entity: 'journal',
+        action: 'put',
+        entityId: entry.id,
+        payload: {
+          'title': entry.title,
+          'date': entry.date.toIso8601String(),
+        },
+      ),
+    );
+
+    _journals.insert(0, entry);
+    notifyListeners();
+  }
+}
+```
+
+---
+## 7. lib/features/chat/state/chat_provider.dart
+```dart
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
+import 'package:worknote/domain/models.dart';
+import 'package:worknote/data/services/drive_service.dart';
+
+class ChatProvider extends ChangeNotifier {
+  final DriveService _driveService = DriveService();
+  List<ChatMessage> _allMessages = [];
+  Timer? _pollingTimer;
+
+  String _activeThreadId = 'default';
+  String? _activeThreadTitle;
+
+  String get activeThreadId => _activeThreadId;
+  String get activeThreadTitle => _activeThreadTitle ?? '대화방';
+
+  String _inferTeamIdFromThreadId(String threadId) {
+    final parts = threadId.split('_');
+    if (parts.length >= 2 && parts[1].isNotEmpty) return parts[1];
+    return 'unknown';
+  }
+
+  ChatProvider() {
+    _loadLocal();
+  }
+
+  void _loadLocal() {
+    try {
+      _allMessages = Hive.box<ChatMessage>('messages').values.toList();
+    } catch (_) {
+      _allMessages = [];
+    }
+  }
+
+  void reloadLocal() {
+    _loadLocal();
+    notifyListeners();
+  }
+
+  void setActiveThread(String threadId, {String? title}) {
+    _activeThreadId = threadId;
+    _activeThreadTitle = title;
+    notifyListeners();
+  }
+
+  List<ChatMessage> getMessages(String threadId) {
+    return _allMessages.where((m) => m.teamId == threadId).toList()
+      ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+  }
+
+  String dmThreadId(String teamId, String uid1, String uid2) {
+    final ids = [uid1, uid2]..sort();
+    return 'dm_${teamId}_${ids[0]}_${ids[1]}';
+  }
+
+  Future<String> createGroupThread({
+    required String teamId,
+    required String title,
+    required List<String> memberIds,
+  }) async {
+    final threadId = 'grp_${teamId}_${const Uuid().v4()}';
+    final threadData = {
+      'id': threadId,
+      'teamId': teamId,
+      'type': 'group',
+      'title': title,
+      'memberIds': memberIds,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+    await Hive.box('chat_threads').put(threadId, threadData);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: teamId,
+        entity: 'chat_thread',
+        action: 'put',
+        entityId: threadId,
+        payload: {
+          'type': 'group',
+          'title': title,
+          'memberCount': memberIds.length.toString(),
+        },
+      ),
+    );
+
+    notifyListeners();
+    return threadId;
+  }
+
+  Future<void> renameGroupThread(String threadId, String newTitle) async {
+    final box = Hive.box('chat_threads');
+    final Map<String, dynamic>? data = box.get(threadId) != null ? Map<String, dynamic>.from(box.get(threadId)) : null;
+    if (data != null) {
+      data['title'] = newTitle;
+      await box.put(threadId, data);
+
+      unawaited(
+        SyncOutbox.instance.enqueue(
+          teamId: (data['teamId'] ?? 'unknown').toString(),
+          entity: 'chat_thread',
+          action: 'rename',
+          entityId: threadId,
+          payload: {
+            'title': newTitle,
+          },
+        ),
+      );
+
+      if (_activeThreadId == threadId) _activeThreadTitle = newTitle;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteGroupThread(String threadId, {bool clearMessages = true}) async {
+    final box = Hive.box('chat_threads');
+    final dynamic raw = box.get(threadId);
+    final Map<String, dynamic>? data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+
+    await box.delete(threadId);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: (data?['teamId'] ?? _inferTeamIdFromThreadId(threadId)).toString(),
+        entity: 'chat_thread',
+        action: 'delete',
+        entityId: threadId,
+        payload: {
+          'clearMessages': clearMessages.toString(),
+        },
+      ),
+    );
+
+    if (clearMessages) {
+      await clearThreadMessages(threadId);
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> clearThreadMessages(String threadId) async {
+    _allMessages = _allMessages.where((m) => m.teamId != threadId).toList();
+    final box = Hive.box<ChatMessage>('messages');
+    await box.clear();
+    for (final m in _allMessages) {
+      await box.put(m.id, m);
+    }
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: _inferTeamIdFromThreadId(threadId),
+        entity: 'chat_message',
+        action: 'clear_thread',
+        entityId: threadId,
+        payload: const {},
+      ),
+    );
+
+    notifyListeners();
+    await _sync();
+  }
+
+  List<Map<String, dynamic>> getGroupThreads(String teamId) {
+    final box = Hive.box('chat_threads');
+    return box.values
+        .where((t) => t['teamId'] == teamId && t['type'] == 'group')
+        .map((t) => Map<String, dynamic>.from(t))
+        .toList();
+  }
+
+  void startPolling() {
+    _pollingTimer?.cancel();
+    _sync();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _sync());
+  }
+
+  void stopPolling() {
+    _pollingTimer?.cancel();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> sendMessage(String threadId, String content, String senderId, String senderName) async {
+    final newMsg = ChatMessage(
+      id: const Uuid().v4(),
+      teamId: threadId,
+      senderId: senderId,
+      senderName: senderName,
+      content: content,
+      sentAt: DateTime.now(),
+    );
+
+    _allMessages.add(newMsg);
+
+    try {
+      await Hive.box<ChatMessage>('messages').put(newMsg.id, newMsg);
+    } catch (_) {}
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: _inferTeamIdFromThreadId(threadId),
+        entity: 'chat_message',
+        action: 'put',
+        entityId: newMsg.id,
+        payload: {
+          'threadId': threadId,
+          'senderId': senderId,
+          'senderName': senderName,
+          'content': content,
+          'sentAt': newMsg.sentAt.toIso8601String(),
+        },
+      ),
+    );
+
+    notifyListeners();
+    await _sync();
+  }
+
+  Future<void> _sync() async {
+    if (!_driveService.isReady) return;
+    final data = await _driveService.syncJsonData(
+        _allMessages.map((e) => e.toJson()).toList(), 'worknote_chats.json');
+    if (data == null) return;
+
+    _allMessages = data.map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e))).toList();
+
+    final box = Hive.box<ChatMessage>('messages');
+    await box.clear();
+    for (final m in _allMessages) {
+      await box.put(m.id, m);
+    }
+
+    notifyListeners();
+  }
+}
+```
+
+---
+## 8. lib/domain/models.dart
+```dart
+import 'package:flutter/material.dart';
+
+enum TaskPriority { high, medium, low, none }
+enum AppTone { white, blue, black }
+enum DateFilter { all, today, week, twoWeeks, oneMonth }
+enum JournalGroupPeriod { day, week, month, quarter, year }
+enum JournalKind { note, progress, completionReport }
+
+class Team {
+  final String id;
+  String name;
+  String inviteCode;
+  List<String> memberIds;
+  Map<String, String> memberRoles;
+
+  Team({
+    required this.id,
+    required this.name,
+    required this.inviteCode,
+    required this.memberIds,
+    Map<String, String>? memberRoles,
+  }) : memberRoles = memberRoles ?? {};
+
+  factory Team.fromJson(Map<String, dynamic> json) => Team(
+        id: (json['id'] ?? '').toString(),
+        name: (json['name'] ?? '').toString(),
+        inviteCode: (json['inviteCode'] ?? '').toString(),
+        memberIds: List<String>.from(json['memberIds'] ?? []),
+        memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
+      );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'name': name, 'inviteCode': inviteCode, 'memberIds': memberIds, 'memberRoles': memberRoles,
+  };
+}
+
+class Project {
+  final String id;
+  final String teamId;
+  final String name;
+  final int colorValue;
+
+  Project({required this.id, required this.teamId, required this.name, required this.colorValue});
+
+  Color get color => Color(colorValue);
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+    id: json['id'],
+    teamId: json['teamId'] ?? 'default',
+    name: json['name'],
+    colorValue: json['colorValue'] ?? 0xFF2196F3,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'teamId': teamId, 'name': name, 'colorValue': colorValue,
+  };
+}
+
+class AppUser {
+  final String id, password;
+  String name;
+  String? profileImage;
+
+  AppUser({required this.id, required this.password, required this.name, this.profileImage});
+
+  factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
+    id: json['id'], password: json['password'], name: json['name'], profileImage: json['profileImage'],
+  );
+
+  Map<String, dynamic> toJson() => { 'id': id, 'password': password, 'name': name, 'profileImage': profileImage };
+}
+
+class Task {
+  final String id, teamId;
+  String title;
+  final String creatorId, creatorName;
+  final String assigneeId, assigneeName, assigneeEmoji;
+  final List<String> assigneeIds, assigneeNames, assigneeEmojis;
+  String? projectId;
+  final DateTime createdAt, dueDate;
+  DateTime updatedAt;
+  DateTime? completedAt;
+  bool isDone;
+  TaskPriority priority;
+  List<String> taskNotes;
+  String? completionReport;
+
+  Task({
+    required this.id, required this.teamId, required this.title,
+    required this.creatorId, required this.creatorName,
+    required this.assigneeId, required this.assigneeName, required this.assigneeEmoji,
+    this.assigneeIds = const [], this.assigneeNames = const [], this.assigneeEmojis = const [],
+    this.projectId,
+    required this.createdAt, required this.dueDate, DateTime? updatedAt,
+    this.completedAt, this.isDone = false, this.priority = TaskPriority.none,
+    List<String>? taskNotes, this.completionReport,
+  }) : taskNotes = taskNotes ?? [], updatedAt = updatedAt ?? createdAt;
+
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+        id: (json['id'] ?? '').toString(),
+        teamId: (json['teamId'] ?? 'default').toString(),
+        title: (json['title'] ?? '').toString(),
+        creatorId: (json['creatorId'] ?? 'unknown').toString(),
+        creatorName: (json['creatorName'] ?? '작성자').toString(),
+        assigneeId: (json['assigneeId'] ?? '').toString(),
+        assigneeName: (json['assigneeName'] ?? '').toString(),
+        assigneeEmoji: (json['assigneeEmoji'] ?? '👤').toString(),
+        assigneeIds: List<String>.from(json['assigneeIds'] ?? const []),
+        assigneeNames: List<String>.from(json['assigneeNames'] ?? const []),
+        assigneeEmojis: List<String>.from(json['assigneeEmojis'] ?? const []),
+        projectId: json['projectId']?.toString(),
+        createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
+        dueDate: DateTime.tryParse((json['dueDate'] ?? '').toString()) ?? DateTime.now(),
+        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()),
+        completedAt: json['completedAt'] != null ? DateTime.tryParse(json['completedAt'].toString()) : null,
+        isDone: (json['isDone'] ?? false) == true,
+        priority: _safePriority(json['priority']),
+        taskNotes: List<String>.from(json['taskNotes'] ?? const []),
+        completionReport: json['completionReport']?.toString(),
+      );
+
+  static TaskPriority _safePriority(dynamic raw) {
+    final idx = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+    if (idx == null) return TaskPriority.none;
+    if (idx < 0 || idx >= TaskPriority.values.length) return TaskPriority.none;
+    return TaskPriority.values[idx];
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'teamId': teamId, 'title': title,
+    'creatorId': creatorId, 'creatorName': creatorName,
+    'assigneeId': assigneeId, 'assigneeName': assigneeName, 'assigneeEmoji': assigneeEmoji,
+    'assigneeIds': assigneeIds, 'assigneeNames': assigneeNames, 'assigneeEmojis': assigneeEmojis,
+    'projectId': projectId, 'createdAt': createdAt.toIso8601String(), 'dueDate': dueDate.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(), 'completedAt': completedAt?.toIso8601String(), 'isDone': isDone,
+    'priority': priority.index, 'taskNotes': taskNotes, 'completionReport': completionReport,
+  };
+}
+
+class JournalEntry {
+  final String id, teamId, userId, userName, title, content;
+  String? projectId;
+  final DateTime date;
+  DateTime updatedAt;
+  final List<String> photos;
+  bool isPrivate;
+
+  JournalEntry({
+    required this.id, required this.teamId, required this.userId, required this.userName,
+    required this.title, required this.content, this.projectId,
+    required this.date, DateTime? updatedAt, required this.photos,
+    this.isPrivate = false,
+  }) : updatedAt = updatedAt ?? date;
+
+  factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
+        id: (json['id'] ?? '').toString(),
+        teamId: (json['teamId'] ?? 'default').toString(),
+        userId: (json['userId'] ?? '').toString(),
+        userName: (json['userName'] ?? '').toString(),
+        title: (json['title'] ?? '').toString(),
+        content: (json['content'] ?? '').toString(),
+        projectId: json['projectId']?.toString(),
+        date: DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
+        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()) ??
+            (DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now()),
+        photos: List<String>.from(json['photos'] ?? const []),
+        isPrivate: (json['isPrivate'] ?? false) == true,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'teamId': teamId, 'userId': userId, 'userName': userName, 'title': title,
+    'content': content, 'projectId': projectId, 'date': date.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(), 'photos': photos, 'isPrivate': isPrivate,
+  };
+}
+
+class ChatMessage {
+  final String id, teamId, senderId, senderName, content;
+  final DateTime sentAt;
+
+  ChatMessage({required this.id, required this.teamId, required this.senderId, required this.senderName, required this.content, required this.sentAt});
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+    id: json['id'], teamId: json['teamId'], senderId: json['senderId'], senderName: json['senderName'], content: json['content'], sentAt: DateTime.parse(json['sentAt']),
+  );
+
+  Map<String, dynamic> toJson() => { 'id': id, 'teamId': teamId, 'senderId': senderId, 'senderName': senderName, 'content': content, 'sentAt': sentAt.toIso8601String() };
 }
 ```

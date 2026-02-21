@@ -8,6 +8,7 @@ import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/team/ui/team_management_page.dart';
 import 'package:worknote/data/services/app_reset_service.dart';
+import 'package:worknote/features/admin/ui/system_monitor_page.dart';
 
 class MasterDrawer extends StatelessWidget {
   const MasterDrawer({super.key});
@@ -70,6 +71,16 @@ class MasterDrawer extends StatelessWidget {
           _drawerItem(Icons.palette_outlined, "테마 설정", () => _showThemeDialog(context, teamProv)),
 
           _drawerItem(Icons.restart_alt_rounded, "앱 초기화", () => _showResetDialog(context), color: Colors.deepOrange),
+          
+          // ✨ 시스템 모니터링 진입점 추가
+          _drawerItem(Icons.monitor_heart_rounded, "시스템 모니터링 (관리자)", () {
+            Navigator.pop(context); // 서랍 닫기
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SystemMonitorPage()),
+            );
+          }, color: Colors.blueGrey),
+
           const Divider(indent: 20, endIndent: 20),
 
           Expanded(

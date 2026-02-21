@@ -92,6 +92,7 @@ Future<void> showTaskScheduleSheet({
                                 initialDateRange: range,
                               );
                               if (picked != null) {
+                                if (!ctx.mounted) return;
                                 setModalState(() => range = picked);
                                 await persist();
                               }

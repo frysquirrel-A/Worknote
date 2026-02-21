@@ -16,7 +16,16 @@ class TaskCard extends StatelessWidget {
     final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
     final scheduleRange = taskProv.effectiveScheduleRange(task);
     
-    final project = taskProv.projects.where((p) => p.id == task.projectId).firstOrNull;
+    Project? project;
+    final pid = task.projectId;
+    if (pid != null) {
+      for (final p in taskProv.projects) {
+        if (p.id == pid) {
+          project = p;
+          break;
+        }
+      }
+    }
     final projectName = project?.name ?? '일반 업무';
 
     return Container(

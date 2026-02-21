@@ -24,6 +24,8 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _didMigrateLegacy = false;
+  AuthProvider? _authProv;
+  TeamProvider? _teamProv;
 
   void _openChatThread(String threadId, String? title) {
     context.read<ChatProvider>().setActiveThread(threadId, title: title ?? '채팅');
@@ -31,16 +33,38 @@ class _MainShellState extends State<MainShell> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final teamProv = context.watch<TeamProvider>();
-    final authProv = context.watch<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-    if (!_didMigrateLegacy && authProv.currentUser != null) {
-      _didMigrateLegacy = true;
-      Future.microtask(() => teamProv.migrateLegacyMeToUser(myId));
+    _teamProv ??= context.read<TeamProvider>();
+
+    final auth = context.read<AuthProvider>();
+    if (_authProv != auth) {
+      _authProv?.removeListener(_maybeMigrateLegacy);
+      _authProv = auth;
+      _authProv?.addListener(_maybeMigrateLegacy);
     }
 
+    _maybeMigrateLegacy();
+  }
+
+  void _maybeMigrateLegacy() {
+    if (_didMigrateLegacy) return;
+    final user = _authProv?.currentUser;
+    if (user == null) return;
+    _didMigrateLegacy = true;
+    final myId = user.id;
+    Future.microtask(() => _teamProv?.migrateLegacyMeToUser(myId));
+  }
+
+  @override
+  void dispose() {
+    _authProv?.removeListener(_maybeMigrateLegacy);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final List<Widget> tabs = [
       HomeTab(onOpenChatThread: _openChatThread),
       const TeamTaskTab(),

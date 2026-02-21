@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
 import 'package:worknote/domain/models.dart';
 
 class TaskProvider extends ChangeNotifier {
+  TaskProvider();
+
+  // ---- In-memory data ----
   List<Task> _tasks = [];
   List<Project> _projects = [];
 
@@ -10,20 +16,38 @@ class TaskProvider extends ChangeNotifier {
   /// We store data that we want to evolve without breaking Hive TypeAdapters.
   ///
   /// Schema (value: Map):
-  /// - includeInSchedule: bool
+  /// - scheduleInclude: bool
   /// - scheduleStart: String(ISO8601) or null
   /// - scheduleEnd: String(ISO8601) or null
   /// - (legacy) scheduleDate: String(ISO8601)
   /// - completionReportAt: String(ISO8601) or null
   static const String _metaBoxName = 'task_meta';
 
-  /// meta 박스는 bootstrap 단계에서 open되도록 되어 있지만,
-  /// 핫리스타트/초기화 타이밍 등으로 간헐적으로 open 이전에 접근하는 케이스가
-  /// 발생할 수 있습니다. ("Box not found" 크래시)
-  ///
-  /// - 동기 접근이 필요한 곳에서는 box가 준비되지 않았을 경우 "기본값"으로
-  ///   동작하도록 처리하고,
-  /// - 비동기 작업(put 등)에서는 필요 시 openBox를 보장합니다.
+  // ---- Filters ----
+  String _projectIdFilter = 'all';
+  String _statusFilter = '전체';
+  TaskPriority? _priorityFilter;
+  DateFilter _dateFilter = DateFilter.all;
+  String _assigneeFilter = 'all';
+
+  // ---- Perf caches ----
+  // build() 반복 호출 시 동일 필터/팀 조합에 대해 매번 where/sort를 반복하지 않도록 방어
+  final Map<String, List<Task>> _tasksForTeamCache = {};
+  String? _filteredCacheKey;
+  List<Task>? _filteredCache;
+  final Map<String, double> _projectProgressCache = {};
+
+  // ---- Exposed state ----
+  List<Task> get tasks => _tasks;
+  List<Project> get projects => _projects;
+
+  String get projectIdFilter => _projectIdFilter;
+  String get statusFilter => _statusFilter;
+  TaskPriority? get priorityFilter => _priorityFilter;
+  DateFilter get dateFilter => _dateFilter;
+  String get assigneeFilter => _assigneeFilter;
+
+  // ---- Hive helpers (box not open 크래시 방지) ----
   Box? _metaBoxOrNull() {
     if (Hive.isBoxOpen(_metaBoxName)) return Hive.box(_metaBoxName);
     return null;
@@ -34,45 +58,139 @@ class TaskProvider extends ChangeNotifier {
     return Hive.openBox(_metaBoxName);
   }
 
-  String _projectIdFilter = 'all';
-  String _statusFilter = '전체';
-  TaskPriority? _priorityFilter;
-  DateFilter _dateFilter = DateFilter.all;
-  String _assigneeFilter = 'all';
+  Future<Box<Task>> _ensureTaskBox() async {
+    if (Hive.isBoxOpen('tasks')) return Hive.box<Task>('tasks');
+    return Hive.openBox<Task>('tasks');
+  }
 
-  List<Task> get tasks => _tasks;
-  List<Project> get projects => _projects;
-  String get projectIdFilter => _projectIdFilter;
-  String get statusFilter => _statusFilter;
-  TaskPriority? get priorityFilter => _priorityFilter;
-  DateFilter get dateFilter => _dateFilter;
-  String get assigneeFilter => _assigneeFilter;
+  Future<Box<Project>> _ensureProjectBox() async {
+    if (Hive.isBoxOpen('projects')) return Hive.box<Project>('projects');
+    return Hive.openBox<Project>('projects');
+  }
 
-  /// 홈 탭 등에서 간단 통계/리스트를 만들 때 사용합니다.
-  /// (현재 필터 UI 상태와 무관하게 팀 기준으로 전체 업무를 반환)
+  void _invalidateAllCaches() {
+    _tasksForTeamCache.clear();
+    _filteredCacheKey = null;
+    _filteredCache = null;
+    _projectProgressCache.clear();
+  }
+
+  void _invalidateFilteredCache() {
+    _filteredCacheKey = null;
+    _filteredCache = null;
+  }
+
+  // ---- Simple queries used by Home tab ----
   List<Task> tasksForTeam(String teamId) {
-    return _tasks.where((t) => t.teamId == teamId).toList();
+    final cached = _tasksForTeamCache[teamId];
+    if (cached != null) return cached;
+    final list = _tasks.where((t) => t.teamId == teamId).toList();
+    _tasksForTeamCache[teamId] = list;
+    return list;
   }
 
   /// 프로젝트별 진행률(0.0~1.0)
-  double projectProgress(String projectId) {
-    final list = _tasks.where((t) => t.projectId == projectId).toList();
-    if (list.isEmpty) return 0;
-    final done = list.where((t) => t.isDone).length;
-    return done / list.length;
+  /// - teamId를 넘기면 팀 간 데이터 오염을 원천 차단
+  double projectProgress(String projectId, {String? teamId}) {
+    final cacheKey = '${teamId ?? '*'}|$projectId';
+    final cached = _projectProgressCache[cacheKey];
+    if (cached != null) return cached;
+
+    Iterable<Task> list = _tasks;
+    if (teamId != null) {
+      list = list.where((t) => t.teamId == teamId);
+    }
+    list = list.where((t) => t.projectId == projectId);
+
+    final items = list.toList();
+    if (items.isEmpty) {
+      _projectProgressCache[cacheKey] = 0;
+      return 0;
+    }
+    final done = items.where((t) => t.isDone).length;
+    final progress = done / items.length;
+    _projectProgressCache[cacheKey] = progress;
+    return progress;
   }
 
-  // [수정] 각 필터 독립 함수 (간섭 방지)
-  void setProjectIdFilter(String? id) { if (id != null) _projectIdFilter = id; notifyListeners(); }
-  void setStatusFilter(String? status) { if (status != null) _statusFilter = status; notifyListeners(); }
-  void setPriorityFilter(TaskPriority? priority) { _priorityFilter = priority; notifyListeners(); }
-  void setDateFilter(DateFilter? date) { if (date != null) _dateFilter = date; notifyListeners(); }
-  void setAssigneeFilter(String? id) { if (id != null) _assigneeFilter = id; notifyListeners(); }
+  // ---- Filter setters (중복 notify / 쓸데없는 rebuild 방지) ----
+  void setProjectIdFilter(String? id) {
+    final next = id ?? _projectIdFilter;
+    if (_projectIdFilter == next) return;
+    _projectIdFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
 
+  void setStatusFilter(String? status) {
+    final next = status ?? _statusFilter;
+    if (_statusFilter == next) return;
+    _statusFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setPriorityFilter(TaskPriority? priority) {
+    if (_priorityFilter == priority) return;
+    _priorityFilter = priority;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setDateFilter(DateFilter? date) {
+    final next = date ?? _dateFilter;
+    if (_dateFilter == next) return;
+    _dateFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  void setAssigneeFilter(String? id) {
+    final next = id ?? _assigneeFilter;
+    if (_assigneeFilter == next) return;
+    _assigneeFilter = next;
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+  /// 팀 전환 시 이전 팀의 필터가 남아 데이터가 "없는 것처럼" 보이는 현상 방지
+  void resetTeamScopedFilters() {
+    _projectIdFilter = 'all';
+    _statusFilter = '전체';
+    _priorityFilter = null;
+    _dateFilter = DateFilter.all;
+    _assigneeFilter = 'all';
+    _invalidateFilteredCache();
+    notifyListeners();
+  }
+
+    Map<String, dynamic> _metaMapOf(dynamic raw) {
+    if (raw is Map) {
+      final out = <String, dynamic>{};
+      for (final entry in raw.entries) {
+        final k = entry.key;
+        if (k is String) {
+          out[k] = entry.value;
+        }
+      }
+      return out;
+    }
+    return <String, dynamic>{};
+  }
+
+// ---- Loading ----
   Future<void> loadData() async {
-    _tasks = Hive.box<Task>('tasks').values.toList();
-    _projects = Hive.box<Project>('projects').values.toList();
-    _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final tbox = await _ensureTaskBox();
+    final pbox = await _ensureProjectBox();
+
+    _tasks = tbox.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _projects = pbox.values.toList();
+
+    _invalidateAllCaches();
+
+    // meta 박스 warm-up (Box not found 크래시 방지)
+    unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
+
     notifyListeners();
   }
 
@@ -82,19 +200,19 @@ class TaskProvider extends ChangeNotifier {
     if (box == null) {
       // 박스가 아직 열리지 않은 경우(핫리스타트/초기화 타이밍 등) 크래시 방지.
       // meta 데이터가 없던 시절(legacy)처럼 "일단 포함"으로 동작.
-      _ensureMetaBox().then((_) {}, onError: (_) {});
+      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
       return true;
     }
 
     final raw = box.get(taskId);
-    if (raw is Map) return raw['includeInSchedule'] == true;
+    if (raw is Map) return raw['scheduleInclude'] != false;
     return true; // legacy behavior: tasks were always visible on schedule
   }
 
   DateTimeRange? getScheduleRange(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      _ensureMetaBox().then((_) {}, onError: (_) {});
+      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
       return null;
     }
 
@@ -147,24 +265,44 @@ class TaskProvider extends ChangeNotifier {
   }) async {
     final box = await _ensureMetaBox();
     final current = box.get(taskId);
-    final Map<String, dynamic> next = (current is Map)
-        ? Map<String, dynamic>.from(current.cast())
-        : <String, dynamic>{};
+    final next = _metaMapOf(current);
 
-    next['includeInSchedule'] = includeInSchedule;
+    next['scheduleInclude'] = includeInSchedule;
+    next.remove('includeInSchedule'); // backward cleanup
     next['scheduleStart'] = range?.start.toIso8601String();
     next['scheduleEnd'] = range?.end.toIso8601String();
     // Remove legacy field to avoid confusion
     next.remove('scheduleDate');
 
     await box.put(taskId, next);
+
+    // Outbox: schedule meta change ("계획" 반영)
+    try {
+      final t = (await _ensureTaskBox()).get(taskId);
+      unawaited(
+        SyncOutbox.instance.enqueue(
+          teamId: t?.teamId ?? 'unknown',
+          entity: 'task',
+          action: 'meta_schedule',
+          entityId: taskId,
+          payload: {
+            'include': includeInSchedule.toString(),
+            'start': range?.start.toIso8601String() ?? '',
+            'end': range?.end.toIso8601String() ?? '',
+          },
+        ),
+      );
+    } catch (_) {
+      // no-op
+    }
+
     notifyListeners();
   }
 
   DateTime? getCompletionReportAt(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      _ensureMetaBox().then((_) {}, onError: (_) {});
+      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
       return null;
     }
 
@@ -180,16 +318,73 @@ class TaskProvider extends ChangeNotifier {
   Future<void> setCompletionReportAt(String taskId, DateTime at) async {
     final box = await _ensureMetaBox();
     final current = box.get(taskId);
-    final Map<String, dynamic> next = (current is Map)
-        ? Map<String, dynamic>.from(current.cast())
-        : <String, dynamic>{};
+    final next = _metaMapOf(current);
     next['completionReportAt'] = at.toIso8601String();
     await box.put(taskId, next);
+
+    // Outbox: completion report meta change
+    try {
+      final t = (await _ensureTaskBox()).get(taskId);
+      unawaited(
+        SyncOutbox.instance.enqueue(
+          teamId: t?.teamId ?? 'unknown',
+          entity: 'task',
+          action: 'meta_completion_report',
+          entityId: taskId,
+          payload: {
+            'completionReportAt': at.toIso8601String(),
+          },
+        ),
+      );
+    } catch (_) {
+      // no-op
+    }
+
+    notifyListeners();
   }
 
-  // [수정] 필터링 로직 강화
+  // ---- Filtered tasks (with cache) ----
   List<Task> getFilteredTasks(String currentTeamId, {String? myId}) {
-    return _tasks.where((t) {
+    final cacheKey = [
+      currentTeamId,
+      _projectIdFilter,
+      _statusFilter,
+      _priorityFilter?.name ?? 'all',
+      _dateFilter.name,
+      _assigneeFilter,
+      myId ?? '',
+      // tasks 길이/updatedAt 기반의 간단한 invalidation
+      _tasks.length.toString(),
+      _tasks.isEmpty ? '' : _tasks.first.updatedAt.millisecondsSinceEpoch.toString(),
+    ].join('|');
+
+    if (_filteredCacheKey == cacheKey && _filteredCache != null) {
+      return _filteredCache!;
+    }
+
+    final now = DateTime.now();
+
+    // 작성일 기간 필터 from
+    DateTime? from;
+    switch (_dateFilter) {
+      case DateFilter.all:
+        from = null;
+        break;
+      case DateFilter.today:
+        from = DateTime(now.year, now.month, now.day);
+        break;
+      case DateFilter.week:
+        from = now.subtract(const Duration(days: 7));
+        break;
+      case DateFilter.twoWeeks:
+        from = now.subtract(const Duration(days: 14));
+        break;
+      case DateFilter.oneMonth:
+        from = now.subtract(const Duration(days: 30));
+        break;
+    }
+
+    final list = _tasks.where((t) {
       if (t.teamId != currentTeamId) return false;
 
       // 프로젝트
@@ -201,8 +396,11 @@ class TaskProvider extends ChangeNotifier {
         }
       }
 
+      // 상태
       if (_statusFilter == '진행 중' && t.isDone) return false;
       if (_statusFilter == '완료됨' && !t.isDone) return false;
+
+      // 우선순위
       if (_priorityFilter != null && t.priority != _priorityFilter) return false;
 
       // 담당자
@@ -213,61 +411,186 @@ class TaskProvider extends ChangeNotifier {
         if (!hitSingle && !hitMulti) return false;
       }
 
-      // 작성일 기간 필터
-      final now = DateTime.now();
-      DateTime? from;
-      switch (_dateFilter) {
-        case DateFilter.all:
-          from = null;
-          break;
-        case DateFilter.today:
-          from = DateTime(now.year, now.month, now.day);
-          break;
-        case DateFilter.week:
-          from = now.subtract(const Duration(days: 7));
-          break;
-        case DateFilter.twoWeeks:
-          from = now.subtract(const Duration(days: 14));
-          break;
-        case DateFilter.oneMonth:
-          from = now.subtract(const Duration(days: 30));
-          break;
-      }
       if (from != null && t.createdAt.isBefore(from)) return false;
 
       return true;
     }).toList();
+
+    // 기본 정렬: 최신 작성일
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    _filteredCacheKey = cacheKey;
+    _filteredCache = list;
+    return list;
   }
 
-  // [수정] 프로젝트 ID -> 이름 변환 헬퍼
+  // ---- Project helpers ----
   String getProjectName(String? id) {
-    if (id == null || id == 'none') return "없음";
-    if (id == 'all') return "전체";
-    return _projects.firstWhere((p) => p.id == id, orElse: () => Project(id: '', teamId: '', name: '알 수 없음', colorValue: 0)).name;
+    if (id == null || id == 'none') return '없음';
+    if (id == 'all') return '전체';
+    return _projects
+        .firstWhere(
+          (p) => p.id == id,
+          orElse: () => Project(id: '', teamId: '', name: '알 수 없음', colorValue: 0),
+        )
+        .name;
   }
 
-  // CRUD...
-  Future<void> addTask(Task t) async { await Hive.box<Task>('tasks').put(t.id, t); _tasks.add(t); notifyListeners(); }
-  Future<void> updateTaskStatus(Task t, bool done) async { t.isDone = done; t.completedAt = done ? DateTime.now() : null; t.updatedAt = DateTime.now(); await Hive.box<Task>('tasks').put(t.id, t); notifyListeners(); }
-  Future<void> deleteTask(String id) async {
-    await Hive.box<Task>('tasks').delete(id);
-    try {
-      final box = await _ensureMetaBox();
-      await box.delete(id);
-    } catch (_) {}
-    _tasks.removeWhere((t) => t.id == id);
+  // ---- CRUD: Task ----
+  Future<void> addTask(Task t) async {
+    final box = await _ensureTaskBox();
+    await box.put(t.id, t);
+
+    // Outbox: for future remote sync / audit.
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: t.teamId,
+        entity: 'task',
+        action: 'put',
+        entityId: t.id,
+        payload: t.toJson(),
+      ),
+    );
+
+    _tasks.add(t);
+    _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _invalidateAllCaches();
     notifyListeners();
   }
-  Future<void> cycleTaskPriority(Task t) async { int next = (t.priority.index + 1) % 4; t.priority = TaskPriority.values[next]; await Hive.box<Task>('tasks').put(t.id, t); notifyListeners(); }
-  Future<void> addProject(Project p) async { await Hive.box<Project>('projects').put(p.id, p); _projects.add(p); notifyListeners(); }
 
-  Future<void> saveCompletionReport(Task task, String? report) async {
-    task.completionReport = (report ?? '').trim().isEmpty ? null : report!.trim();
-    task.updatedAt = DateTime.now();
-    await Hive.box<Task>('tasks').put(task.id, task);
-    if (task.completionReport != null) {
-      await setCompletionReportAt(task.id, DateTime.now());
+  Future<void> updateTask(Task t) async {
+    final box = await _ensureTaskBox();
+    t.updatedAt = DateTime.now();
+    await box.put(t.id, t);
+
+    // Outbox: generic update
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: t.teamId,
+        entity: 'task',
+        action: 'put',
+        entityId: t.id,
+        payload: t.toJson(),
+      ),
+    );
+
+    final idx = _tasks.indexWhere((item) => item.id == t.id);
+    if (idx >= 0) {
+      _tasks[idx] = t;
     }
+    _invalidateAllCaches();
     notifyListeners();
+  }
+
+  Future<void> updateTaskStatus(Task t, bool done) async {
+    // NOTE: Hive object 직접 mutate. 실패/동시성 리스크를 줄이기 위해 put까지 원자적으로 수행.
+    t.isDone = done;
+    t.completedAt = done ? DateTime.now() : null;
+    t.updatedAt = DateTime.now();
+
+    final box = await _ensureTaskBox();
+    await box.put(t.id, t);
+
+    // Outbox: status change
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: t.teamId,
+        entity: 'task',
+        action: 'status',
+        entityId: t.id,
+        payload: {
+          'isDone': done.toString(),
+          'completedAt': t.completedAt?.toIso8601String() ?? '',
+        },
+      ),
+    );
+
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> deleteTask(String id) async {
+    final box = await _ensureTaskBox();
+
+    // Capture before delete (for outbox logging)
+    final Task? before = box.get(id);
+
+    await box.delete(id);
+
+    // meta cascade delete (고아 데이터 방지)
+    try {
+      final mbox = await _ensureMetaBox();
+      await mbox.delete(id);
+    } catch (_) {}
+
+    // Outbox: deletion
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: before?.teamId ?? 'unknown',
+        entity: 'task',
+        action: 'delete',
+        entityId: id,
+        payload: {
+          'title': before?.title ?? '',
+        },
+      ),
+    );
+
+    _tasks.removeWhere((t) => t.id == id);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  // ---- CRUD: Project ----
+  Future<void> addProject(Project p) async {
+    final box = await _ensureProjectBox();
+    await box.put(p.id, p);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: p.teamId,
+        entity: 'project',
+        action: 'put',
+        entityId: p.id,
+        payload: p.toJson(),
+      ),
+    );
+
+    _projects.add(p);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> deleteProject(String id) async {
+    final box = await _ensureProjectBox();
+    final Project? before = box.get(id);
+    await box.delete(id);
+
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: before?.teamId ?? 'unknown',
+        entity: 'project',
+        action: 'delete',
+        entityId: id,
+        payload: {
+          'name': before?.name ?? '',
+        },
+      ),
+    );
+
+    _projects.removeWhere((p) => p.id == id);
+    _invalidateAllCaches();
+    notifyListeners();
+  }
+
+  Future<void> cycleTaskPriority(Task task) async {
+    final nextIdx = (task.priority.index + 1) % TaskPriority.values.length;
+    task.priority = TaskPriority.values[nextIdx];
+    await updateTask(task);
+  }
+
+  Future<void> saveCompletionReport(Task task, String report) async {
+    task.completionReport = report;
+    await updateTask(task);
   }
 }

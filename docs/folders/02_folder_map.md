@@ -22,6 +22,8 @@
   - 컬러 팔레트(텍스트/보더/...)
 - `ui/widgets/`
   - 범용 위젯 모음(현재는 확장 여지).
+- `crash/`
+  - 전역 에러 수집/저장(CrashReporter).
 
 ## `lib/domain/`
 데이터 모델(순수 타입).
@@ -41,6 +43,10 @@
   - Drive 연동 관련(현재는 뼈대/확장용).
 - `hive/hive_adapters.dart`
   - Hive 어댑터 등록(도메인 타입 매핑).
+- `migrations/hive_migrations.dart`
+  - Hive 스키마 버전/마이그레이션.
+- `sync/sync_outbox.dart`
+  - Outbox 패턴(로컬 변경 이벤트 큐).
 
 ## `lib/features/`
 기능 단위 모듈. 각 feature는 대략

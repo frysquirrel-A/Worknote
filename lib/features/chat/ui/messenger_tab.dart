@@ -18,15 +18,37 @@ class _MessengerTabState extends State<MessengerTab> {
   final TextEditingController _ctrl = TextEditingController();
   late ChatProvider _chatProvider;
   bool _started = false;
+  String? _lastTeamId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    if (!_started) { _started = true; _chatProvider.startPolling(); }
+
+        // 팀 전환 시, 이전 팀의 threadId가 남아 메시지가 섞여 보이는 데이터 오염을 방지.
     final teamProv = Provider.of<TeamProvider>(context, listen: false);
-    if (_chatProvider.activeThreadId == 'default' && teamProv.currentTeamId != 'default') {
-      Future.microtask(() => _chatProvider.setActiveThread(teamProv.currentTeamId, title: "단체 · ${teamProv.currentTeam.name}"));
+    final teamId = teamProv.currentTeamId;
+    final teamName = teamProv.currentTeam.name;
+
+    final activeId = _chatProvider.activeThreadId;
+    final belongsToTeam = activeId == teamId ||
+        activeId.startsWith('grp_${teamId}_') ||
+        activeId.startsWith('dm_${teamId}_');
+
+    if (_lastTeamId != teamId) {
+      _lastTeamId = teamId;
+      if (!belongsToTeam) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _chatProvider.setActiveThread(teamId, title: '단체 · $teamName');
+        });
+      }
+    }
+
+
+    if (!_started) {
+      _started = true;
+      _chatProvider.startPolling();
     }
   }
 

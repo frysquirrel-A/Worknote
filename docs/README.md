@@ -1,10 +1,19 @@
-# WorkNote 코드 구조 문서
+# WORKNOTE 개발 문서 인덱스
 
-이 폴더는 **다른 AI/개발자가 WorkNote 프로젝트를 빠르게 이해**할 수 있도록, `lib/` 구조와 주요 데이터 흐름(Provider ↔ Hive ↔ UI)을 요약한 문서입니다.
+이 폴더는 **코드 구조 파악 + 운영(크래시/데이터/성능) 관점**에서 필요한 문서를 한 곳에 모아둡니다.
 
-- **가장 먼저 볼 문서**: `00_overview.md`
-- 작업 체크리스트: `AI_CHECKLIST.md`
-- 폴더 맵: `folders/01_lib_tree.md`, `folders/02_folder_map.md`
-- 기능별 상세: `features/`
+## 빠른 링크
 
-> 이 문서는 코드와 함께 유지하는 것을 전제로 합니다. 폴더/파일이 추가되면 해당 섹션을 함께 갱신해주세요.
+- **아키텍처 개요**: `01_ARCHITECTURE.md`
+- **데이터/스토리지(Hive) & 스키마 마이그레이션**: `02_DATA_STORAGE.md`
+- **AI(Gemini) 핸드오프 프롬프트**: `03_AI_HANDOFF_GEMINI.md`
+- 기존 점검 체크리스트: `AI_CHECKLIST.md`
+- 변경 내역: `CHANGELOG.md`
+- 로드맵: `ROADMAP.md`
+
+## 폴더별 상세
+
+- `features/` : 기능별 문서(업무/일지/소통 등)
+- `folders/` : lib 폴더 구조 설명
+
+> 문서의 목적은 "취향"이 아니라 **크래시 방지 / 데이터 무결성 / 성능 안정화**에 초점을 맞춥니다.

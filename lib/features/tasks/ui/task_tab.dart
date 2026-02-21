@@ -24,6 +24,7 @@ class TeamTaskTab extends StatefulWidget {
 }
 
 class _TeamTaskTabState extends State<TeamTaskTab> {
+  String? _lastTeamId;
   // Controls
   TaskCardLayout _layout = TaskCardLayout.classic;
   TaskGroupPeriod _period = TaskGroupPeriod.day;
@@ -72,11 +73,30 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
+
+    // 팀 전환 시 이전 팀의 필터/로컬 상태가 남아 '빈 화면'을 만들 수 있어 리셋
+    final teamId = teamProv.currentTeamId;
+    if (_lastTeamId != null && _lastTeamId != teamId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selProjectId = 'all';
+          _selStatus = '전체';
+          _selPriority = null;
+          _selAssignee = 'all';
+        });
+        context.read<TaskProvider>().resetTeamScopedFilters();
+        // [수정] 정의되지 않은 _selDate 제거 및 TaskProvider를 통한 필터 설정
+        context.read<TaskProvider>().setDateFilter(DateFilter.all);
+      });
+    }
+    _lastTeamId = teamId;
+
     final authProv = context.watch<AuthProvider>();
     final myId = authProv.currentUser?.id ?? 'me';
 
-    final filteredTasks = taskProv.tasks.where((t) {
-      if (t.teamId != teamProv.currentTeamId) return false;
+    final baseTasks = taskProv.tasksForTeam(teamId);
+    final filteredTasks = baseTasks.where((t) {
       if (_selProjectId != 'all' && (_selProjectId == 'none' ? t.projectId != null : t.projectId != _selProjectId)) return false;
       
       // 상태 필터: 진행중(isDone false), 완료(isDone true)
@@ -143,7 +163,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
               onPriorityChanged: (v) => setState(() => _selPriority = v),
               selAssignee: _selAssignee,
               onAssigneeChanged: (v) => setState(() => _selAssignee = v ?? 'all'),
-              // [요구사항 1] 탭 토글 상태 및 콜백 연결
               showGroupHeaders: _showGroupHeaders,
               onToggleGroupHeaders: () => setState(() => _showGroupHeaders = !_showGroupHeaders),
             ),

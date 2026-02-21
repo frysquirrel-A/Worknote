@@ -36,6 +36,7 @@ dependencies:
   
   # [DB]
   hive_flutter: ^1.1.0
+  hive: ^2.2.3
 
 dev_dependencies:
   flutter_test:

@@ -211,6 +211,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               GestureDetector(
                 onTap: () async {
                   final picked = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2030), initialDateRange: scheduleRange);
+                  if (!mounted) return;
                   if (picked != null) setState(() => scheduleRange = picked);
                 },
                 child: Container(

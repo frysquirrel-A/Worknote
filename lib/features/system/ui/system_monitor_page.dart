@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
+import 'package:worknote/core/crash/crash_reporter.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
 
 class SystemMonitorPage extends StatelessWidget {
   const SystemMonitorPage({super.key});
@@ -34,6 +36,8 @@ class SystemMonitorPage extends StatelessWidget {
                 _buildInfoCard("사용자", "${authProv.currentUser?.name}"),
                 _buildInfoCard("팀 ID", teamProv.currentTeamId),
                 _buildInfoCard("업무 데이터", "${taskProv.tasks.length}건"),
+                _buildInfoCard("Crash Logs", "${CrashReporter.instance.count}건"),
+                _buildInfoCard("Sync Outbox", "${SyncOutbox.instance.count}건"),
               ],
             ),
           ),

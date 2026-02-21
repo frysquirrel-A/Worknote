@@ -4,6 +4,19 @@
 
 ## 이번 번들에서 반영된 내용
 
+- **운영 안정성(크래시 수집) 추가**
+  - `CrashReporter` 도입: `crash_logs` Hive box에 전역 에러 저장
+  - `bootstrap.dart`에서 `FlutterError.onError` / `PlatformDispatcher.instance.onError` / `runZonedGuarded`로 수집
+
+- **데이터 무결성(마이그레이션) 추가**
+  - `HiveMigrations` 도입: `app_meta.schema_version` 기반
+  - v1→v2: `task_meta.scheduleDate` → `scheduleStart/scheduleEnd` 정규화 + `scheduleInclude` 기본값 보장
+
+- **향후 동기화 기반(Outbox) 추가**
+  - `SyncOutbox` 도입: 로컬 변경 이벤트를 `sync_outbox`에 append
+  - Task/Journal/Chat Provider에 실제 enqueue 적용
+
+
 - **빌드 안정화**
   - `HomeTab`에서 존재하지 않는 경로(`core/theme/app_colors.dart`) 참조 제거 → `core/ui/app_palette.dart`로 통일
 

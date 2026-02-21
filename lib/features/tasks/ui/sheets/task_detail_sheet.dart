@@ -212,6 +212,7 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
                     initialDateRange: _scheduleRange,
                   );
                   if (picked != null) {
+                    if (!mounted) return;
                     setState(() => _scheduleRange = picked);
                     await prov.setScheduleOptions(
                       taskId: widget.task.id,

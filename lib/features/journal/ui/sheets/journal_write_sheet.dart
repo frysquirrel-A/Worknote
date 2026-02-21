@@ -169,6 +169,7 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         final picked = await ImagePicker().pickMultiImage();
+                        if (!mounted) return;
                         if (picked.isEmpty) return;
                         setState(() => photos.addAll(picked.map((x) => x.path)));
                       },

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worknote/data/sync/sync_outbox.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/data/services/drive_service.dart';
 
@@ -15,6 +16,16 @@ class ChatProvider extends ChangeNotifier {
 
   String get activeThreadId => _activeThreadId;
   String get activeThreadTitle => _activeThreadTitle ?? '대화방';
+
+  
+  String _inferTeamIdFromThreadId(String threadId) {
+    // Known patterns:
+    // - grp_{teamId}_{uuid}
+    // - dm_{teamId}_{uid1}_{uid2}
+    final parts = threadId.split('_');
+    if (parts.length >= 2 && parts[1].isNotEmpty) return parts[1];
+    return 'unknown';
+  }
 
   ChatProvider() {
     _loadLocal();
@@ -67,6 +78,22 @@ class ChatProvider extends ChangeNotifier {
       'createdAt': DateTime.now().toIso8601String(),
     };
     await Hive.box('chat_threads').put(threadId, threadData);
+
+    // Outbox: thread create
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: teamId,
+        entity: 'chat_thread',
+        action: 'put',
+        entityId: threadId,
+        payload: {
+          'type': 'group',
+          'title': title,
+          'memberCount': memberIds.length.toString(),
+        },
+      ),
+    );
+
     notifyListeners();
     return threadId;
   }
@@ -78,6 +105,20 @@ class ChatProvider extends ChangeNotifier {
     if (data != null) {
       data['title'] = newTitle;
       await box.put(threadId, data);
+
+      // Outbox: thread rename
+      unawaited(
+        SyncOutbox.instance.enqueue(
+          teamId: (data['teamId'] ?? 'unknown').toString(),
+          entity: 'chat_thread',
+          action: 'rename',
+          entityId: threadId,
+          payload: {
+            'title': newTitle,
+          },
+        ),
+      );
+
       if (_activeThreadId == threadId) _activeThreadTitle = newTitle;
       notifyListeners();
     }
@@ -85,10 +126,29 @@ class ChatProvider extends ChangeNotifier {
 
   // 그룹 삭제
   Future<void> deleteGroupThread(String threadId, {bool clearMessages = true}) async {
-    await Hive.box('chat_threads').delete(threadId);
+    final box = Hive.box('chat_threads');
+    final dynamic raw = box.get(threadId);
+    final Map<String, dynamic>? data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+
+    await box.delete(threadId);
+
+    // Outbox: thread delete
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: (data?['teamId'] ?? _inferTeamIdFromThreadId(threadId)).toString(),
+        entity: 'chat_thread',
+        action: 'delete',
+        entityId: threadId,
+        payload: {
+          'clearMessages': clearMessages.toString(),
+        },
+      ),
+    );
+
     if (clearMessages) {
       await clearThreadMessages(threadId);
     }
+
     notifyListeners();
   }
 
@@ -100,6 +160,18 @@ class ChatProvider extends ChangeNotifier {
     for (final m in _allMessages) {
       await box.put(m.id, m);
     }
+
+    // Outbox: thread messages cleared
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: _inferTeamIdFromThreadId(threadId),
+        entity: 'chat_message',
+        action: 'clear_thread',
+        entityId: threadId,
+        payload: const {},
+      ),
+    );
+
     notifyListeners();
     await _sync();
   }
@@ -141,7 +213,30 @@ class ChatProvider extends ChangeNotifier {
     );
 
     _allMessages.add(newMsg);
-    Hive.box<ChatMessage>('messages').put(newMsg.id, newMsg);
+
+    try {
+      await Hive.box<ChatMessage>('messages').put(newMsg.id, newMsg);
+    } catch (_) {
+      // If persisting fails, keep in-memory only (avoid crashing chat UX)
+    }
+
+    // Outbox: message send
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: _inferTeamIdFromThreadId(threadId),
+        entity: 'chat_message',
+        action: 'put',
+        entityId: newMsg.id,
+        payload: {
+          'threadId': threadId,
+          'senderId': senderId,
+          'senderName': senderName,
+          'content': content,
+          'sentAt': newMsg.sentAt.toIso8601String(),
+        },
+      ),
+    );
+
     notifyListeners();
 
     await _sync();
