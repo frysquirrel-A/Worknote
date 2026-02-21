@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
-import 'package:worknote/features/journal/state/journal_provider.dart';
 
 class TaskMasonryCard extends StatelessWidget {
   final Task task;
@@ -15,18 +13,16 @@ class TaskMasonryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final journalProv = context.watch<JournalProvider>();
     final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
-    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
-
+    
     final project = taskProv.projects.where((p) => p.id == task.projectId).firstOrNull;
-    final projectName = project?.name ?? '프로젝트 미지정';
+    final projectName = project?.name ?? '일반 업무';
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))]
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))]
       ),
       child: Material(
         color: Colors.transparent,
@@ -34,7 +30,7 @@ class TaskMasonryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           onTap: () => showTaskDetailSheet(context: context, task: task),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -43,12 +39,17 @@ class TaskMasonryCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text('# $projectName', style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6)),
+                        child: Text('# $projectName', style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis),
+                      ),
                     ),
-                    _priorityPill(task.priority),
+                    const SizedBox(width: 6),
+                    _priorityCircle(task.priority),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 
                 // 2. 제목
                 Text(
@@ -59,25 +60,26 @@ class TaskMasonryCard extends StatelessWidget {
                     color: task.isDone ? AppColors.hint : AppColors.text,
                     decoration: task.isDone ? TextDecoration.lineThrough : null,
                   ),
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 // 3. 진행 상태 배지
                 _statusPill(task.isDone),
                 
                 const SizedBox(height: 8),
-                const Divider(height: 16),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 10),
                 
-                // 4. 하단 메타 정보 (기한, 일정 연동, 관련 일지, 담당자)
+                // 4. 하단 메타 정보 (기한, 담당자 썸네일, 캘린더)
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
-                        '기한: ${DateFormat('MM.dd').format(task.dueDate)}',
-                        style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w800),
-                        overflow: TextOverflow.ellipsis,
+                        DateFormat('MM.dd').format(task.dueDate),
+                        style: const TextStyle(color: AppColors.danger, fontSize: 12, fontWeight: FontWeight.w900),
                       ),
                     ),
                     
@@ -89,29 +91,18 @@ class TaskMasonryCard extends StatelessWidget {
                           range: taskProv.getScheduleRange(task.id) ?? DateTimeRange(start: task.dueDate, end: task.dueDate)
                         );
                       },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: hasSchedule ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6)
-                        ),
-                        child: Icon(
-                          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined,
-                          size: 16,
-                          color: hasSchedule ? AppColors.primary : AppColors.hint
-                        ),
+                      child: Icon(
+                        hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined,
+                        size: 18,
+                        color: hasSchedule ? AppColors.primary : AppColors.hint
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 8),
 
-                    Icon(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, size: 16, color: relatedJournals.isNotEmpty ? AppColors.primary : AppColors.hint),
-                    const SizedBox(width: 6),
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor: AppColors.bg,
-                      child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 10)),
-                    ),
+                    Container(width: 1, height: 16, color: AppColors.border),
+                    const SizedBox(width: 8),
+                    
+                    Text(task.assigneeEmoji, style: const TextStyle(fontSize: 16)),
                   ],
                 ),
               ],
@@ -123,22 +114,23 @@ class TaskMasonryCard extends StatelessWidget {
   }
 
   Widget _statusPill(bool isDone) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
+      color: isDone ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
+      border: Border.all(color: isDone ? AppColors.primary : AppColors.border),
       borderRadius: BorderRadius.circular(6),
     ),
-    child: Text(isDone ? "완료" : "진행중", style: TextStyle(color: isDone ? AppColors.success : AppColors.warning, fontSize: 9, fontWeight: FontWeight.bold)),
+    child: Text(isDone ? "완료됨" : "진행중", style: TextStyle(color: isDone ? AppColors.primary : AppColors.text2, fontSize: 10, fontWeight: FontWeight.bold)),
   );
 
-  Widget _priorityPill(TaskPriority priority) {
-    final color = priority == TaskPriority.high ? AppColors.danger : (priority == TaskPriority.medium ? AppColors.warning : AppColors.primary);
-    final text = priority == TaskPriority.high ? '상' : (priority == TaskPriority.medium ? '중' : '하');
-    if (priority == TaskPriority.none) return const SizedBox.shrink();
+  Widget _priorityCircle(TaskPriority p) { 
+    final color = p == TaskPriority.high ? AppColors.danger : (p == TaskPriority.medium ? AppColors.warning : AppColors.primary);
+    final text = p == TaskPriority.high ? '상' : (p == TaskPriority.medium ? '중' : '하');
+    if (p == TaskPriority.none) return const SizedBox.shrink(); 
     return Container(
-      width: 18, height: 18,
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900))),
+      width: 20, height: 20, 
+      decoration: BoxDecoration(color: Colors.transparent, shape: BoxShape.circle, border: Border.all(color: color, width: 1)), 
+      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)))
     );
   }
 }

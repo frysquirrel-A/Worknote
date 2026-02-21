@@ -4,33 +4,24 @@
 - UI: `lib/features/tasks/ui/`
 - State: `lib/features/tasks/state/task_provider.dart`
 
-## 주요 파일
-- `ui/task_tab.dart`
-  - 업무 탭 메인 화면.
-  - 상단 `TaskFilterBar`로 필터(프로젝트/상태/중요도/담당자) + 그룹/정렬/보기(리스트·갤러리) 컨트롤.
-  - 카드 레이아웃: `TaskCard`(리스트), `TaskMasonryCard`(갤러리).
-- `ui/widgets/task_filter_bar.dart`
-  - 필터 UI.
-  - 중요도는 `TaskPriority?`(null=전체)로 관리.
-  - 정렬 기준은 `TaskSortField`.
-- `ui/task_sort_field.dart`
-  - UI 정렬 기준 enum.
-- `state/task_provider.dart`
-  - Hive 박스 로딩, Task/Project CRUD, 메타(계획/달력 포함) 저장.
+## 주요 카드 UI (Hybrid 개편)
+- **TaskCard (리스트형)**
+  - **구획 분리**: 좌측(체크 버튼 및 중요도), 중앙(프로젝트명, 제목, 상세 날짜), 우측(작성자 및 담당자)으로 구획을 명확히 나누고 수직 구분선 추가.
+  - **날짜 정보 (2줄 밀집)**: 
+    - 1줄: 작성일, 기한(빨간색 강조)
+    - 2줄: 수정일, 일정(계획) 또는 완료일 표시.
+  - **인적 정보**: 작성자와 담당자를 수직으로 나란히 배치하여 시인성 강화.
+  - **캘린더 토글**: 중앙 우측에 독립된 버튼으로 배치하여 직관적인 일정 연동 지원.
 
-## 메타 저장 규칙(Hive: `task_meta`)
-- key: `taskId`
-- value: `Map<String, dynamic>`
+- **TaskMasonryCard (갤러리형)**
+  - 리스트형과 동일한 정보 위계 유지.
+  - 프로젝트 태그, 중요도, 상태 배지, 기한, 캘린더 아이콘, 담당자 에모지를 갤러리 카드 레이아웃에 맞춰 조밀하게 배치.
 
-사용 key:
-- `planInclude` : bool (기본 true)
-- `scheduleInclude` : bool (기본 true)
-- `scheduleStart` : ISO8601 String? (nullable)
-- `scheduleEnd` : ISO8601 String? (nullable)
+## 주요 컨트롤 및 로직
+- **일정 연동**: 카드 내 캘린더 아이콘 터치 시 `TaskProvider.setScheduleOptions()`를 호출하여 `includeInSchedule` 및 기간 저장.
+- **데이터 격리 (Isolation)**: 팀 전환 시 해당 팀에 소속된 프로젝트와 업무 데이터만 완벽하게 필터링되도록 보장.
+- **프로젝트 정보**: `# 프로젝트명` 태그를 상단에 노출하여 업무의 소속을 즉시 파악 가능.
 
-> `AppResetService`의 샘플 데이터도 동일 키를 사용하도록 맞춰야 합니다.
-
-## 계획(달력) 포함 토글
-- 카드의 달력(📅) 아이콘을 누르면 `TaskProvider.setScheduleOptions()`를 호출해서
-  `scheduleInclude`와 기간(시작/끝)을 저장합니다.
-- 기간이 없으면 `dueDate` 기반으로 fallback 합니다(`effectiveScheduleRange`).
+## 관련 파일
+- `lib/features/tasks/ui/widgets/task_card.dart`
+- `lib/features/tasks/ui/widgets/task_masonry_card.dart`
