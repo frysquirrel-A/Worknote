@@ -51,7 +51,30 @@ class _MessengerTabState extends State<MessengerTab> {
           const SizedBox(width: 8),
           Builder(builder: (ctx) => IconButton(icon: const Icon(Icons.view_sidebar_outlined, color: AppColors.text2), onPressed: () => Scaffold.of(ctx).openEndDrawer())),
         ])),
-        Expanded(child: ListView.builder(reverse: true, padding: const EdgeInsets.fromLTRB(20, 10, 20, 20), itemCount: messages.length, itemBuilder: (context, index) => _buildMessageBubble(messages[index], messages[index].senderId == myId))),
+        Expanded(
+        child: messages.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.chat_bubble_outline_rounded, size: 44, color: AppColors.hint),
+                      SizedBox(height: 12),
+                      Text('아직 메시지가 없습니다.', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.text)),
+                      SizedBox(height: 6),
+                      Text('하단 입력창에 메시지를 보내거나, 상단에서 대화 대상을 선택해 보세요.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.hint, height: 1.4)),
+                    ],
+                  ),
+                ),
+              )
+            : ListView.builder(
+                reverse: true,
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                itemCount: messages.length,
+                itemBuilder: (context, index) => _buildMessageBubble(messages[index], messages[index].senderId == myId),
+              ),
+      ),
         Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 32), decoration: BoxDecoration(color: AppColors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(32)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5))]), child: Row(children: [
           Expanded(child: TextField(controller: _ctrl, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.text), decoration: InputDecoration(hintText: "메시지를 입력하세요...", hintStyle: const TextStyle(color: AppColors.hint), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)))),
           const SizedBox(width: 12),
@@ -85,7 +108,12 @@ class _MessengerTabState extends State<MessengerTab> {
   Widget _drawerSectionTitle(String title) => Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 8), child: Text(title, style: const TextStyle(fontSize: 12, color: AppColors.hint, fontWeight: FontWeight.bold)));
 
   void _showThreadSelectionSheet(BuildContext context, TeamProvider teamProv, ChatProvider chatProv, String myId) {
-    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))), builder: (ctx) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (ctx) {
       final groups = chatProv.getGroupThreads(teamProv.currentTeamId);
       final members = teamProv.currentTeam.memberIds.where((id) => id != myId).toList();
       final userBox = Hive.box<AppUser>('users');

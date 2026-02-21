@@ -7,7 +7,8 @@ class AppTheme {
   static const Color _seedDark = Color(0xFF0F172A);
 
   static ThemeMode resolveThemeMode(String? setting) {
-    return (setting ?? 'dark') == 'dark' ? ThemeMode.dark : ThemeMode.light;
+    final mode = (setting ?? 'light').toLowerCase();
+    return mode == 'dark' ? ThemeMode.dark : ThemeMode.light;
   }
 
   static ThemeData light({String? setting}) {

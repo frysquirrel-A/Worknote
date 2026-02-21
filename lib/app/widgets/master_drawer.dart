@@ -83,7 +83,7 @@ class MasterDrawer extends StatelessWidget {
                 ...teamProv.teams.map((t) => ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                   leading: Icon(Icons.hub_rounded, color: t.id == teamProv.currentTeamId ? const Color(0xFF2563EB) : Colors.grey, size: 20),
-                  title: Text(t.name, style: TextStyle(fontWeight: t.id == teamProv.currentTeamId ? FontWeight.bold : FontWeight.normal)),
+                  title: Text(t.name, style: TextStyle(color: Colors.black, fontWeight: t.id == teamProv.currentTeamId ? FontWeight.bold : FontWeight.normal)),
                   onTap: () {
                     teamProv.switchTeam(t.id);
                     Navigator.pop(context);

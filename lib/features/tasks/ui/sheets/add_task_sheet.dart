@@ -101,6 +101,8 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: assigneeId,
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+                    iconEnabledColor: AppColors.text2,
                     dropdownColor: AppColors.surface,
                     decoration: InputDecoration(
                       labelText: '담당자', 
@@ -109,13 +111,15 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       fillColor: Colors.white, 
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
                     ),
-                    items: members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.id == myId ? '나 (${m.name})' : m.name))).toList(),
+                    items: members.map((m) => DropdownMenuItem(value: m.id, child: Text(m.id == myId ? '나 (${m.name})' : m.name, style: const TextStyle(color: AppColors.text)))).toList(),
                     onChanged: (v) => setState(() => assigneeId = v!),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String?>(
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+                    iconEnabledColor: AppColors.text2,
                     initialValue: projectId,
                     dropdownColor: AppColors.surface,
                     decoration: InputDecoration(
@@ -126,10 +130,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('일반 업무')),
+                      const DropdownMenuItem(value: null, child: Text('일반 업무', style: TextStyle(color: AppColors.text))),
                       ...taskProv.projects
                           .where((p) => p.teamId == teamProv.currentTeamId)
-                          .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
+                          .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name, style: const TextStyle(color: AppColors.text)))),
                     ],
                     onChanged: (v) => setState(() => projectId = v),
                   ),
@@ -162,6 +166,8 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<TaskPriority>(
+                    style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w800),
+                    iconEnabledColor: AppColors.text2,
                     initialValue: priority,
                     dropdownColor: AppColors.surface,
                     decoration: InputDecoration(
@@ -172,9 +178,9 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border))
                     ),
                     items: const [
-                      DropdownMenuItem(value: TaskPriority.none, child: Text('없음')),
-                      DropdownMenuItem(value: TaskPriority.low, child: Text('낮음')),
-                      DropdownMenuItem(value: TaskPriority.medium, child: Text('중간')),
+                      DropdownMenuItem(value: TaskPriority.none, child: Text('없음', style: TextStyle(color: AppColors.text))),
+                      DropdownMenuItem(value: TaskPriority.low, child: Text('낮음', style: TextStyle(color: AppColors.text))),
+                      DropdownMenuItem(value: TaskPriority.medium, child: Text('중간', style: TextStyle(color: AppColors.text))),
                       DropdownMenuItem(value: TaskPriority.high, child: Text('높음', style: TextStyle(color: AppColors.danger))),
                     ],
                     onChanged: (v) => setState(() => priority = v!),

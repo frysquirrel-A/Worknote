@@ -44,6 +44,7 @@ class HomeTab extends StatelessWidget {
     final todayStr = '${today.year}.${today.month.toString().padLeft(2, '0')}.${today.day.toString().padLeft(2, '0')}';
 
     return Scaffold(
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
@@ -107,7 +108,7 @@ class HomeTab extends StatelessWidget {
                             children: [
                               Text(
                                 '현재 팀',
-                                style: TextStyle(fontSize: 12, color: AppColors.text2, fontWeight: FontWeight.w600),
+                                style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -341,7 +342,7 @@ class HomeTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('팀 선택', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const Text('팀 선택', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.text)),
                 const SizedBox(height: 12),
                 if (teams.isEmpty)
                   Padding(
@@ -359,7 +360,7 @@ class HomeTab extends StatelessWidget {
                         final t = teams[i];
                         final isCurrent = t.id == teamProv.currentTeamId;
                         return ListTile(
-                          title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.text)),
                           subtitle: Text('${t.memberIds.length}명', style: TextStyle(color: AppColors.text2)),
                           trailing: isCurrent ? Icon(Icons.check_rounded, color: AppColors.primary) : null,
                           onTap: () {
@@ -431,7 +432,7 @@ class HomeTab extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   member.name,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -579,7 +580,7 @@ class _MemberAvatar extends StatelessWidget {
             width: 70,
             child: Text(
               user.name,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text),
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),

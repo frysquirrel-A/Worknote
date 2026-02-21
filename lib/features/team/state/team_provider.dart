@@ -10,7 +10,7 @@ class TeamProvider extends ChangeNotifier {
   
   List<Team> _teams = [];
   String _currentTeamId = 'default';
-  String _currentThemeMode = 'dark'; 
+  String _currentThemeMode = 'light'; 
 
   List<Team> get teams => _teams;
   String get currentTeamId => _currentTeamId;
@@ -41,7 +41,7 @@ class TeamProvider extends ChangeNotifier {
   }
 
   Future<void> loadTeams() async {
-    _currentThemeMode = _localDb.getSetting('app_theme', defaultValue: 'dark');
+    _currentThemeMode = _localDb.getSetting('app_theme', defaultValue: 'light');
     _teams = _localDb.getAll<Team>('teams');
     final lastTeamId = _localDb.getSetting('last_team_id');
     if (lastTeamId != null && _teams.any((t) => t.id == lastTeamId)) {
