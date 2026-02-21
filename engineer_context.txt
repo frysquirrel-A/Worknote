@@ -1,115 +1,8 @@
-// WorkNote Master Full Project Context for Engineer
-// Update: Milestone 2 - Home UI Refactor, Task Card Info, and Multi-Team Sample Data
+# 엔지니어용 컨텍스트 (3개 파일 통합)
 
-// --- lib/features/home/ui/home_tab.dart ---
-import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:provider/provider.dart';
-import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/domain/models.dart';
-import 'package:worknote/features/auth/state/auth_provider.dart';
-import 'package:worknote/features/chat/state/chat_provider.dart';
-import 'package:worknote/features/tasks/state/task_provider.dart';
-import 'package:worknote/features/team/state/team_provider.dart';
-
-class HomeTab extends StatelessWidget {
-  final void Function(String threadId, String? title) onOpenChatThread;
-
-  const HomeTab({super.key, required this.onOpenChatThread});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final teamProv = context.watch<TeamProvider>();
-    final taskProv = context.watch<TaskProvider>();
-
-    final me = auth.currentUser;
-    final meId = me?.id ?? 'me';
-    final meName = me?.name ?? '나';
-    final meEmoji = (me?.profileImage != null && me!.profileImage!.isNotEmpty) ? me.profileImage! : '🙂';
-
-    final teamName = teamProv.currentTeam.name;
-    final teamInitial = teamName.isNotEmpty ? teamName.characters.first : 'T';
-
-    final usersBox = Hive.box<AppUser>('users');
-    final memberIds = teamProv.currentTeam.memberIds;
-    final members = memberIds.map((id) => usersBox.get(id) ?? AppUser(id: id, password: '', name: id, profileImage: '👤')).toList(growable: false);
-
-    final today = DateTime.now();
-    final todayStr = '${today.year}.${today.month.toString().padLeft(2, '0')}.${today.day.toString().padLeft(2, '0')}';
-
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('안녕하세요, $meName', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 4),
-                        Text(todayStr, style: TextStyle(fontSize: 14, color: AppColors.text2)),
-                      ],
-                    ),
-                  ),
-                  _ProfileAvatarWithTeamBadge(emoji: meEmoji, teamInitial: teamInitial),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _card(context, child: InkWell(borderRadius: BorderRadius.circular(18), onTap: () => _showTeamPicker(context, teamProv), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), child: Row(children: [Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(teamInitial, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('현재 팀', style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(teamName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis)])), Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.text2)])))),
-              const SizedBox(height: 14),
-              _card(context, child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('팀원', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), const Spacer(), Text('${members.length}명', style: TextStyle(fontSize: 12, color: AppColors.text2))]), const SizedBox(height: 10), Wrap(spacing: 12, runSpacing: 12, children: [for (final m in members) _MemberAvatar(user: m, isMe: m.id == meId, role: teamProv.currentTeam.memberRoles[m.id], onTap: () => _showMemberProfileSheet(context, member: m, role: teamProv.currentTeam.memberRoles[m.id], myId: meId))])]))),
-              const SizedBox(height: 14),
-              _card(context, child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('프로젝트 현황', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), const SizedBox(height: 10), ...taskProv.projects.map((p) { final progress = taskProv.projectProgress(p.id); return Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Expanded(child: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), const SizedBox(width: 12), SizedBox(width: 120, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black12, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary), minHeight: 8, borderRadius: BorderRadius.circular(99))), const SizedBox(width: 8), Text('${(progress * 100).round()}%')])); }), if (taskProv.projects.isEmpty) Text('프로젝트가 없습니다.\n업무를 등록하거나 샘플 데이터를 추가해보세요.', style: TextStyle(color: AppColors.text2, fontSize: 13, height: 1.4))]))),
-              const SizedBox(height: 14),
-              _card(context, child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('오늘 업무', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)), const SizedBox(height: 10), ...taskProv.tasksForTeam(teamProv.currentTeamId).where((t) => t.dueDate != null && _isSameDay(t.dueDate!, today)).take(5).map((t) => ListTile(contentPadding: EdgeInsets.zero, dense: true, title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text('기한: ${_fmtDate(t.dueDate)}'))), if (taskProv.tasksForTeam(teamProv.currentTeamId).where((t) => t.dueDate != null && _isSameDay(t.dueDate!, today)).isEmpty) Text('오늘 마감 업무가 없습니다.', style: TextStyle(color: AppColors.text2, fontSize: 13))]))),
-              const SizedBox(height: 14),
-              _card(context, child: ListTile(leading: Icon(Icons.forum_outlined, color: AppColors.primary), title: const Text('팀 대화방 열기', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(teamName, maxLines: 1, overflow: TextOverflow.ellipsis), trailing: const Icon(Icons.chevron_right_rounded), onTap: () { final chatProv = context.read<ChatProvider>(); final threadId = 'grp_${teamProv.currentTeamId}_main'; chatProv.setActiveThread(threadId, title: '${teamName} · 대화'); onOpenChatThread(threadId, '${teamName} · 대화'); })),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Widget _card(BuildContext context, {required Widget child}) { return Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, 10))]), child: child); }
-  static bool _isSameDay(DateTime a, DateTime b) { return a.year == b.year && a.month == b.month && a.day == b.day; }
-  static String _fmtDate(DateTime? d) { if (d == null) return '-'; return '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}'; }
-
-  void _showTeamPicker(BuildContext context, TeamProvider teamProv) {
-    final teams = teamProv.teams;
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) {
-      return Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 16), decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(22))), child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)))), const SizedBox(height: 12), const Text('팀 선택', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.text)), const SizedBox(height: 12), if (teams.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text('참여 중인 팀이 없습니다.', style: TextStyle(color: AppColors.text2))), if (teams.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.55), child: ListView.separated(shrinkWrap: true, itemBuilder: (_, i) { final t = teams[i]; final isCurrent = t.id == teamProv.currentTeamId; return ListTile(title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.text)), subtitle: Text('${t.memberIds.length}명', style: TextStyle(color: AppColors.text2)), trailing: isCurrent ? Icon(Icons.check_rounded, color: AppColors.primary) : null, onTap: () { teamProv.switchTeam(t.id); Navigator.pop(ctx); }); }, separatorBuilder: (_, __) => const Divider(height: 1), itemCount: teams.length))])));
-    });
-  }
-
-  void _showMemberProfileSheet(BuildContext context, {required AppUser member, required String? role, required String myId}) {
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) {
-      return Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 20), decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(22))), child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)))), const SizedBox(height: 14), Row(children: [CircleAvatar(radius: 24, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: Text(member.profileImage ?? '👤', style: const TextStyle(fontSize: 22))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Flexible(child: Text(member.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text), overflow: TextOverflow.ellipsis)), const SizedBox(width: 8), if (member.id == myId) Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(999)), child: const Text('나', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)))]), const SizedBox(height: 4), Text(role == null || role!.trim().isEmpty ? '팀원' : role!, style: TextStyle(color: AppColors.text2, fontWeight: FontWeight.w600))]))]), const SizedBox(height: 16), SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(onPressed: () { final teamProv = context.read<TeamProvider>(); final chatProv = context.read<ChatProvider>(); final dmId = chatProv.dmThreadId(teamProv.currentTeamId, myId, member.id); chatProv.setActiveThread(dmId, title: 'DM · ${member.name}'); Navigator.pop(ctx); onOpenChatThread(dmId, 'DM · ${member.name}'); }, style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0), icon: const Icon(Icons.chat_bubble_outline_rounded), label: const Text('메시지 보내기', style: TextStyle(fontWeight: FontWeight.w900))))])));
-    });
-  }
-}
-
-class _ProfileAvatarWithTeamBadge extends StatelessWidget {
-  final String emoji; final String teamInitial;
-  const _ProfileAvatarWithTeamBadge({required this.emoji, required this.teamInitial});
-  @override Widget build(BuildContext context) { return Stack(clipBehavior: Clip.none, children: [CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: Text(emoji, style: const TextStyle(fontSize: 20))), Positioned(right: -2, bottom: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: Text(teamInitial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900))))]); }
-}
-
-class _MemberAvatar extends StatelessWidget {
-  final AppUser user; final bool isMe; final String? role; final VoidCallback onTap;
-  const _MemberAvatar({required this.user, required this.isMe, required this.role, required this.onTap});
-  @override Widget build(BuildContext context) { return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: Column(mainAxisSize: MainAxisSize.min, children: [Stack(clipBehavior: Clip.none, children: [CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: Text(user.profileImage ?? '👤', style: const TextStyle(fontSize: 20))), if (isMe) Positioned(right: -2, top: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: const Text('나', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900))))]), const SizedBox(height: 6), SizedBox(width: 70, child: Text(user.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)), if (role != null && role!.trim().isNotEmpty) SizedBox(width: 70, child: Text(role!, style: TextStyle(fontSize: 10, color: AppColors.text2, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center))])); }
-}
-
-// --- lib/features/tasks/ui/widgets/task_card.dart ---
+---
+## 1. lib/features/tasks/ui/widgets/task_card.dart
+```dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -117,8 +10,6 @@ import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
-import 'package:worknote/features/tasks/ui/sheets/task_schedule_sheet.dart';
-import 'package:worknote/features/journal/state/journal_provider.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -128,17 +19,15 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final journalProv = context.watch<JournalProvider>();
     final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
     final scheduleRange = taskProv.effectiveScheduleRange(task);
-    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))]
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))]
       ),
       child: Material(
         color: Colors.transparent,
@@ -147,61 +36,72 @@ class TaskCard extends StatelessWidget {
           onTap: () => showTaskDetailSheet(context: context, task: task),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Column(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // [좌측 Zone]: 상태 표시와 중요도를 위아래로 깔끔하게 배치
+                Column(
                   children: [
-                    _statusPill(task),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
+                    _statusCircle(task.isDone),
+                    const SizedBox(height: 8),
+                    _priorityPill(task.priority),
+                  ],
+                ),
+                const SizedBox(width: 14),
+
+                // [중앙 Zone]: 텍스트와 2줄 날짜 정보
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 제목
+                      Text(
                         task.title,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          color: task.isDone ? AppTextColor.hint : AppTextColor.primary,
+                          color: task.isDone ? AppColors.hint : AppColors.text,
                           decoration: task.isDone ? TextDecoration.lineThrough : null,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis
-                      )
-                    ),
-                    const SizedBox(width: 10),
-                    _priorityPill(task.priority),
-                    const SizedBox(width: 8),
-                    _buildScheduleToggle(context, hasSchedule, scheduleRange),
-                  ],
-                ),
-                const Divider(height: 24, color: AppColors.border),
-                Row(
-                  children: [
-                    const Icon(Icons.event_note_rounded, color: AppColors.danger, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      "기한: ${DateFormat('MM.dd').format(task.dueDate)}",
-                      style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w800)
-                    ),
-                    if (hasSchedule && scheduleRange != null) ...[
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "계획: ${DateFormat('MM.dd').format(scheduleRange.start)}~${DateFormat('MM.dd').format(scheduleRange.end)}",
-                            style: const TextStyle(color: AppPalette.primary, fontSize: 11, fontWeight: FontWeight.w800),
-                          ),
-                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 날짜 정보 Line 1 (작성, 기한, 수정)
+                      Wrap(
+                        spacing: 8, runSpacing: 4,
+                        children: [
+                          Text("작성: ${_fmtDate(task.createdAt)}", style: const TextStyle(color: AppColors.text2, fontSize: 11, fontWeight: FontWeight.w600)),
+                          Text("수정: ${_fmtDate(task.updatedAt)}", style: const TextStyle(color: AppColors.text2, fontSize: 11, fontWeight: FontWeight.w600)),
+                          Text("기한: ${_fmtDate(task.dueDate)}", style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // 날짜 정보 Line 2 (완료, 계획) - 조건부 표시
+                      Wrap(
+                        spacing: 8, runSpacing: 4,
+                        children: [
+                          if (task.isDone && task.completedAt != null)
+                            Text("완료: ${_fmtDate(task.completedAt)}", style: const TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w900)),
+                          if (hasSchedule && scheduleRange != null)
+                            Text("계획: ${_fmtDate(scheduleRange.start)}~${_fmtDate(scheduleRange.end)}", style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w800)),
+                        ],
                       ),
                     ],
-                    const Spacer(),
-                    _cardIconButton(
-                      icon: relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined,
-                      isActive: relatedJournals.isNotEmpty,
-                      onPressed: () => showTaskDetailSheet(context: context, task: task)
-                    ),
-                    const SizedBox(width: 8),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // [우측 Zone]: 담당자 및 캘린더 아이콘 세로 배치
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     _buildAuthorZone(task),
+                    const SizedBox(height: 12),
+                    _buildScheduleToggle(context, hasSchedule, scheduleRange),
                   ],
                 ),
               ],
@@ -212,114 +112,328 @@ class TaskCard extends StatelessWidget {
     );
   }
 
+  String _fmtDate(DateTime? d) {
+    if (d == null) return '-';
+    return DateFormat('yy.MM.dd').format(d);
+  }
+
   Widget _buildScheduleToggle(BuildContext context, bool hasSchedule, DateTimeRange? range) {
     return GestureDetector(
-      onTap: () => taskProv.setScheduleOptions(taskId: task.id, includeInSchedule: !hasSchedule, range: range),
-      child: Container(
+      onTap: () => taskProv.setScheduleOptions(taskId: task.id, includeInSchedule: !hasSchedule, range: range ?? DateTimeRange(start: task.dueDate, end: task.dueDate)),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: 32, height: 32,
         alignment: Alignment.center,
-        child: Icon(hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_month_outlined, size: 20, color: hasSchedule ? AppPalette.primary : Colors.grey[400]),
+        decoration: BoxDecoration(
+          color: hasSchedule ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: hasSchedule ? Colors.transparent : AppColors.border)
+        ),
+        child: Icon(hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_month_outlined, size: 18, color: hasSchedule ? AppColors.primary : AppColors.hint),
       ),
     );
   }
 
   Widget _buildAuthorZone(Task task) {
+    return Column(
+      children: [
+        CircleAvatar(radius: 12, backgroundColor: AppColors.bg, child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
+        const SizedBox(height: 4),
+        Text(task.assigneeName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.text2)),
+      ],
+    );
+  }
+
+  Widget _statusCircle(bool isDone) {
     return Container(
-      width: 88,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Flexible(child: Text(task.assigneeName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.text2), overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 6),
-          CircleAvatar(radius: 12, backgroundColor: AppColors.bg, child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 12))),
-        ],
+      width: 24, height: 24,
+      decoration: BoxDecoration(
+        color: isDone ? AppColors.success.withValues(alpha: 0.1) : Colors.transparent,
+        shape: BoxShape.circle,
+        border: Border.all(color: isDone ? AppColors.success : AppColors.border, width: 2)
+      ),
+      child: isDone ? const Icon(Icons.check_rounded, size: 16, color: AppColors.success) : null,
+    );
+  }
+
+  Widget _priorityPill(TaskPriority p) {
+    final color = p == TaskPriority.high ? AppColors.danger : (p == TaskPriority.medium ? AppColors.warning : AppColors.primary);
+    final text = p == TaskPriority.high ? '상' : (p == TaskPriority.medium ? '중' : '하');
+    if (p == TaskPriority.none) return const SizedBox.shrink();
+    return Container(
+      width: 24, height: 24,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.2))),
+      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)))
+    );
+  }
+}
+```
+
+---
+## 2. lib/features/tasks/ui/widgets/task_masonry_card.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/domain/models.dart';
+import 'package:worknote/features/tasks/state/task_provider.dart';
+import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
+import 'package:worknote/features/journal/state/journal_provider.dart';
+
+class TaskMasonryCard extends StatelessWidget {
+  final Task task;
+  final TaskProvider taskProv;
+
+  const TaskMasonryCard({super.key, required this.task, required this.taskProv});
+
+  @override
+  Widget build(BuildContext context) {
+    final journalProv = context.watch<JournalProvider>();
+    final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
+    final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => showTaskDetailSheet(context: context, task: task),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 상단: 상태 및 중요도 배지
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _statusPill(task),
+                    _priorityPill(task.priority),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // 2. 제목 (최대 2줄)
+                Text(
+                  task.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: task.isDone ? AppTextColor.hint : AppTextColor.primary,
+                    decoration: task.isDone ? TextDecoration.lineThrough : null,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis
+                ),
+                const Spacer(),
+
+                // 3. 하단 메타 정보 (아이콘 기반)
+                const Divider(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        DateFormat('MM.dd').format(task.dueDate),
+                        style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w800)
+                      ),
+                    ),
+
+                    // ✨ [핵심 연동] 캘린더 아이콘 터치 시 일정 탭 등록/해제 토글
+                    GestureDetector(
+                      onTap: () {
+                        // 현재 상태의 반대값으로 토글
+                        final newStatus = !hasSchedule;
+                        taskProv.setScheduleOptions(
+                          taskId: task.id,
+                          includeInSchedule: newStatus,
+                          // 기존 설정된 기간이 없으면 마감일(dueDate)을 기본값으로 저장
+                          range: taskProv.getScheduleRange(task.id) ?? DateTimeRange(start: task.dueDate, end: task.dueDate)
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: hasSchedule ? AppPalette.primary.withValues(alpha: 0.1) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6)
+                        ),
+                        child: Icon(
+                          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined,
+                          size: 16,
+                          color: hasSchedule ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+
+                    Icon(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, size: 16, color: relatedJournals.isNotEmpty ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)),
+                    const SizedBox(width: 6),
+                    CircleAvatar(
+                      radius: 10,
+                      backgroundColor: AppColors.bg,
+                      child: Text(task.assigneeEmoji, style: const TextStyle(fontSize: 10)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _statusPill(Task task) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: task.isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? AppColors.success : AppColors.warning, fontSize: 10, fontWeight: FontWeight.bold)));
-  Widget _priorityPill(TaskPriority p) { final color = p == TaskPriority.high ? AppColors.danger : (p == TaskPriority.medium ? AppColors.warning : AppColors.primary); final text = p == TaskPriority.high ? '상' : (p == TaskPriority.medium ? '중' : '하'); if (p == TaskPriority.none) return const SizedBox.shrink(); return Container(width: 22, height: 22, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.2))), child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)))); }
-  Widget _cardIconButton({required IconData icon, required bool isActive, required VoidCallback onPressed}) { return InkWell(onTap: onPressed, borderRadius: BorderRadius.circular(18), child: Container(width: 32, height: 32, child: Icon(icon, size: 18, color: isActive ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)))); }
-}
+  Widget _statusPill(Task task) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: task.isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? AppColors.success : AppColors.warning, fontSize: 9, fontWeight: FontWeight.bold)),
+  );
 
-// --- lib/data/services/app_reset_service.dart ---
-import 'dart:math';
-import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:uuid/uuid.dart';
-import 'package:worknote/domain/models.dart';
-
-class AppResetService {
-  Future<void> reset({required bool withSampleData, required String myId, required String myName}) async {
-    final settings = Hive.box('settings');
-    final loggedIn = settings.get('logged_in_user_id');
-    await settings.clear();
-    if (loggedIn != null) await settings.put('logged_in_user_id', loggedIn);
-
-    await Hive.box<Task>('tasks').clear();
-    await Hive.box<Project>('projects').clear();
-    await Hive.box<JournalEntry>('journals').clear();
-    await Hive.box<Team>('teams').clear();
-    await Hive.box<ChatMessage>('messages').clear();
-    await Hive.box('chat_threads').clear();
-    await Hive.box('task_meta').clear();
-    await Hive.box('journal_meta').clear();
-    try { await Hive.box('schedules').clear(); } catch (_) {}
-
-    if (!withSampleData) return;
-
-    final now = DateTime.now();
-    final random = Random();
-    final teamId = const Uuid().v4();
-
-    final team = Team(id: teamId, name: '마스터피스 건설 팀', inviteCode: 'MASTER', memberIds: [myId, 'worker01', 'worker02', 'worker03', 'worker04'], memberRoles: {myId: '현장소장', 'worker01': '기사', 'worker02': '안전관리자', 'worker03': '자재담당', 'worker04': '공무'});
-    await Hive.box<Team>('teams').put(team.id, team);
-    await settings.put('last_team_id', team.id);
-
-    final users = Hive.box<AppUser>('users');
-    final dummyUsers = [AppUser(id: 'worker01', password: '1', name: '김현장'), AppUser(id: 'worker02', password: '1', name: '박안전'), AppUser(id: 'worker03', password: '1', name: '이자재'), AppUser(id: 'worker04', password: '1', name: '최공무')];
-    for (var u in dummyUsers) { if (!users.containsKey(u.id)) await users.put(u.id, u); }
-
-    final projects = [Project(id: 'p1', teamId: teamId, name: 'A동 아파트 신축', colorValue: 0xFF2563EB), Project(id: 'p2', teamId: teamId, name: '지하 주차장 공사', colorValue: 0xFF10B981), Project(id: 'p3', teamId: teamId, name: '조경 및 외부 마감', colorValue: 0xFFF59E0B)];
-    for (var p in projects) { await Hive.box<Project>('projects').put(p.id, p); }
-
-    final List<String> titleSamples = ["회의", "자재 확인", "현장 점검", "도면 검토", "안전 교육 실시", "콘크리트 타설 대기", "민원 처리 대응", "폐기물 반출", "오후 간식 구매", "주간 업무 보고", "장비 투입 요청", "현장 청소", "이번 주 금요일까지 현장 자재 입고 내역서 및 영수증 취합해서 보고할 것", "하도급 업체 계약서 날인 확인 및 서류 일체 본사 제출 요망", "월간 공정표 수정 및 기성 청구 서류 준비 (상세 내역 포함)"];
-    final members = [{'id': myId, 'name': myName, 'emoji': '👷'}, {'id': 'worker01', 'name': '김현장', 'emoji': '👤'}, {'id': 'worker02', 'name': '박안전', 'emoji': '🛡️'}, {'id': 'worker03', 'name': '이자재', 'emoji': '📦'}, {'id': 'worker04', 'name': '최공무', 'emoji': '📑'}];
-
-    final taskBox = Hive.box<Task>('tasks');
-    final metaBox = Hive.box('task_meta');
-
-    for (int i = 0; i < 20; i++) {
-      final taskId = const Uuid().v4();
-      final project = projects[random.nextInt(projects.length)];
-      final member = members[random.nextInt(members.length)];
-      final priority = TaskPriority.values[random.nextInt(4)];
-      final isDone = random.nextBool();
-      final dueOffset = random.nextInt(180) - 90;
-      final dueDate = now.add(Duration(days: dueOffset));
-      final createdAt = dueDate.subtract(Duration(days: random.nextInt(20) + 1));
-
-      final task = Task(id: taskId, teamId: teamId, title: "${titleSamples[random.nextInt(titleSamples.length)]} ($i)", creatorId: myId, creatorName: myName, assigneeId: member['id']!, assigneeName: member['name']!, assigneeEmoji: member['emoji']!, projectId: random.nextDouble() > 0.15 ? project.id : null, createdAt: createdAt, dueDate: dueDate, updatedAt: isDone ? dueDate.add(const Duration(hours: 2)) : now, completedAt: isDone ? dueDate : null, isDone: isDone, priority: priority);
-      await taskBox.put(taskId, task);
-
-      final includeInSchedule = random.nextDouble() > 0.4;
-      if (includeInSchedule) {
-        final startOffset = random.nextInt(3);
-        final endOffset = startOffset + random.nextInt(5);
-        final range = DateTimeRange(start: dueDate.subtract(Duration(days: startOffset)), end: dueDate.add(Duration(days: endOffset)));
-        await metaBox.put(taskId, {'planInclude': true, 'scheduleInclude': true, 'scheduleStart': range.start.toIso8601String(), 'scheduleEnd': range.end.toIso8601String()});
-      } else {
-        await metaBox.put(taskId, {'planInclude': true, 'scheduleInclude': false});
-      }
-    }
-
-    final j1 = JournalEntry(id: 'j1', teamId: teamId, userId: myId, userName: myName, title: '현장 사진 샘플 일지', content: '데이터 뻥튀기 및 필터 테스트를 위한 자동 생성 데이터입니다.', date: now, photos: ['https://picsum.photos/seed/wn1/800/800', 'https://picsum.photos/seed/wn2/800/800']);
-    await Hive.box<JournalEntry>('journals').put(j1.id, j1);
-
-    final threadId = 'grp_${teamId}_sample';
-    await Hive.box('chat_threads').put(threadId, {'id': threadId, 'teamId': teamId, 'type': 'group', 'title': '현장 소통방', 'memberIds': [myId, 'worker01', 'worker02'], 'createdAt': now.toIso8601String()});
-
-    final m1 = ChatMessage(id: 'm1', teamId: teamId, senderId: 'worker01', senderName: '김현장', content: '오늘 자재 들어왔습니다!', sentAt: now.subtract(const Duration(minutes: 30)));
-    await Hive.box<ChatMessage>('messages').put(m1.id, m1);
+  Widget _priorityPill(TaskPriority priority) {
+    final color = priority == TaskPriority.high ? AppColors.danger : (priority == TaskPriority.medium ? AppColors.warning : AppColors.primary);
+    final text = priority == TaskPriority.high ? '상' : (priority == TaskPriority.medium ? '중' : '하');
+    if (priority == TaskPriority.none) return const SizedBox.shrink();
+    return Container(
+      width: 18, height: 18,
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+      child: Center(child: Text(text, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900))),
+    );
   }
 }
+```
+
+---
+## 3. lib/app/main_shell.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/features/chat/state/chat_provider.dart';
+import 'package:worknote/app/widgets/master_drawer.dart';
+
+import 'package:worknote/features/home/ui/home_tab.dart';
+import 'package:worknote/features/tasks/ui/task_tab.dart';
+import 'package:worknote/features/schedule/ui/schedule_tab.dart';
+import 'package:worknote/features/journal/ui/journal_tab.dart';
+import 'package:worknote/features/gallery/ui/gallery_tab.dart';
+import 'package:worknote/features/chat/ui/messenger_tab.dart';
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _didMigrateLegacy = false;
+
+  void _openChatThread(String threadId, String? title) {
+    context.read<ChatProvider>().setActiveThread(threadId, title: title ?? '채팅');
+    setState(() => _selectedIndex = 5);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final teamProv = context.watch<TeamProvider>();
+    final authProv = context.watch<AuthProvider>();
+    final myId = authProv.currentUser?.id ?? 'me';
+
+    if (!_didMigrateLegacy && authProv.currentUser != null) {
+      _didMigrateLegacy = true;
+      Future.microtask(() => teamProv.migrateLegacyMeToUser(myId));
+    }
+
+    final List<Widget> tabs = [
+      HomeTab(onOpenChatThread: _openChatThread),
+      const TeamTaskTab(),
+      const ScheduleTab(),
+      const JournalTab(),
+      const GalleryTab(),
+      const MessengerTab(),
+    ];
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.menu_open_rounded, size: 28, color: Colors.black87),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        ),
+        title: const Text(
+          "WORKNOTE Master",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 20),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined, color: Colors.black87),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      drawer: const MasterDrawer(),
+      body: tabs[_selectedIndex],
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.only(top: 4, bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, -2))],
+        ),
+        child: SafeArea(
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              // [요구사항 1, 2] 비활성 탭 색상 진하게 변경 및 활성 탭 유지
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12);
+                }
+                return const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 12);
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const IconThemeData(color: Color(0xFF2563EB));
+                }
+                return const IconThemeData(color: Colors.black87);
+              }),
+            ),
+            child: NavigationBar(
+              height: 60,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+              indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.dashboard_outlined, size: 22), label: '홈'),
+                NavigationDestination(icon: Icon(Icons.check_circle_outline_rounded, size: 22), label: '업무'),
+                NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), label: '계획'),
+                NavigationDestination(icon: Icon(Icons.edit_note_rounded, size: 22), label: '일지'),
+                NavigationDestination(icon: Icon(Icons.photo_library_outlined, size: 22), label: '사진'),
+                NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded, size: 22), label: '소통'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+```

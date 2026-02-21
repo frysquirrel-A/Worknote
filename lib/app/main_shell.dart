@@ -83,7 +83,6 @@ class _MainShellState extends State<MainShell> {
         child: SafeArea(
           child: NavigationBarTheme(
             data: NavigationBarThemeData(
-              // [요구사항 1, 2] 비활성 탭 색상 진하게 변경 및 활성 탭 유지
               labelTextStyle: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12);
@@ -108,7 +107,7 @@ class _MainShellState extends State<MainShell> {
               destinations: const [
                 NavigationDestination(icon: Icon(Icons.dashboard_outlined, size: 22), label: '홈'),
                 NavigationDestination(icon: Icon(Icons.check_circle_outline_rounded, size: 22), label: '업무'),
-                NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), label: '계획'),
+                NavigationDestination(icon: Icon(Icons.calendar_month_outlined, size: 22), label: '스케줄'),
                 NavigationDestination(icon: Icon(Icons.edit_note_rounded, size: 22), label: '일지'),
                 NavigationDestination(icon: Icon(Icons.photo_library_outlined, size: 22), label: '사진'),
                 NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded, size: 22), label: '소통'),

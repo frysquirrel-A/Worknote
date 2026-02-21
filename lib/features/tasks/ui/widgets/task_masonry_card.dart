@@ -19,11 +19,14 @@ class TaskMasonryCard extends StatelessWidget {
     final bool hasSchedule = taskProv.isIncludedInSchedule(task.id);
     final relatedJournals = journalProv.journals.where((j) => j.content.contains(task.title) || j.title.contains(task.title)).toList();
 
+    final project = taskProv.projects.where((p) => p.id == task.projectId).firstOrNull;
+    final projectName = project?.name ?? '프로젝트 미지정';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))]
       ),
       child: Material(
         color: Colors.transparent,
@@ -35,50 +38,54 @@ class TaskMasonryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. 상단: 상태 및 중요도 배지
+                // 1. 프로젝트명 및 중요도
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _statusPill(task),
+                    Expanded(
+                      child: Text('# $projectName', style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis),
+                    ),
                     _priorityPill(task.priority),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 
-                // 2. 제목 (최대 2줄)
+                // 2. 제목
                 Text(
                   task.title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
-                    color: task.isDone ? AppTextColor.hint : AppTextColor.primary,
+                    color: task.isDone ? AppColors.hint : AppColors.text,
                     decoration: task.isDone ? TextDecoration.lineThrough : null,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis
                 ),
-                const Spacer(),
+                const SizedBox(height: 8),
+
+                // 3. 진행 상태 배지
+                _statusPill(task.isDone),
                 
-                // 3. 하단 메타 정보 (아이콘 기반)
+                const SizedBox(height: 8),
                 const Divider(height: 16),
+                
+                // 4. 하단 메타 정보 (기한, 일정 연동, 관련 일지, 담당자)
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat('MM.dd').format(task.dueDate),
-                        style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w800)
+                        '기한: ${DateFormat('MM.dd').format(task.dueDate)}',
+                        style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.w800),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     
-                    // ✨ [핵심 연동] 캘린더 아이콘 터치 시 일정 탭 등록/해제 토글
                     GestureDetector(
                       onTap: () {
-                        // 현재 상태의 반대값으로 토글
-                        final newStatus = !hasSchedule;
                         taskProv.setScheduleOptions(
                           taskId: task.id,
-                          includeInSchedule: newStatus,
-                          // 기존 설정된 기간이 없으면 마감일(dueDate)을 기본값으로 저장
+                          includeInSchedule: !hasSchedule,
                           range: taskProv.getScheduleRange(task.id) ?? DateTimeRange(start: task.dueDate, end: task.dueDate)
                         );
                       },
@@ -86,19 +93,19 @@ class TaskMasonryCard extends StatelessWidget {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: hasSchedule ? AppPalette.primary.withValues(alpha: 0.1) : Colors.transparent,
+                          color: hasSchedule ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
                           borderRadius: BorderRadius.circular(6)
                         ),
                         child: Icon(
-                          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined, 
-                          size: 16, 
-                          color: hasSchedule ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)
+                          hasSchedule ? Icons.calendar_month_rounded : Icons.calendar_today_outlined,
+                          size: 16,
+                          color: hasSchedule ? AppColors.primary : AppColors.hint
                         ),
                       ),
                     ),
                     const SizedBox(width: 4),
-                    
-                    Icon(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, size: 16, color: relatedJournals.isNotEmpty ? AppPalette.primary : Colors.grey.withValues(alpha: 0.4)),
+
+                    Icon(relatedJournals.isNotEmpty ? Icons.article_rounded : Icons.article_outlined, size: 16, color: relatedJournals.isNotEmpty ? AppColors.primary : AppColors.hint),
                     const SizedBox(width: 6),
                     CircleAvatar(
                       radius: 10,
@@ -115,13 +122,13 @@ class TaskMasonryCard extends StatelessWidget {
     );
   }
 
-  Widget _statusPill(Task task) => Container(
+  Widget _statusPill(bool isDone) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-      color: task.isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(8),
+      color: isDone ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(6),
     ),
-    child: Text(task.isDone ? "완료" : "진행중", style: TextStyle(color: task.isDone ? AppColors.success : AppColors.warning, fontSize: 9, fontWeight: FontWeight.bold)),
+    child: Text(isDone ? "완료" : "진행중", style: TextStyle(color: isDone ? AppColors.success : AppColors.warning, fontSize: 9, fontWeight: FontWeight.bold)),
   );
 
   Widget _priorityPill(TaskPriority priority) {
