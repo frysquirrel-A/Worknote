@@ -3,13 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/core/ui/widgets/date_group_controls.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/journal/ui/sheets/journal_write_sheet.dart';
 import 'package:worknote/features/journal/ui/widgets/journal_card.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/features/journal/ui/widgets/journal_view_mode_toggle.dart';
 
 class JournalTab extends StatefulWidget {
   const JournalTab({super.key});
@@ -22,10 +22,8 @@ class _JournalTabState extends State<JournalTab> {
   String _searchQuery = '';
   JournalKind? _kindFilter;
 
-  bool _showDateToc = true;
-  bool _showDateHeaders = false;
+  String _viewMode = '일별'; // 세그먼트 컨트롤용 뷰 모드 ('일별' 또는 '전체 리스트')
   bool _newestFirst = true;
-  String? _pinnedDateKey;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -34,16 +32,6 @@ class _JournalTabState extends State<JournalTab> {
     _scrollController.dispose();
     super.dispose();
   }
-
-  void _scrollToTop() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
-    });
-  }
-
-  void _pinDate(String dateKey) { setState(() => _pinnedDateKey = dateKey); _scrollToTop(); }
-  void _clearPin() { if (_pinnedDateKey == null) return; setState(() => _pinnedDateKey = null); _scrollToTop(); }
 
   @override
   Widget build(BuildContext context) {
@@ -62,16 +50,14 @@ class _JournalTabState extends State<JournalTab> {
       return true;
     }).toList();
 
+    // 일별 그룹핑 로직
     final Map<String, List<JournalEntry>> grouped = {};
     for (final j in allJournals) {
       final k = DateFormat('yyyy-MM-dd').format(DateTime(j.date.year, j.date.month, j.date.day));
       grouped.putIfAbsent(k, () => []).add(j);
     }
 
-    final baseKeys = grouped.keys.toList()..sort((a, b) => _newestFirst ? b.compareTo(a) : a.compareTo(b));
-    final effectivePinned = baseKeys.contains(_pinnedDateKey) ? _pinnedDateKey : null;
-    final displayKeys = [...baseKeys];
-    if (effectivePinned != null) { displayKeys.remove(effectivePinned); displayKeys.insert(0, effectivePinned); }
+    final displayKeys = grouped.keys.toList()..sort((a, b) => _newestFirst ? b.compareTo(a) : a.compareTo(b));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -96,20 +82,48 @@ class _JournalTabState extends State<JournalTab> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _JournalKindFilterRow(current: _kindFilter, onChanged: (k) => setState(() => _kindFilter = k)),
           ),
+          
+          // 새로 추가된 세그먼트 컨트롤 + 정렬 버튼 라인
           if (allJournals.isNotEmpty)
-            DateGroupControls(
-              title: '일지 날짜 보기', dateKeys: baseKeys, pinnedDateKey: effectivePinned, showToc: _showDateToc,
-              showSectionHeaders: _showDateHeaders, newestFirst: _newestFirst,
-              onToggleToc: () => setState(() => _showDateToc = !_showDateToc),
-              onToggleSectionHeaders: () => setState(() => _showDateHeaders = !_showDateHeaders),
-              onToggleSortOrder: () => setState(() => _newestFirst = !_newestFirst),
-              onSelectDate: _pinDate, onClearPin: _clearPin,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: JournalViewModeToggle(
+                      viewMode: _viewMode,
+                      onChanged: (mode) => setState(() => _viewMode = mode),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  InkWell(
+                    onTap: () => setState(() => _newestFirst = !_newestFirst),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border)
+                      ),
+                      child: Icon(
+                        _newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                  )
+                ],
+              ),
             ),
+            
           const SizedBox(height: 8),
           Expanded(
             child: allJournals.isEmpty
-                ? Center(child: Text('일지가 없습니다.', style: TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
-                : _DateGroupedJournalView(dateKeys: displayKeys, grouped: grouped, showSectionHeaders: _showDateHeaders, scrollController: _scrollController),
+                ? const Center(child: Text('조건에 맞는 일지가 없습니다.', style: TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
+                : _viewMode == '일별'
+                    ? _DateGroupedJournalView(dateKeys: displayKeys, grouped: grouped, scrollController: _scrollController)
+                    : _FlatJournalView(items: allJournals, scrollController: _scrollController, newestFirst: _newestFirst),
           ),
         ],
       ),
@@ -136,12 +150,12 @@ class _JournalWriteButton extends StatelessWidget {
   }
 }
 
+// 뷰 모드 1: 일별 보기 (그룹핑)
 class _DateGroupedJournalView extends StatelessWidget {
   final List<String> dateKeys;
   final Map<String, List<JournalEntry>> grouped;
-  final bool showSectionHeaders;
   final ScrollController scrollController;
-  const _DateGroupedJournalView({required this.dateKeys, required this.grouped, required this.showSectionHeaders, required this.scrollController});
+  const _DateGroupedJournalView({required this.dateKeys, required this.grouped, required this.scrollController});
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -150,11 +164,35 @@ class _DateGroupedJournalView extends StatelessWidget {
         final key = dateKeys[index];
         final items = (grouped[key] ?? [])..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (showSectionHeaders) Padding(padding: const EdgeInsets.only(bottom: 10, top: 6), child: Row(children: [Container(width: 4, height: 14, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 8), Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)), const Spacer(), Text('${items.length}건', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w800, fontSize: 12))]))
-          else const SizedBox(height: 6),
-          ...items.map((j) => JournalCard(entry: j)),
+          Padding(padding: const EdgeInsets.only(bottom: 10, top: 6), child: Row(children: [Container(width: 4, height: 14, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2))), const SizedBox(width: 8), Text(key, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text)), const Spacer(), Text('${items.length}건', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w800, fontSize: 12))])),
+          ...items.map((j) => Padding(padding: const EdgeInsets.only(bottom: 8), child: JournalCard(entry: j))),
           const SizedBox(height: 6),
         ]);
+      },
+    );
+  }
+}
+
+// 뷰 모드 2: 전체 리스트 보기 (플랫)
+class _FlatJournalView extends StatelessWidget {
+  final List<JournalEntry> items;
+  final ScrollController scrollController;
+  final bool newestFirst;
+  const _FlatJournalView({required this.items, required this.scrollController, required this.newestFirst});
+  
+  @override
+  Widget build(BuildContext context) {
+    final sortedItems = [...items]..sort((a, b) => newestFirst ? b.updatedAt.compareTo(a.updatedAt) : a.updatedAt.compareTo(b.updatedAt));
+    
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+      itemCount: sortedItems.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: JournalCard(entry: sortedItems[index]),
+        );
       },
     );
   }

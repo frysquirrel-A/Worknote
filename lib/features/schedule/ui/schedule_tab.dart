@@ -21,6 +21,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  String _searchQuery = ''; // 검색어 상태 추가
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +34,24 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final myName = authProv.currentUser?.name ?? '관리자';
     final teamId = teamProv.currentTeamId;
 
-    final scheduledTasks = taskProv.tasks.where((t) => t.teamId == teamId && taskProv.isIncludedInSchedule(t.id)).toList();
-    final personal = scheduleProv.itemsForTeam(teamId);
+    final q = _searchQuery.trim().toLowerCase();
+
+    // 검색어에 맞춰 업무(Task) 필터링
+    final scheduledTasks = taskProv.tasks.where((t) {
+      if (t.teamId != teamId || !taskProv.isIncludedInSchedule(t.id)) return false;
+      if (q.isNotEmpty && !t.title.toLowerCase().contains(q)) return false;
+      return true;
+    }).toList();
+
+    // 검색어에 맞춰 개인 계획(Personal) 필터링
+    final personal = scheduleProv.itemsForTeam(teamId).where((p) {
+      if (q.isNotEmpty) {
+        final title = (p['title'] ?? '').toString().toLowerCase();
+        final note = (p['note'] ?? '').toString().toLowerCase();
+        if (!title.contains(q) && !note.contains(q)) return false;
+      }
+      return true;
+    }).toList();
 
     final selectedEvents = _selectedDay == null ? <_CalendarEvent>[] : _eventsForDay(day: _selectedDay!, tasks: scheduledTasks, personal: personal, taskProv: taskProv, scheduleProv: scheduleProv);
 
@@ -46,6 +63,24 @@ class _ScheduleTabState extends State<ScheduleTab> {
         icon: const Icon(Icons.add_rounded), label: const Text('계획 추가', style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: Column(children: [
+        // 상단 검색 바
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: TextField(
+            onChanged: (v) => setState(() => _searchQuery = v),
+            style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w900),
+            decoration: InputDecoration(
+              hintText: '계획을 검색하세요...',
+              hintStyle: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w700),
+              prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+              filled: true,
+              fillColor: AppColors.surface,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+            ),
+          ),
+        ),
         Container(
           margin: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 30, offset: const Offset(0, 10))]),
@@ -104,7 +139,19 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final icon = e.type == _EventType.task ? Icons.check_circle_outline_rounded : Icons.event_note_rounded;
     final color = e.type == _EventType.task ? AppColors.primary : AppColors.warning;
     return GestureDetector(
-      onTap: () { if (e.type == _EventType.task && e.task != null) { showTaskDetailSheet(context: context, task: e.task!); } else if (e.type == _EventType.personal) { _showPersonalScheduleSheet(context: context, teamId: context.read<TeamProvider>().currentTeamId, myId: context.read<AuthProvider>().currentUser?.id ?? 'me', myName: context.read<AuthProvider>().currentUser?.name ?? '관리자', initial: e.raw); } },
+      onTap: () { 
+        if (e.type == _EventType.task && e.task != null) { 
+          showTaskDetailSheet(context: context, task: e.task!); 
+        } else if (e.type == _EventType.personal) { 
+          // 에러 해결: 터치하는 순간 context에서 직접 값을 읽어옵니다.
+          final currentTeamId = context.read<TeamProvider>().currentTeamId;
+          final user = context.read<AuthProvider>().currentUser;
+          final currentMyId = user?.id ?? 'me';
+          final currentMyName = user?.name ?? '관리자';
+          
+          _showPersonalScheduleSheet(context: context, teamId: currentTeamId, myId: currentMyId, myName: currentMyName, initial: e.raw);
+        } 
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.border)),

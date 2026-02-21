@@ -34,6 +34,7 @@ class GalleryTab extends StatelessWidget {
       appBar: AppBar(
         title: const Text("전체 갤러리", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
         backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [IconButton(icon: const Icon(Icons.more_vert_rounded), onPressed: () {})],
       ),
       body: sortedKeys.isEmpty
@@ -69,7 +70,7 @@ class GalleryTab extends StatelessWidget {
                         return Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
@@ -100,6 +101,27 @@ class GalleryTab extends StatelessWidget {
   }
 
   Widget _buildEmptyView() {
-    return const Center(child: Text("사진이 없습니다.", style: TextStyle(color: Colors.grey)));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, spreadRadius: 2, offset: const Offset(0, 8))
+              ]
+            ),
+            child: const Icon(Icons.photo_library_rounded, size: 64, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 24),
+          const Text("아직 업로드된 사진이 없어요.", style: TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          const Text("+ 버튼을 눌러 현장 사진을 추가해 보세요!", style: TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
   }
 }

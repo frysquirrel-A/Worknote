@@ -71,25 +71,15 @@ class AppResetService {
       await Hive.box<Project>('projects').put(p.id, p);
     }
 
-    // 3. 샘플 업무(Task) 데이터 뻥튀기 (40개 생성)
+    // 3. 샘플 업무(Task) 데이터 20개 생성
     final List<String> titleSamples = [
-      "회의",
-      "자재 확인",
-      "현장 점검",
-      "도면 검토",
+      "회의", "자재 확인", "현장 점검", "도면 검토", "안전 교육 실시", "콘크리트 타설 대기", "민원 처리 대응", 
+      "폐기물 반출", "오후 간식 구매", "주간 업무 보고", "장비 투입 요청", "현장 청소",
       "이번 주 금요일까지 현장 자재 입고 내역서 및 영수증 취합해서 보고할 것",
-      "안전 교육 실시",
-      "콘크리트 타설 대기",
-      "민원 처리 대응",
       "하도급 업체 계약서 날인 확인 및 서류 일체 본사 제출 요망",
-      "폐기물 반출",
-      "오후 간식 구매",
-      "주간 업무 보고",
       "월간 공정표 수정 및 기성 청구 서류 준비 (상세 내역 포함)",
-      "장비 투입 요청",
-      "현장 청소",
     ];
-
+    
     final members = [
       {'id': myId, 'name': myName, 'emoji': '👷'},
       {'id': 'worker01', 'name': '김현장', 'emoji': '👤'},
@@ -97,12 +87,13 @@ class AppResetService {
       {'id': 'worker03', 'name': '이자재', 'emoji': '📦'},
       {'id': 'worker04', 'name': '최공무', 'emoji': '📑'},
     ];
-
+    
     final taskBox = Hive.box<Task>('tasks');
     final metaBox = Hive.box('task_meta');
 
-    const taskCount = 60;
-
+    // ✨ 데이터 개수를 20개로 수정
+    const taskCount = 20; 
+    
     for (int i = 0; i < taskCount; i++) {
       final taskId = const Uuid().v4();
       final project = projects[random.nextInt(projects.length)];
@@ -110,10 +101,10 @@ class AppResetService {
       final priority = TaskPriority.values[random.nextInt(4)];
       final isDone = random.nextBool();
       
-      // 날짜 분산 (한 달 전 ~ 한 달 후)
-      final dueOffset = random.nextInt(60) - 30;
+      // 과거 3달 ~ 미래 3달로 날짜를 다이나믹하게 흩뿌림
+      final dueOffset = random.nextInt(180) - 90; 
       final dueDate = now.add(Duration(days: dueOffset));
-      final createdAt = now.subtract(Duration(days: random.nextInt(10) + 10));
+      final createdAt = dueDate.subtract(Duration(days: random.nextInt(20) + 1));
       
       final task = Task(
         id: taskId,
@@ -124,7 +115,7 @@ class AppResetService {
         assigneeId: member['id']!,
         assigneeName: member['name']!,
         assigneeEmoji: member['emoji']!,
-        projectId: random.nextDouble() > 0.2 ? project.id : null, // 20%는 프로젝트 없음
+        projectId: random.nextDouble() > 0.15 ? project.id : null, // 15%는 프로젝트 없음
         createdAt: createdAt,
         dueDate: dueDate,
         updatedAt: isDone ? dueDate.add(const Duration(hours: 2)) : now,
@@ -132,11 +123,11 @@ class AppResetService {
         isDone: isDone,
         priority: priority,
       );
-
+      
       await taskBox.put(taskId, task);
 
-      // 스케줄 메타 데이터 랜덤 생성
-      final includeInSchedule = random.nextBool();
+      // 스케줄 메타 데이터 랜덤 생성 (약 60% 확률로 일정 탭에 포함되도록 설정)
+      final includeInSchedule = random.nextDouble() > 0.4;
       if (includeInSchedule) {
         final startOffset = random.nextInt(3);
         final endOffset = startOffset + random.nextInt(5);
@@ -144,6 +135,7 @@ class AppResetService {
           start: dueDate.subtract(Duration(days: startOffset)),
           end: dueDate.add(Duration(days: endOffset)),
         );
+        
         await metaBox.put(taskId, {
           'planInclude': true,
           'scheduleInclude': true,
@@ -173,7 +165,7 @@ class AppResetService {
       ],
     );
     await Hive.box<JournalEntry>('journals').put(j1.id, j1);
-
+    
     // 5. 채팅 샘플
     final threadId = 'grp_${teamId}_sample';
     await Hive.box('chat_threads').put(threadId, {
