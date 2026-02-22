@@ -31,7 +31,21 @@ class SystemMonitorPage extends StatelessWidget {
                 );
               }
               return TextButton.icon(
-                onPressed: () => SyncProcessor.instance.processOutbox(),
+                // ✨ 비동기로 결과를 기다렸다가 스낵바(SnackBar)를 띄웁니다!
+                onPressed: () async {
+                  final resultMsg = await SyncProcessor.instance.processOutbox();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(resultMsg, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: resultMsg.contains('완료') ? AppColors.success : AppColors.danger,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+                      ),
+                    );
+                  }
+                },
                 icon: const Icon(Icons.cloud_sync_rounded, color: AppColors.primary),
                 label: const Text('지금 동기화', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900)),
               );

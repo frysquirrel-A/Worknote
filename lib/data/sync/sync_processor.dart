@@ -24,57 +24,54 @@ class SyncProcessor extends ChangeNotifier {
   }
 
   /// 아웃박스를 소비하여 실제 서버(구글 드라이브)와 동기화를 수행합니다.
-  Future<void> processOutbox() async {
-    if (_isSyncing) return;
+  Future<String> processOutbox() async {
+    if (_isSyncing) return '이미 동기화가 진행 중입니다.';
 
-    // 1. 버튼을 누르면 무조건 스피너부터 돌기 시작합니다!
     _isSyncing = true;
     notifyListeners();
 
-    // UX 개선: 사용자가 눌렀다는 걸 인지할 수 있도록 최소 0.5초간 스피너 유지
-    await Future.delayed(const Duration(milliseconds: 500));
+    // UX: 스피너가 도는 것을 확실히 보여주기 위한 최소 대기 시간
+    await Future.delayed(const Duration(milliseconds: 600));
 
-    // 준비 안됨 or 큐가 비어있음 or 드라이브 오프라인이면 종료
     if (!SyncOutbox.instance.isReady) {
       _isSyncing = false;
       notifyListeners();
-      return;
+      return '로컬 저장소가 준비되지 않았습니다.';
     }
 
     final box = Hive.box<Map>(SyncOutbox.boxName);
     if (box.isEmpty) {
       _isSyncing = false;
       notifyListeners();
-      return;
+      return '동기화할 데이터가 없습니다.';
     }
 
+    // 🚨 여기서 로그인이 안 되어 있으면 큐를 비우지 않고 바로 종료됩니다!
     if (!_driveService.isReady) {
       _isSyncing = false;
       notifyListeners();
-      return;
+      return '구글 드라이브 연동(로그인)이 필요합니다.';
     }
 
     try {
-      // 2. 아웃박스에서 변경이 발생한 엔티티(종류) 추출
       final entitiesToSync = <String>{};
       for (final raw in box.values) {
         final entity = raw['entity'] as String?;
         if (entity != null) entitiesToSync.add(entity);
       }
 
-      // 3. Drive JSON 파일 특성상, 변경이 있는 엔티티의 전체 최신 상태를 덮어쓰기(Full Sync)
       for (final entity in entitiesToSync) {
         await _syncEntityToDrive(entity);
       }
 
-      // 4. 모든 동기화가 성공하면 아웃박스 큐 비우기
+      // ✨ 드라이브 업로드까지 완벽하게 성공했을 때만 큐를 비웁니다!
       await SyncOutbox.instance.clear();
+      return '구글 드라이브 동기화가 완료되었습니다! ✨';
       
     } catch (e, stack) {
-      // 동기화 중 에러가 나면 큐를 비우지 않고 크래시 리포트에 기록 (재시도 보장)
       unawaited(CrashReporter.instance.record(e, stack, hint: 'SyncProcessor.processOutbox'));
+      return '동기화 중 오류가 발생했습니다. (네트워크 확인)';
     } finally {
-      // 5. 작업이 성공하든 실패하든 마지막에 스피너를 멈춤
       _isSyncing = false;
       notifyListeners();
     }
