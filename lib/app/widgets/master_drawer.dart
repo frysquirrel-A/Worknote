@@ -9,6 +9,7 @@ import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/team/ui/team_management_page.dart';
 import 'package:worknote/data/services/app_reset_service.dart';
 import 'package:worknote/features/admin/ui/system_monitor_page.dart';
+import 'package:worknote/data/services/drive_service.dart';
 
 class MasterDrawer extends StatelessWidget {
   const MasterDrawer({super.key});
@@ -59,20 +60,99 @@ class MasterDrawer extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const TeamManagementPage()));
           }),
 
-          _drawerItem(Icons.cloud_sync_rounded, "구글 드라이브 연동", () async {
-            if (!authProv.isGoogleLinked) {
-              final success = await authProv.connectGoogleDrive();
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("연동 성공!")));
-              }
-            }
-          }, color: authProv.isGoogleLinked ? Colors.green : null),
+          // ✨ 구글 드라이브 연동 상태를 예쁜 '배지(Badge)'로 보여주는 스마트 토글 버튼
+          StatefulBuilder(
+            builder: (context, setState) {
+              // 현재 로그인 상태 확인
+              final isLinked = DriveService().isReady; 
+              
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                leading: Icon(
+                  isLinked ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
+                  color: isLinked ? Colors.blue : Colors.grey, 
+                ),
+                // 🎨 일반 텍스트 대신 Row와 Container를 조합해 배지(Badge)를 만듭니다
+                title: Row(
+                  children: [
+                    const Text('구글 드라이브', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        // 연동 상태에 따라 배경색과 테두리 색상 변경
+                        color: isLinked ? Colors.blue.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: isLinked ? Colors.blue.withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.5),
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12), // 둥근 배지 모양
+                      ),
+                      child: Text(
+                        isLinked ? '연동 완료' : '미연동',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isLinked ? Colors.blue : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () async {
+                  if (isLinked) {
+                    // 1. 이미 연동된 상태 -> 해제(로그아웃) 프로세스 진행
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('연동 해제', style: TextStyle(fontWeight: FontWeight.bold)),
+                        content: const Text('구글 드라이브 연동을 해제하시겠습니까?\n(오프라인 데이터는 유지됩니다)'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false), 
+                            child: const Text('취소', style: TextStyle(color: Colors.grey))
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true), 
+                            child: const Text('해제', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+                          ),
+                        ],
+                      ),
+                    );
+                    
+                    if (confirm == true) {
+                      await DriveService().signOut();
+                      setState(() {}); 
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('구글 드라이브 연동이 해제되었습니다.')),
+                        );
+                      }
+                    }
+                  } else {
+                    // 2. 미연동 상태 -> 로그인 프로세스 진행
+                    final success = await DriveService().signIn();
+                    if (success) {
+                      setState(() {});
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('구글 드라이브에 성공적으로 연결되었습니다! ✅'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              );
+            },
+          ),
 
           _drawerItem(Icons.palette_outlined, "테마 설정", () => _showThemeDialog(context, teamProv)),
 
           _drawerItem(Icons.restart_alt_rounded, "앱 초기화", () => _showResetDialog(context), color: Colors.deepOrange),
           
-          // ✨ 시스템 모니터링 진입점 추가
           _drawerItem(Icons.monitor_heart_rounded, "시스템 모니터링 (관리자)", () {
             Navigator.pop(context); // 서랍 닫기
             Navigator.push(
