@@ -8,24 +8,23 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:worknote/core/crash/crash_reporter.dart';
 
 class DriveService {
-  // 싱글톤 패턴 적용
   static final DriveService _instance = DriveService._internal();
   factory DriveService() => _instance;
   
   DriveService._internal() {
-    // 앱이 켜질 때 이전에 로그인한 기록이 있으면 조용히(Silently) 자동 로그인
     _googleSignIn.signInSilently();
   }
 
-  // 구글 로그인 및 드라이브 파일 읽기/쓰기 권한(Scope) 요청
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [drive.DriveApi.driveFileScope],
   );
 
+  // ✨ Worknote 전용 폴더 이름 지정
+  static const String _folderName = 'Worknote_Data';
+
   bool get isReady => _googleSignIn.currentUser != null;
   GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
 
-  /// 구글 계정으로 로그인 (UI에서 버튼 누를 때 호출)
   Future<bool> signIn() async {
     try {
       final account = await _googleSignIn.signIn();
@@ -36,27 +35,52 @@ class DriveService {
     }
   }
 
-  /// 로그아웃
   Future<void> signOut() async {
     await _googleSignIn.signOut();
   }
 
-  /// 구글 API 통신을 위한 인증된 클라이언트 획득
   Future<drive.DriveApi?> _getApi() async {
     final client = await _googleSignIn.authenticatedClient();
     if (client == null) return null;
     return drive.DriveApi(client);
   }
 
-  /// 아웃박스에서 전달받은 JSON 데이터를 드라이브에 파일로 업로드(덮어쓰기)
+  // ✨ 핵심 로직: 전용 폴더를 찾거나 없으면 생성해서 Folder ID를 반환하는 함수
+  Future<String?> _getOrCreateFolder(drive.DriveApi api) async {
+    try {
+      // 1. 폴더가 이미 있는지 검색
+      final q = "mimeType = 'application/vnd.google-apps.folder' and name = '$_folderName' and trashed = false";
+      final folderList = await api.files.list(q: q, spaces: 'drive');
+      
+      if (folderList.files != null && folderList.files!.isNotEmpty) {
+        return folderList.files!.first.id; // 기존 폴더 ID 반환
+      }
+
+      // 2. 없으면 새 폴더 생성
+      final newFolder = drive.File()
+        ..name = _folderName
+        ..mimeType = 'application/vnd.google-apps.folder';
+      final createdFolder = await api.files.create(newFolder);
+      return createdFolder.id; // 새 폴더 ID 반환
+    } catch (e, stack) {
+      unawaited(CrashReporter.instance.record(e, stack, hint: 'DriveService._getOrCreateFolder'));
+      return null;
+    }
+  }
+
+  /// 아웃박스에서 전달받은 JSON 데이터를 드라이브 [전용 폴더]에 파일로 업로드
   Future<List<Map<String, dynamic>>?> syncJsonData(List<Map<String, dynamic>> localData, String fileName) async {
     if (!isReady) return null;
     final api = await _getApi();
     if (api == null) return null;
 
     try {
-      // 1. 내 드라이브 최상단(root)에서 파일 이름으로 기존 파일 검색
-      final q = "name = '$fileName' and trashed = false";
+      // 전용 폴더 ID 획득
+      final folderId = await _getOrCreateFolder(api);
+      if (folderId == null) throw Exception('전용 폴더를 생성할 수 없습니다.');
+
+      // 최상단이 아닌 해당 '폴더 안'에서 파일 검색
+      final q = "name = '$fileName' and '$folderId' in parents and trashed = false";
       final fileList = await api.files.list(q: q, spaces: 'drive');
       final files = fileList.files;
 
@@ -65,7 +89,6 @@ class DriveService {
         targetFile = files.first;
       }
 
-      // 2. 데이터를 JSON 문자열로 변환 후 Media 스트림 생성
       final jsonString = jsonEncode(localData);
       final media = drive.Media(
         Stream.value(utf8.encode(jsonString)),
@@ -73,15 +96,14 @@ class DriveService {
       );
 
       if (targetFile == null) {
-        // 3-A. 파일이 없으면 새로 생성
-        final newFile = drive.File()..name = fileName;
+        // ✨ 파일 생성 시 부모 폴더(parents)를 전용 폴더로 지정!
+        final newFile = drive.File()
+          ..name = fileName
+          ..parents = [folderId];
         await api.files.create(newFile, uploadMedia: media);
       } else {
-        // 3-B. 파일이 있으면 기존 파일 덮어쓰기 (버전 업데이트)
         await api.files.update(drive.File(), targetFile.id!, uploadMedia: media);
       }
-      
-      // 업로드 성공 시 확인용으로 로컬 데이터 반환
       return localData;
     } catch (e, stack) {
       unawaited(CrashReporter.instance.record(e, stack, hint: 'DriveService.syncJsonData'));
@@ -89,26 +111,25 @@ class DriveService {
     }
   }
 
-  // --- 유실되었던 기존 호환성 메서드 복구 ---
+  // --- 기존 호환성 메서드 ---
 
-  /// AuthProvider에서 호출하는 클라이언트 초기화 해제
   void clearClient() {
     signOut();
   }
 
-  /// AuthProvider에서 호출하는 클라이언트 주입
-  void setClient(dynamic client) {
-    // 현재 DriveService가 자체적으로 인증을 관리하므로 빈 함수로 두어도 안전합니다.
-  }
+  void setClient(dynamic client) {}
 
-  /// TeamProvider 등에서 구글 드라이브의 JSON을 읽어올 때 사용
+  /// JSON 데이터 읽어오기 (전용 폴더 내에서 검색)
   Future<List<Map<String, dynamic>>?> readJsonData(String fileName) async {
     if (!isReady) return null;
     final api = await _getApi();
     if (api == null) return null;
 
     try {
-      final q = "name = '$fileName' and trashed = false";
+      final folderId = await _getOrCreateFolder(api);
+      if (folderId == null) return null;
+
+      final q = "name = '$fileName' and '$folderId' in parents and trashed = false";
       final fileList = await api.files.list(q: q, spaces: 'drive');
       final files = fileList.files;
 
@@ -132,21 +153,27 @@ class DriveService {
     }
   }
 
-  /// JournalProvider에서 일지 사진을 드라이브에 업로드할 때 사용
+  /// 사진 업로드 (전용 폴더 안에 저장)
   Future<String?> uploadPhoto(String localPath, String fileName) async {
     if (!isReady) return null;
     final api = await _getApi();
     if (api == null) return null;
 
     try {
+      final folderId = await _getOrCreateFolder(api);
+      
       final file = File(localPath);
       if (!await file.exists()) return null;
 
       final media = drive.Media(file.openRead(), await file.length());
       final driveFile = drive.File()..name = fileName;
+      
+      if (folderId != null) {
+        driveFile.parents = [folderId];
+      }
 
       final result = await api.files.create(driveFile, uploadMedia: media);
-      return result.id; // 구글 드라이브에 업로드된 파일의 ID 반환
+      return result.id;
     } catch (e, stack) {
       unawaited(CrashReporter.instance.record(e, stack, hint: 'DriveService.uploadPhoto'));
       return null;
