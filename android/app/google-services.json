@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1070260106771",
+    "project_id": "worknote-cd463",
+    "storage_bucket": "worknote-cd463.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1070260106771:android:5dbdd60de061b6268671e6",
+        "android_client_info": {
+          "package_name": "com.example.worknote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAU3Dxh9mnXFfaN5X2M2SbyE2tdHy5JJHk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
