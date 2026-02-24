@@ -1,16 +1,14 @@
-# worknote
+# 🧭 Worknote: Universal Group Sharing Platform
 
-A new Flutter project.
+### 🎯 프로젝트 개요
+Worknote는 관계의 성격(가족, 친구, 연인, 계모임, 회사 등)에 구애받지 않고, 사용자가 목적에 맞는 '그룹'을 생성하여 소통하고 기록하는 **범용 공유 플랫폼**입니다.
 
-## Getting Started
+### ✨ 주요 기능 로드맵
+- **멀티 그룹 아키텍처**: 한 사용자가 여러 성격의 그룹에 소속되어 독립적으로 활동.
+- **공유 도구 모음**: 투두 리스트, 저널(일지), 사진 갤러리, 일정 관리.
+- **하이브리드 인증**: 전통적인 이메일 가입과 편리한 소셜(Google) 로그인의 결합.
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 🛠 현재 개발 상태 (2026-02-24)
+1. **인증 시스템**: Firebase Auth 기반 구글/이메일 로그인, 회원가입, 탈퇴 로직 완료.
+2. **UI/UX**: 다크 모드(Deep Navy) 테마 적용. 입력창 라벨 고정 및 시각적 피드백 최적화 완료.
+3. **인프라**: `bootstrap.dart`를 통한 파이어베이스 초기화 안정화.
