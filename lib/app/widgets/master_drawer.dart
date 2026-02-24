@@ -10,6 +10,7 @@ import 'package:worknote/features/team/ui/team_management_page.dart';
 import 'package:worknote/data/services/app_reset_service.dart';
 import 'package:worknote/features/admin/ui/system_monitor_page.dart';
 import 'package:worknote/data/services/drive_service.dart';
+import 'package:worknote/data/services/auth_service.dart'; // ✨ AuthService 임포트
 
 class MasterDrawer extends StatelessWidget {
   const MasterDrawer({super.key});
@@ -63,16 +64,14 @@ class MasterDrawer extends StatelessWidget {
           // ✨ 구글 드라이브 연동 상태를 예쁜 '배지(Badge)'로 보여주는 스마트 토글 버튼
           StatefulBuilder(
             builder: (context, setState) {
-              // 현재 로그인 상태 확인
               final isLinked = DriveService().isReady; 
               
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24),
                 leading: Icon(
                   isLinked ? Icons.cloud_done_rounded : Icons.cloud_sync_rounded,
-                  color: isLinked ? Colors.blue : Colors.grey, 
+                  color: isLinked ? Colors.blue : Colors.black54, 
                 ),
-                // 🎨 일반 텍스트 대신 Row와 Container를 조합해 배지(Badge)를 만듭니다
                 title: Row(
                   children: [
                     const Text('구글 드라이브', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -80,13 +79,12 @@ class MasterDrawer extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        // 연동 상태에 따라 배경색과 테두리 색상 변경
                         color: isLinked ? Colors.blue.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                         border: Border.all(
                           color: isLinked ? Colors.blue.withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.5),
                           width: 1,
                         ),
-                        borderRadius: BorderRadius.circular(12), // 둥근 배지 모양
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         isLinked ? '연동 완료' : '미연동',
@@ -101,7 +99,6 @@ class MasterDrawer extends StatelessWidget {
                 ),
                 onTap: () async {
                   if (isLinked) {
-                    // 1. 이미 연동된 상태 -> 해제(로그아웃) 프로세스 진행
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -130,7 +127,6 @@ class MasterDrawer extends StatelessWidget {
                       }
                     }
                   } else {
-                    // 2. 미연동 상태 -> 로그인 프로세스 진행
                     final success = await DriveService().signIn();
                     if (success) {
                       setState(() {});
@@ -154,7 +150,7 @@ class MasterDrawer extends StatelessWidget {
           _drawerItem(Icons.restart_alt_rounded, "앱 초기화", () => _showResetDialog(context), color: Colors.deepOrange),
           
           _drawerItem(Icons.monitor_heart_rounded, "시스템 모니터링 (관리자)", () {
-            Navigator.pop(context); // 서랍 닫기
+            Navigator.pop(context); 
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SystemMonitorPage()),
@@ -184,7 +180,16 @@ class MasterDrawer extends StatelessWidget {
             ),
           ),
 
-          _drawerItem(Icons.logout_rounded, "로그아웃", () => authProv.logout(), color: Colors.redAccent),
+          // ✨ 로그아웃 버튼: AuthService 연동 및 화면 강제 이동 적용
+          _drawerItem(Icons.logout_rounded, "로그아웃", () async {
+            // 1. 파이어베이스 & 구글 세션 종료 (AuthProvider 로직 포함)
+            await authProv.logout(); // 내부적으로 AuthService().signOut() 및 GoogleSignIn().signOut() 호출됨
+            
+            // 2. 로그인 화면으로 강제 이동
+            if (context.mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+            }
+          }, color: Colors.redAccent),
           const SizedBox(height: 40),
         ],
       ),

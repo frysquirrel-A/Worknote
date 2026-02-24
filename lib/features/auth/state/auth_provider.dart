@@ -7,6 +7,7 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/data/services/drive_service.dart';
 import 'package:worknote/data/services/local_db_service.dart';
+import 'package:worknote/data/services/auth_service.dart'; // ✨ AuthService 임포트
 
 class AuthProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
@@ -22,7 +23,17 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
   bool get isGoogleLinked => _isGoogleLinked;
 
-  AuthProvider() { _checkLoginStatus(); }
+  AuthProvider() { 
+    _checkLoginStatus(); 
+    // 앱 시작 시 구글 로그인이 이미 되어있다면 파이어베이스 로그인도 시도
+    _googleSignIn.signInSilently().then((account) {
+      if (account != null) {
+        _isGoogleLinked = true;
+        AuthService().signInWithGoogle();
+        notifyListeners();
+      }
+    });
+  }
 
   Future<void> _checkLoginStatus() async {
     final lastUserId = _localDb.getSetting('logged_in_user_id');
@@ -87,6 +98,7 @@ class AuthProvider extends ChangeNotifier {
     _driveService.clearClient();
     await _localDb.saveSetting('logged_in_user_id', null);
     await _googleSignIn.signOut();
+    await AuthService().signOut(); // ✨ 파이어베이스 로그아웃 추가
     notifyListeners();
   }
 
@@ -97,8 +109,13 @@ class AuthProvider extends ChangeNotifier {
       if (account != null) {
         final httpClient = await _googleSignIn.authenticatedClient();
         if (httpClient != null) {
-             _driveService.setClient(httpClient);
+            _driveService.setClient(httpClient);
             _isGoogleLinked = true;
+            
+            // ✨ [핵심 연결] 구글 드라이브 연동 성공 시, 파이어베이스 자동 로그인 실행
+            print('🔄 [AuthProvider] 파이어베이스 자동 로그인 시도...');
+            await AuthService().signInWithGoogle();
+
             notifyListeners();
             _setLoading(false);
             return true;
