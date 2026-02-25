@@ -84,10 +84,9 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
           _selStatus = '전체';
           _selPriority = null;
           _selAssignee = 'all';
+          _selDate = DateFilter.all;
         });
         context.read<TaskProvider>().resetTeamScopedFilters();
-        // [수정] 정의되지 않은 _selDate 제거 및 TaskProvider를 통한 필터 설정
-        context.read<TaskProvider>().setDateFilter(DateFilter.all);
       });
     }
     _lastTeamId = teamId;
@@ -163,6 +162,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
               onPriorityChanged: (v) => setState(() => _selPriority = v),
               selAssignee: _selAssignee,
               onAssigneeChanged: (v) => setState(() => _selAssignee = v ?? 'all'),
+              // [요구사항 1] 탭 토글 상태 및 콜백 연결
               showGroupHeaders: _showGroupHeaders,
               onToggleGroupHeaders: () => setState(() => _showGroupHeaders = !_showGroupHeaders),
             ),

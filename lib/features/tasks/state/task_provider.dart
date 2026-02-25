@@ -189,7 +189,7 @@ class TaskProvider extends ChangeNotifier {
     _invalidateAllCaches();
 
     // meta 박스 warm-up (Box not found 크래시 방지)
-    unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
+    unawaited(_ensureMetaBox().catchError((_) {}));
 
     notifyListeners();
   }
@@ -200,7 +200,7 @@ class TaskProvider extends ChangeNotifier {
     if (box == null) {
       // 박스가 아직 열리지 않은 경우(핫리스타트/초기화 타이밍 등) 크래시 방지.
       // meta 데이터가 없던 시절(legacy)처럼 "일단 포함"으로 동작.
-      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
+      unawaited(_ensureMetaBox().catchError((_) {}));
       return true;
     }
 
@@ -212,7 +212,7 @@ class TaskProvider extends ChangeNotifier {
   DateTimeRange? getScheduleRange(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
+      unawaited(_ensureMetaBox().catchError((_) {}));
       return null;
     }
 
@@ -302,7 +302,7 @@ class TaskProvider extends ChangeNotifier {
   DateTime? getCompletionReportAt(String taskId) {
     final box = _metaBoxOrNull();
     if (box == null) {
-      unawaited(_ensureMetaBox().catchError((_) => Hive.box(_metaBoxName)));
+      unawaited(_ensureMetaBox().catchError((_) {}));
       return null;
     }
 
@@ -436,7 +436,7 @@ class TaskProvider extends ChangeNotifier {
         .name;
   }
 
-  // ---- CRUD: Task ----
+  // ---- CRUD ----
   Future<void> addTask(Task t) async {
     final box = await _ensureTaskBox();
     await box.put(t.id, t);
@@ -448,36 +448,16 @@ class TaskProvider extends ChangeNotifier {
         entity: 'task',
         action: 'put',
         entityId: t.id,
-        payload: t.toJson(),
+        payload: {
+          'title': t.title,
+          'dueDate': t.dueDate.toIso8601String(),
+          'status': t.status.name,
+        },
       ),
     );
 
     _tasks.add(t);
     _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    _invalidateAllCaches();
-    notifyListeners();
-  }
-
-  Future<void> updateTask(Task t) async {
-    final box = await _ensureTaskBox();
-    t.updatedAt = DateTime.now();
-    await box.put(t.id, t);
-
-    // Outbox: generic update
-    unawaited(
-      SyncOutbox.instance.enqueue(
-        teamId: t.teamId,
-        entity: 'task',
-        action: 'put',
-        entityId: t.id,
-        payload: t.toJson(),
-      ),
-    );
-
-    final idx = _tasks.indexWhere((item) => item.id == t.id);
-    if (idx >= 0) {
-      _tasks[idx] = t;
-    }
     _invalidateAllCaches();
     notifyListeners();
   }
@@ -539,58 +519,5 @@ class TaskProvider extends ChangeNotifier {
     _tasks.removeWhere((t) => t.id == id);
     _invalidateAllCaches();
     notifyListeners();
-  }
-
-  // ---- CRUD: Project ----
-  Future<void> addProject(Project p) async {
-    final box = await _ensureProjectBox();
-    await box.put(p.id, p);
-
-    unawaited(
-      SyncOutbox.instance.enqueue(
-        teamId: p.teamId,
-        entity: 'project',
-        action: 'put',
-        entityId: p.id,
-        payload: p.toJson(),
-      ),
-    );
-
-    _projects.add(p);
-    _invalidateAllCaches();
-    notifyListeners();
-  }
-
-  Future<void> deleteProject(String id) async {
-    final box = await _ensureProjectBox();
-    final Project? before = box.get(id);
-    await box.delete(id);
-
-    unawaited(
-      SyncOutbox.instance.enqueue(
-        teamId: before?.teamId ?? 'unknown',
-        entity: 'project',
-        action: 'delete',
-        entityId: id,
-        payload: {
-          'name': before?.name ?? '',
-        },
-      ),
-    );
-
-    _projects.removeWhere((p) => p.id == id);
-    _invalidateAllCaches();
-    notifyListeners();
-  }
-
-  Future<void> cycleTaskPriority(Task task) async {
-    final nextIdx = (task.priority.index + 1) % TaskPriority.values.length;
-    task.priority = TaskPriority.values[nextIdx];
-    await updateTask(task);
-  }
-
-  Future<void> saveCompletionReport(Task task, String report) async {
-    task.completionReport = report;
-    await updateTask(task);
   }
 }

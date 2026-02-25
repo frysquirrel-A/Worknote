@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:worknote/data/services/auth_service.dart';
-import 'sign_up_page.dart';
+import 'package:provider/provider.dart';
+import 'package:worknote/features/auth/state/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,201 +10,115 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  // 🎨 다크 테마 색상 팔레트
-  final Color _bgColor = const Color(0xFF111827);
-  final Color _cardColor = const Color(0xFF1F2937);
-  final Color _inputColor = const Color(0xFF374151);
-  final Color _primaryBlue = const Color(0xFF3B82F6);
+  bool isLoginMode = false; 
+  
+  final _idCtrl = TextEditingController();
+  final _pwCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _idCtrl.dispose();
+    _pwCtrl.dispose();
+    _nameCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProv = context.watch<AuthProvider>();
+
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: const Color(0xFF0F172A),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.architecture, size: 60, color: _primaryBlue),
+              const Icon(Icons.architecture, size: 80, color: Colors.blueAccent),
               const SizedBox(height: 16),
-              const Text(
-                'WORKNOTE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const Text(
-                '현장 협업의 시작',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 40),
+              const Text("WORKNOTE", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              const Text("현장 협업의 시작", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              
+              const SizedBox(height: 48),
 
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: _cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      "로그인",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(isLoginMode ? "로그인" : "프로필 설정", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 24),
 
-                    // ✨ 라벨이 위로 안 올라가는 입력창
-                    _buildFixedTextField(
-                      controller: _emailController,
-                      hint: '이메일',
-                      icon: Icons.email_outlined,
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildFixedTextField(
-                      controller: _passwordController,
-                      hint: '비밀번호',
-                      icon: Icons.lock_outline,
-                      isPassword: true,
-                    ),
-                    const SizedBox(height: 24),
-
-                    ElevatedButton(
-                      onPressed: () async {
-                        final email = _emailController.text.trim();
-                        final password = _passwordController.text.trim();
-                        if (email.isEmpty || password.isEmpty) return;
-
-                        final user = await AuthService().signInWithEmail(email, password);
-                        if (user != null && context.mounted) {
-                          Navigator.of(context).pushReplacementNamed('/');
-                        } else if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('로그인 실패. 정보를 확인해주세요.')),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryBlue,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        '로그인',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
+                    _buildTextField(_idCtrl, "아이디", Icons.person, false),
+                    const SizedBox(height: 12),
+                    _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
                     
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.grey[700])),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10),
-                          child: Text("또는", style: TextStyle(color: Colors.grey)),
-                        ),
-                        Expanded(child: Divider(color: Colors.grey[700])),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                    if (!isLoginMode) ...[
+                      const SizedBox(height: 12),
+                      _buildTextField(_nameCtrl, "이름 (예: 홍길동)", Icons.badge, false),
+                    ],
 
-                    // ✨ 진짜 구글 버튼 (이미지 사용)
-                    OutlinedButton(
-                      onPressed: () async {
-                        final user = await AuthService().signInWithGoogle();
-                        if (user != null && context.mounted) {
-                          Navigator.of(context).pushReplacementNamed('/');
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey[600]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 10,
                         ),
-                        backgroundColor: Colors.white, // 구글 버튼은 흰색 배경이 국룰
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // 로고 이미지 (없으면 아이콘으로 대체되는 안전장치)
-                          Image.asset(
-                            'assets/images/google_logo.png',
-                            height: 24,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.g_mobiledata, color: Colors.red, size: 30);
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Google 계정으로 로그인',
-                            style: TextStyle(
-                              color: Colors.black87, // 흰 배경엔 검은 글씨
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        onPressed: authProv.isLoading ? null : () async {
+                          if (isLoginMode) {
+                            final ok = await authProv.loginLocal(_idCtrl.text.trim(), _pwCtrl.text);
+                            if (!ok && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로그인 실패: 아이디/비밀번호를 확인하세요.")));
+                            }
+                          } else {
+                            if (_nameCtrl.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름을 입력해주세요.")));
+                              return;
+                            }
+                            // [수정 포인트] 인자 3개만 전달
+                            final ok = await authProv.signUpLocal(
+                              _idCtrl.text.trim(),
+                              _pwCtrl.text,
+                              _nameCtrl.text.trim(),
+                            );
+                            if (!ok && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("회원가입 실패: 이미 존재하는 아이디입니다.")));
+                            }
+                          }
+                        },
+                        child: authProv.isLoading 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(isLoginMode ? "입장하기" : "시작하기", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("처음이신가요?  ", style: TextStyle(color: Colors.grey)),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SignUpPage()),
-                      );
-                    },
-                    child: Text(
-                      "회원가입",
-                      style: TextStyle(
-                        color: _primaryBlue,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                        decorationColor: _primaryBlue,
-                      ),
-                    ),
-                  ),
-                ],
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    isLoginMode = !isLoginMode;
+                  });
+                },
+                child: Text(
+                  isLoginMode ? "처음이신가요? 프로필 설정하기" : "이미 계정이 있으신가요? 로그인", 
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)
+                ),
               ),
             ],
           ),
@@ -213,36 +127,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // 🛠️ [수정됨] 글자가 위로 안 올라가는 입력창
-  Widget _buildFixedTextField({
-    required TextEditingController controller,
-    required String hint, // label -> hint로 변경
-    required IconData icon,
-    bool isPassword = false,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isPassword,
+  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, bool isObscure) {
+    return TextField(
+      controller: ctrl,
+      obscureText: isObscure,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        hintText: hint, // ✨ 여기가 핵심! hintText는 위로 안 올라감
-        hintStyle: TextStyle(color: Colors.grey[500]),
-        prefixIcon: Icon(icon, color: Colors.grey),
+        prefixIcon: Icon(icon, color: Colors.blueAccent.withValues(alpha: 0.5), size: 20),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
         filled: true,
-        fillColor: _inputColor,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // 높이 조절
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _primaryBlue, width: 2), // 파란 테두리는 유지
-        ),
+        fillColor: Colors.black26,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }
