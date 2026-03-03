@@ -1,198 +1,260 @@
-import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
-// --- Enums ---
-enum TaskPriority { high, medium, low, none }
+part 'models.g.dart';
+
+// -----------------------------------------------------------------------------
+// [Enums] - 시스템 전반에서 공통으로 사용할 열거형
+// -----------------------------------------------------------------------------
+
+@HiveType(typeId: 3)
+enum TaskStatus {
+  @HiveField(0) todo,
+  @HiveField(1) inProgress,
+  @HiveField(2) done,
+}
+
+@HiveType(typeId: 4)
+enum TaskPriority {
+  @HiveField(0) low,
+  @HiveField(1) medium,
+  @HiveField(2) high,
+  @HiveField(3) none,
+}
+
+@HiveType(typeId: 8)
+enum DateFilter {
+  @HiveField(0) all,
+  @HiveField(1) today,
+  @HiveField(2) week,
+  @HiveField(3) month,
+}
+
 enum AppTone { white, blue, black }
-enum DateFilter { all, today, week, twoWeeks, oneMonth }
 enum JournalGroupPeriod { day, week, month, quarter, year }
-
-/// Journal entry semantic type.
-/// Stored in `journal_meta` box to avoid breaking Hive adapters when evolving.
 enum JournalKind { note, progress, completionReport }
 
-// --- 1. 팀 모델 ---
-class Team {
-  final String id;
-  String name;
-  String inviteCode;
-  List<String> memberIds;
-  Map<String, String> memberRoles; // {userId: role}
+// -----------------------------------------------------------------------------
+// [Task Model]
+// -----------------------------------------------------------------------------
+
+@HiveType(typeId: 1)
+class Task extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) final String teamId;
+  @HiveField(2) String title;
+  @HiveField(3) final String creatorId;
+  @HiveField(4) final String creatorName;
+  @HiveField(5) final String assigneeId;
+  @HiveField(6) final String assigneeName;
+  @HiveField(7) final String assigneeEmoji;
+  @HiveField(8) final List<String> assigneeIds;
+  @HiveField(9) final List<String> assigneeNames;
+  @HiveField(10) final List<String> assigneeEmojis;
+  @HiveField(11) String? projectId;
+  @HiveField(12) final DateTime createdAt;
+  @HiveField(13) final DateTime dueDate;
+  @HiveField(14) DateTime updatedAt;
+  @HiveField(15) DateTime? completedAt;
+  @HiveField(16) bool isDone;
+  @HiveField(17) TaskPriority priority;
+  @HiveField(18) TaskStatus status; // ✨ UI 요구사항 반영
+  @HiveField(19) List<String> taskNotes;
+  @HiveField(20) String? completionReport; // ✨ UI 요구사항 반영
+
+  // 기존 코드 호환성을 위한 Getter
+  DateTime get date => dueDate;
+  List<String> get assignees => assigneeNames;
+
+  Task({
+    required this.id,
+    required this.teamId,
+    required this.title,
+    required this.creatorId,
+    required this.creatorName,
+    required this.assigneeId,
+    required this.assigneeName,
+    required this.assigneeEmoji,
+    this.assigneeIds = const [],
+    this.assigneeNames = const [],
+    this.assigneeEmojis = const [],
+    this.projectId,
+    required this.createdAt,
+    required this.dueDate,
+    DateTime? updatedAt,
+    this.completedAt,
+    this.isDone = false,
+    this.priority = TaskPriority.medium,
+    this.status = TaskStatus.todo,
+    List<String>? taskNotes,
+    this.completionReport,
+  }) : taskNotes = taskNotes ?? [],
+       updatedAt = updatedAt ?? createdAt;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'teamId': teamId,
+    'title': title,
+    'creatorId': creatorId,
+    'creatorName': creatorName,
+    'assigneeId': assigneeId,
+    'assigneeName': assigneeName,
+    'assigneeEmoji': assigneeEmoji,
+    'assigneeIds': assigneeIds,
+    'assigneeNames': assigneeNames,
+    'assigneeEmojis': assigneeEmojis,
+    'projectId': projectId,
+    'createdAt': createdAt.toIso8601String(),
+    'dueDate': dueDate.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'completedAt': completedAt?.toIso8601String(),
+    'isDone': isDone,
+    'priority': priority.index,
+    'status': status.index,
+    'taskNotes': taskNotes,
+    'completionReport': completionReport,
+  };
+
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+    id: json['id'] ?? '',
+    teamId: json['teamId'] ?? 'default',
+    title: json['title'] ?? '',
+    creatorId: json['creatorId'] ?? 'unknown',
+    creatorName: json['creatorName'] ?? '작성자',
+    assigneeId: json['assigneeId'] ?? '',
+    assigneeName: json['assigneeName'] ?? '',
+    assigneeEmoji: json['assigneeEmoji'] ?? '👤',
+    assigneeIds: List<String>.from(json['assigneeIds'] ?? []),
+    assigneeNames: List<String>.from(json['assigneeNames'] ?? []),
+    assigneeEmojis: List<String>.from(json['assigneeEmojis'] ?? []),
+    projectId: json['projectId'],
+    createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+    dueDate: DateTime.tryParse(json['dueDate'] ?? '') ?? DateTime.now(),
+    updatedAt: DateTime.tryParse(json['updatedAt'] ?? ''),
+    completedAt: json['completedAt'] != null ? DateTime.tryParse(json['completedAt']) : null,
+    isDone: json['isDone'] ?? false,
+    priority: TaskPriority.values[json['priority'] ?? 1],
+    status: TaskStatus.values[json['status'] ?? 0],
+    taskNotes: List<String>.from(json['taskNotes'] ?? []),
+    completionReport: json['completionReport'],
+  );
+}
+
+// -----------------------------------------------------------------------------
+// [Team Model]
+// -----------------------------------------------------------------------------
+
+@HiveType(typeId: 0)
+class Team extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) String name;
+  @HiveField(2) String inviteCode;
+  @HiveField(3) List<String> memberIds;
+  @HiveField(4) Map<String, String> memberRoles;
 
   Team({
-    required this.id, 
-    required this.name, 
-    required this.inviteCode, 
+    required this.id,
+    required this.name,
+    required this.inviteCode,
     required this.memberIds,
     Map<String, String>? memberRoles,
   }) : memberRoles = memberRoles ?? {};
 
   factory Team.fromJson(Map<String, dynamic> json) => Team(
-        id: (json['id'] ?? '').toString(),
-        name: (json['name'] ?? '').toString(),
-        inviteCode: (json['inviteCode'] ?? '').toString(),
-        memberIds: List<String>.from(json['memberIds'] ?? []),
-        memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
-      );
-
-  Map<String, dynamic> toJson() => {
-    'id': id, 'name': name, 'inviteCode': inviteCode, 'memberIds': memberIds, 'memberRoles': memberRoles,
-  };
-}
-
-// --- 2. 프로젝트 모델 ---
-class Project {
-  final String id;
-  final String teamId;
-  final String name;
-  final int colorValue; 
-
-  Project({required this.id, required this.teamId, required this.name, required this.colorValue});
-  
-  Color get color => Color(colorValue);
-
-  factory Project.fromJson(Map<String, dynamic> json) => Project(
-    id: json['id'],
-    teamId: json['teamId'] ?? 'default',
-    name: json['name'],
-    colorValue: json['colorValue'] ?? 0xFF2196F3,
+    id: (json['id'] ?? '').toString(),
+    name: (json['name'] ?? '').toString(),
+    inviteCode: (json['inviteCode'] ?? '').toString(),
+    memberIds: List<String>.from(json['memberIds'] ?? []),
+    memberRoles: Map<String, String>.from(json['memberRoles'] ?? {}),
   );
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'teamId': teamId, 'name': name, 'colorValue': colorValue,
+    'id': id,
+    'name': name,
+    'inviteCode': inviteCode,
+    'memberIds': memberIds,
+    'memberRoles': memberRoles,
   };
 }
 
-// --- 3. 사용자 모델 ---
-class AppUser {
-  final String id, password;
-  String name;
-  String? profileImage;
+// -----------------------------------------------------------------------------
+// [ChatMessage Model]
+// -----------------------------------------------------------------------------
 
-  AppUser({required this.id, required this.password, required this.name, this.profileImage});
+@HiveType(typeId: 7)
+class ChatMessage extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) final String teamId;
+  @HiveField(2) final String senderId;
+  @HiveField(3) final String senderName;
+  @HiveField(4) final String content;
+  @HiveField(5) final DateTime sentAt;
 
-  factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    id: json['id'], password: json['password'], name: json['name'], profileImage: json['profileImage'],
-  );
-
-  Map<String, dynamic> toJson() => { 'id': id, 'password': password, 'name': name, 'profileImage': profileImage };
-}
-
-// --- 4. 업무(Task) 모델 (다중 담당자 및 작성자 필드 추가) ---
-class Task {
-  final String id, teamId;
-  String title;
-  final String creatorId, creatorName; // 작성자 정보
-  final String assigneeId, assigneeName, assigneeEmoji; // 단일 담당자 (호환용)
-  final List<String> assigneeIds, assigneeNames, assigneeEmojis; // 다중 담당자
-  String? projectId; 
-  final DateTime createdAt, dueDate;
-  DateTime updatedAt;
-  DateTime? completedAt;
-  bool isDone;
-  TaskPriority priority;
-  List<String> taskNotes;
-  String? completionReport;
-
-  Task({
-    required this.id, required this.teamId, required this.title, 
-    required this.creatorId, required this.creatorName,
-    required this.assigneeId, required this.assigneeName, required this.assigneeEmoji,
-    this.assigneeIds = const [], this.assigneeNames = const [], this.assigneeEmojis = const [],
-    this.projectId,
-    required this.createdAt, required this.dueDate, DateTime? updatedAt,
-    this.completedAt, this.isDone = false, this.priority = TaskPriority.none,
-    List<String>? taskNotes, this.completionReport,
-  }) : taskNotes = taskNotes ?? [], updatedAt = updatedAt ?? createdAt;
-
-  factory Task.fromJson(Map<String, dynamic> json) => Task(
-        id: (json['id'] ?? '').toString(),
-        teamId: (json['teamId'] ?? 'default').toString(),
-        title: (json['title'] ?? '').toString(),
-        creatorId: (json['creatorId'] ?? 'unknown').toString(),
-        creatorName: (json['creatorName'] ?? '작성자').toString(),
-        assigneeId: (json['assigneeId'] ?? '').toString(),
-        assigneeName: (json['assigneeName'] ?? '').toString(),
-        assigneeEmoji: (json['assigneeEmoji'] ?? '👤').toString(),
-        assigneeIds: List<String>.from(json['assigneeIds'] ?? const []),
-        assigneeNames: List<String>.from(json['assigneeNames'] ?? const []),
-        assigneeEmojis: List<String>.from(json['assigneeEmojis'] ?? const []),
-        projectId: json['projectId']?.toString(),
-        createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
-        dueDate: DateTime.tryParse((json['dueDate'] ?? '').toString()) ?? DateTime.now(),
-        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()),
-        completedAt: json['completedAt'] != null ? DateTime.tryParse(json['completedAt'].toString()) : null,
-        isDone: (json['isDone'] ?? false) == true,
-        priority: _safePriority(json['priority']),
-        taskNotes: List<String>.from(json['taskNotes'] ?? const []),
-        completionReport: json['completionReport']?.toString(),
-      );
-
-  static TaskPriority _safePriority(dynamic raw) {
-    final idx = raw is int ? raw : int.tryParse(raw?.toString() ?? '');
-    if (idx == null) return TaskPriority.none;
-    if (idx < 0 || idx >= TaskPriority.values.length) return TaskPriority.none;
-    return TaskPriority.values[idx];
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id': id, 'teamId': teamId, 'title': title, 
-    'creatorId': creatorId, 'creatorName': creatorName,
-    'assigneeId': assigneeId, 'assigneeName': assigneeName, 'assigneeEmoji': assigneeEmoji,
-    'assigneeIds': assigneeIds, 'assigneeNames': assigneeNames, 'assigneeEmojis': assigneeEmojis,
-    'projectId': projectId, 'createdAt': createdAt.toIso8601String(), 'dueDate': dueDate.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(), 'completedAt': completedAt?.toIso8601String(), 'isDone': isDone,
-    'priority': priority.index, 'taskNotes': taskNotes, 'completionReport': completionReport,
-  };
-}
-
-// --- 5. 일지(JournalEntry) 모델 ---
-class JournalEntry {
-  final String id, teamId, userId, userName, title, content;
-  String? projectId;
-  final DateTime date;
-  DateTime updatedAt;
-  final List<String> photos;
-  bool isPrivate;
-
-  JournalEntry({
-    required this.id, required this.teamId, required this.userId, required this.userName, 
-    required this.title, required this.content, this.projectId,
-    required this.date, DateTime? updatedAt, required this.photos,
-    this.isPrivate = false,
-  }) : updatedAt = updatedAt ?? date;
-
-  factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
-        id: (json['id'] ?? '').toString(),
-        teamId: (json['teamId'] ?? 'default').toString(),
-        userId: (json['userId'] ?? '').toString(),
-        userName: (json['userName'] ?? '').toString(),
-        title: (json['title'] ?? '').toString(),
-        content: (json['content'] ?? '').toString(),
-        projectId: json['projectId']?.toString(),
-        date: DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
-        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()) ??
-            (DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now()),
-        photos: List<String>.from(json['photos'] ?? const []),
-        isPrivate: (json['isPrivate'] ?? false) == true,
-      );
-
-  Map<String, dynamic> toJson() => {
-    'id': id, 'teamId': teamId, 'userId': userId, 'userName': userName, 'title': title,
-    'content': content, 'projectId': projectId, 'date': date.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(), 'photos': photos, 'isPrivate': isPrivate,
-  };
-}
-
-// --- 6. 채팅 메시지 모델 ---
-class ChatMessage {
-  final String id, teamId, senderId, senderName, content;
-  final DateTime sentAt;
-
-  ChatMessage({required this.id, required this.teamId, required this.senderId, required this.senderName, required this.content, required this.sentAt});
+  ChatMessage({
+    required this.id,
+    required this.teamId,
+    required this.senderId,
+    required this.senderName,
+    required this.content,
+    required this.sentAt,
+  });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-    id: json['id'], teamId: json['teamId'], senderId: json['senderId'], senderName: json['senderName'], content: json['content'], sentAt: DateTime.parse(json['sentAt']),
+    id: json['id'] ?? '',
+    teamId: json['teamId'] ?? '',
+    senderId: json['senderId'] ?? '',
+    senderName: json['senderName'] ?? '',
+    content: json['content'] ?? '',
+    sentAt: DateTime.tryParse(json['sentAt'] ?? '') ?? DateTime.now(),
   );
 
-  Map<String, dynamic> toJson() => { 'id': id, 'teamId': teamId, 'senderId': senderId, 'senderName': senderName, 'content': content, 'sentAt': sentAt.toIso8601String() };
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'teamId': teamId,
+    'senderId': senderId,
+    'senderName': senderName,
+    'content': content,
+    'sentAt': sentAt.toIso8601String(),
+  };
+}
+
+// -----------------------------------------------------------------------------
+// [Other Models] - Project, AppUser, JournalEntry
+// -----------------------------------------------------------------------------
+
+@HiveType(typeId: 2)
+class Project extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) final String teamId;
+  @HiveField(2) final String name;
+  @HiveField(3) final int colorValue;
+  Project({required this.id, required this.teamId, required this.name, required this.colorValue});
+}
+
+@HiveType(typeId: 5)
+class AppUser extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) final String password;
+  @HiveField(2) String name;
+  @HiveField(3) String? profileImage;
+  AppUser({required this.id, required this.password, required this.name, this.profileImage});
+}
+
+@HiveType(typeId: 6)
+class JournalEntry extends HiveObject {
+  @HiveField(0) final String id;
+  @HiveField(1) final String teamId;
+  @HiveField(2) final String userId;
+  @HiveField(3) final String userName;
+  @HiveField(4) final String title;
+  @HiveField(5) final String content;
+  @HiveField(6) String? projectId;
+  @HiveField(7) final DateTime date;
+  @HiveField(8) DateTime updatedAt;
+  @HiveField(9) final List<String> photos;
+  @HiveField(10) bool isPrivate;
+  JournalEntry({
+    required this.id, required this.teamId, required this.userId, required this.userName,
+    required this.title, required this.content, this.projectId, required this.date,
+    DateTime? updatedAt, required this.photos, this.isPrivate = false,
+  }) : updatedAt = updatedAt ?? date;
 }

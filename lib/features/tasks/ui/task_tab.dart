@@ -39,6 +39,9 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   String _selStatus = '진행중';
   TaskPriority? _selPriority;
   String _selAssignee = 'all';
+  
+  // ✨ [긴급 복구] 누락된 필터 상태 변수
+  DateFilter _selDate = DateFilter.all; 
 
   String _periodLabel(TaskGroupPeriod p) {
     switch (p) {
@@ -104,6 +107,18 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       
       if (_selPriority != null && t.priority != _selPriority) return false;
       if (_selAssignee != 'all' && !t.assigneeIds.contains(_selAssignee == 'me' ? myId : _selAssignee)) return false;
+      
+      // ✨ 날짜 필터 적용
+      final now = DateTime.now();
+      DateTime? from;
+      switch (_selDate) {
+        case DateFilter.all: from = null; break;
+        case DateFilter.today: from = DateTime(now.year, now.month, now.day); break;
+        case DateFilter.week: from = now.subtract(const Duration(days: 7)); break;
+        case DateFilter.month: from = now.subtract(const Duration(days: 30)); break;
+      }
+      if (from != null && t.createdAt.isBefore(from)) return false;
+
       return true;
     }).toList();
 

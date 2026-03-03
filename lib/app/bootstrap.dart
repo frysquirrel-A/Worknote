@@ -9,7 +9,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:worknote/app/worknote_app.dart';
 import 'package:worknote/core/crash/crash_reporter.dart';
-import 'package:worknote/data/hive/hive_adapters.dart';
 import 'package:worknote/data/migrations/hive_migrations.dart';
 import 'package:worknote/data/sync/sync_outbox.dart';
 import 'package:worknote/domain/models.dart';
@@ -28,13 +27,14 @@ void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
 }
 
 Future<void> bootstrap() async {
-  WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
 
   await Hive.initFlutter();
 
-  // 1) Hive Adapters 등록
+  // 1) Hive Adapters 등록 (이제 models.dart에서 제공되는 어댑터를 사용)
+  _safeRegisterAdapter(TaskStatusAdapter());
   _safeRegisterAdapter(TaskPriorityAdapter());
+  _safeRegisterAdapter(DateFilterAdapter());
   _safeRegisterAdapter(TaskAdapter());
   _safeRegisterAdapter(ProjectAdapter());
   _safeRegisterAdapter(JournalEntryAdapter());
@@ -50,7 +50,7 @@ Future<void> bootstrap() async {
   await Hive.openBox<AppUser>('users');
   await Hive.openBox<ChatMessage>('messages');
 
-  // 3) Untyped/Meta Boxes 오픈 (중요: Provider에서 사용 전 미리 오픈)
+  // 3) Untyped/Meta Boxes 오픈
   await Hive.openBox('settings');
   await Hive.openBox('chat_threads');
   await Hive.openBox('task_meta');
@@ -66,20 +66,21 @@ Future<void> bootstrap() async {
 
   // 6) Global error hooks (crash persistence)
   FlutterError.onError = (FlutterErrorDetails details) {
-    // Persist first, then forward.
     unawaited(CrashReporter.instance.recordFlutterError(details));
     FlutterError.presentError(details);
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     unawaited(CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'));
-    // true = handled (prevents default crash in release)
     return true;
   };
 
   // 7) Run app in zone to capture async errors.
   runZonedGuarded(
     () {
+      // ✨ [긴급 이식] runApp과 동일한 구역(Zone)에서 엔진 초기화!
+      WidgetsFlutterBinding.ensureInitialized(); 
+
       runApp(
         MultiProvider(
           providers: [
