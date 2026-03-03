@@ -15,6 +15,11 @@ class WorkNoteApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeSetting = context.watch<TeamProvider>().currentThemeMode;
     final themeMode = AppTheme.resolveThemeMode(themeSetting);
+    
+    // AuthProvider 상태 구독
+    final authProv = context.watch<AuthProvider>();
+
+    print('[Debug] WorkNoteApp Build - currentProfile: ${authProv.currentProfile?.name ?? "null"}, isLoading: ${authProv.isLoading}');
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -29,7 +34,31 @@ class WorkNoteApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
       locale: const Locale('ko', 'KR'),
-      home: context.watch<AuthProvider>().currentUser == null ? const LoginPage() : const MainShell(),
+      // ✨ AuthProvider가 초기화 중일 때 스플래시 대기 로직 추가
+      home: authProv.isLoading 
+        ? const _SplashLoadingScreen() 
+        : (authProv.currentProfile == null ? const LoginPage() : const MainShell()),
+    );
+  }
+}
+
+/// 🎨 초기화 대기 시 보여줄 로딩 화면
+class _SplashLoadingScreen extends StatelessWidget {
+  const _SplashLoadingScreen();
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF0F172A),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.architecture_rounded, size: 64, color: Colors.blueAccent),
+            SizedBox(height: 24),
+            CircularProgressIndicator(color: Colors.blueAccent),
+          ],
+        ),
+      ),
     );
   }
 }

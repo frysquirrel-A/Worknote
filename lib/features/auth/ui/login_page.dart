@@ -2,124 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  bool isLoginMode = false; 
-  
-  final _idCtrl = TextEditingController();
-  final _pwCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _idCtrl.dispose();
-    _pwCtrl.dispose();
-    _nameCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+      backgroundColor: const Color(0xFF0F172A), // 깊은 밤의 현장 네이비
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.architecture, size: 80, color: Colors.blueAccent),
-              const SizedBox(height: 16),
-              const Text("WORKNOTE", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              const Text("현장 협업의 시작", style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const Spacer(),
+              
+              // 🏗️ 상단 타이틀 구역
+              const Icon(Icons.architecture_rounded, size: 80, color: Colors.blueAccent),
+              const SizedBox(height: 24),
+              const Text(
+                "WORKNOTE",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "현장의 모든 기록, 팀과 함께 공유하세요",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              
+              const Spacer(),
+
+              // 🚀 하단 버튼 구역
+              Column(
+                children: [
+                  // 버튼 1: 로컬 모드
+                  _buildLargeButton(
+                    context,
+                    label: "가입 없이 바로 사용하기 (개인용)",
+                    icon: Icons.person_pin_circle_rounded,
+                    color: Colors.blueAccent,
+                    onTap: () => _showNicknameDialog(context, authProv),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // 버튼 2: 구글 모드
+                  _buildLargeButton(
+                    context,
+                    label: "구글 계정으로 시작하기",
+                    icon: Icons.g_mobiledata_rounded,
+                    color: Colors.white.withValues(alpha: 0.1),
+                    textColor: Colors.white,
+                    isOutlined: true,
+                    onTap: () async {
+                      await authProv.loginWithGoogle();
+                    },
+                  ),
+                ],
+              ),
               
               const SizedBox(height: 48),
-
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  children: [
-                    Text(isLoginMode ? "로그인" : "프로필 설정", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 24),
-
-                    _buildTextField(_idCtrl, "아이디", Icons.person, false),
-                    const SizedBox(height: 12),
-                    _buildTextField(_pwCtrl, "비밀번호", Icons.lock, true),
-                    
-                    if (!isLoginMode) ...[
-                      const SizedBox(height: 12),
-                      _buildTextField(_nameCtrl, "이름 (예: 홍길동)", Icons.badge, false),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 10,
-                        ),
-                        onPressed: authProv.isLoading ? null : () async {
-                          if (isLoginMode) {
-                            final ok = await authProv.loginLocal(_idCtrl.text.trim(), _pwCtrl.text);
-                            if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로그인 실패: 아이디/비밀번호를 확인하세요.")));
-                            }
-                          } else {
-                            if (_nameCtrl.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이름을 입력해주세요.")));
-                              return;
-                            }
-                            // [수정 포인트] 인자 3개만 전달
-                            final ok = await authProv.signUpLocal(
-                              _idCtrl.text.trim(),
-                              _pwCtrl.text,
-                              _nameCtrl.text.trim(),
-                            );
-                            if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("회원가입 실패: 이미 존재하는 아이디입니다.")));
-                            }
-                          }
-                        },
-                        child: authProv.isLoading 
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(isLoginMode ? "입장하기" : "시작하기", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    isLoginMode = !isLoginMode;
-                  });
-                },
-                child: Text(
-                  isLoginMode ? "처음이신가요? 프로필 설정하기" : "이미 계정이 있으신가요? 로그인", 
-                  style: const TextStyle(color: Colors.white54, fontSize: 12)
-                ),
-              ),
             ],
           ),
         ),
@@ -127,19 +81,105 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, bool isObscure) {
-    return TextField(
-      controller: ctrl,
-      obscureText: isObscure,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.blueAccent.withValues(alpha: 0.5), size: 20),
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
-        filled: true,
-        fillColor: Colors.black26,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  // 🎨 공통 대형 버튼 빌더
+  Widget _buildLargeButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    Color textColor = Colors.white,
+    bool isOutlined = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 24, color: isOutlined ? Colors.blueAccent : Colors.white),
+        label: Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isOutlined ? Colors.transparent : color,
+          foregroundColor: textColor,
+          elevation: isOutlined ? 0 : 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isOutlined ? const BorderSide(color: Colors.white24) : BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 💬 닉네임 입력 다이얼로그
+  void _showNicknameDialog(BuildContext context, AuthProvider authProv) {
+    final TextEditingController nameCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          "닉네임 설정",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "앱에서 사용할 이름을 입력해주세요.\n가입 없이 즉시 시작됩니다.",
+              style: TextStyle(color: Colors.white60, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: nameCtrl,
+              autofocus: true, // ✨ [수정] autoFocus -> autofocus
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "예: 홍길동 소장",
+                hintStyle: const TextStyle(color: Colors.white24),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blueAccent),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("취소", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.pop(ctx);
+                await authProv.loginAsLocal(name);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text("시작하기", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

@@ -93,7 +93,8 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     _lastTeamId = teamId;
 
     final authProv = context.watch<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
+    // ✨ [교정] authProv 게터 사용
+    final myId = authProv.id;
 
     final baseTasks = taskProv.tasksForTeam(teamId);
     final filteredTasks = baseTasks.where((t) {
@@ -105,6 +106,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       if (_selPriority != null && t.priority != _selPriority) return false;
       if (_selAssignee != 'all' && !t.assigneeIds.contains(_selAssignee == 'me' ? myId : _selAssignee)) return false;
       
+      // ✨ 날짜 필터 적용
       final now = DateTime.now();
       DateTime? from;
       switch (_selDate) {
