@@ -20,51 +20,13 @@ import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/schedule/state/schedule_provider.dart';
 
 void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
-  // Hot restart / test runner 등에서 중복 등록 시 예외가 발생할 수 있어 방어.
   if (!Hive.isAdapterRegistered(adapter.typeId)) {
     Hive.registerAdapter(adapter);
   }
 }
 
 Future<void> bootstrap() async {
-  await initializeDateFormatting('ko_KR', null);
-
-  await Hive.initFlutter();
-
-  // 1) Hive Adapters 등록 (이제 models.dart에서 제공되는 어댑터를 사용)
-  _safeRegisterAdapter(TaskStatusAdapter());
-  _safeRegisterAdapter(TaskPriorityAdapter());
-  _safeRegisterAdapter(DateFilterAdapter());
-  _safeRegisterAdapter(TaskAdapter());
-  _safeRegisterAdapter(ProjectAdapter());
-  _safeRegisterAdapter(JournalEntryAdapter());
-  _safeRegisterAdapter(TeamAdapter());
-  _safeRegisterAdapter(AppUserAdapter());
-  _safeRegisterAdapter(ChatMessageAdapter());
-
-  // 2) Typed Boxes 오픈
-  await Hive.openBox<Task>('tasks');
-  await Hive.openBox<Project>('projects');
-  await Hive.openBox<JournalEntry>('journals');
-  await Hive.openBox<Team>('teams');
-  await Hive.openBox<AppUser>('users');
-  await Hive.openBox<ChatMessage>('messages');
-
-  // 3) Untyped/Meta Boxes 오픈
-  await Hive.openBox('settings');
-  await Hive.openBox('chat_threads');
-  await Hive.openBox('task_meta');
-  await Hive.openBox('journal_meta');
-  await Hive.openBox('schedules');
-
-  // 4) Infra boxes (crash logs / sync outbox)
-  await CrashReporter.instance.init();
-  await SyncOutbox.instance.init();
-
-  // 5) Migrations (schema versioned)
-  await HiveMigrations.run();
-
-  // 6) Global error hooks (crash persistence)
+  // 에러 훅 설정
   FlutterError.onError = (FlutterErrorDetails details) {
     unawaited(CrashReporter.instance.recordFlutterError(details));
     FlutterError.presentError(details);
@@ -75,11 +37,46 @@ Future<void> bootstrap() async {
     return true;
   };
 
-  // 7) Run app in zone to capture async errors.
   runZonedGuarded(
-    () {
-      // ✨ [긴급 이식] runApp과 동일한 구역(Zone)에서 엔진 초기화!
-      WidgetsFlutterBinding.ensureInitialized(); 
+    () async {
+      // ✨ [구역 대통합 수술] 동일한 Zone 내에서 엔진 및 DB 초기화 실행
+      WidgetsFlutterBinding.ensureInitialized();
+      await initializeDateFormatting('ko_KR', null);
+
+      await Hive.initFlutter();
+
+      // 1) Hive Adapters 등록
+      _safeRegisterAdapter(TaskStatusAdapter());
+      _safeRegisterAdapter(TaskPriorityAdapter());
+      _safeRegisterAdapter(DateFilterAdapter());
+      _safeRegisterAdapter(TaskAdapter());
+      _safeRegisterAdapter(ProjectAdapter());
+      _safeRegisterAdapter(JournalEntryAdapter());
+      _safeRegisterAdapter(TeamAdapter());
+      _safeRegisterAdapter(AppUserAdapter());
+      _safeRegisterAdapter(ChatMessageAdapter());
+
+      // 2) Typed Boxes 오픈
+      await Hive.openBox<Task>('tasks');
+      await Hive.openBox<Project>('projects');
+      await Hive.openBox<JournalEntry>('journals');
+      await Hive.openBox<Team>('teams');
+      await Hive.openBox<AppUser>('users');
+      await Hive.openBox<ChatMessage>('messages');
+
+      // 3) Untyped/Meta Boxes 오픈
+      await Hive.openBox('settings');
+      await Hive.openBox('chat_threads');
+      await Hive.openBox('task_meta');
+      await Hive.openBox('journal_meta');
+      await Hive.openBox('schedules');
+
+      // 4) Infra boxes (crash logs / sync outbox)
+      await CrashReporter.instance.init();
+      await SyncOutbox.instance.init();
+
+      // 5) Migrations
+      await HiveMigrations.run();
 
       runApp(
         MultiProvider(
@@ -97,6 +94,7 @@ Future<void> bootstrap() async {
     },
     (Object error, StackTrace stack) {
       unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
+      debugPrint('Zone Error: $error');
     },
   );
 }

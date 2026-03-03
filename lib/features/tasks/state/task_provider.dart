@@ -254,30 +254,27 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ✨ [추가] 우선순위 순환 로직
+  // ✨ [지휘관 지시 사항] 정밀 삽입 완료
   Future<void> cycleTaskPriority(Task task) async {
-    final nextIdx = (task.priority.index + 1) % TaskPriority.values.length;
-    task.priority = TaskPriority.values[nextIdx];
-    await updateTask(task); 
+    final nextIndex = (task.priority.index + 1) % TaskPriority.values.length;
+    task.priority = TaskPriority.values[nextIndex];
+    await task.save();
     notifyListeners();
   }
 
-  // ✨ [추가] 완료 보고서 저장 및 상태 업데이트
   Future<void> saveCompletionReport(Task task, String report) async {
     task.completionReport = report;
     task.status = TaskStatus.done;
-    task.isDone = true; 
-    task.completedAt = DateTime.now();
-    await updateTask(task);
+    task.isDone = true;
+    await task.save();
     notifyListeners();
   }
 
-  // ✨ [추가] 상태 업데이트 로직 (상세 시트 등에서 사용)
   Future<void> updateTaskStatus(Task task, bool isDone) async {
     task.isDone = isDone;
     task.status = isDone ? TaskStatus.done : TaskStatus.todo;
     task.completedAt = isDone ? DateTime.now() : null;
-    await updateTask(task);
+    await task.save();
     notifyListeners();
   }
 }

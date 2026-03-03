@@ -39,8 +39,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   String _selStatus = '진행중';
   TaskPriority? _selPriority;
   String _selAssignee = 'all';
-  
-  // ✨ [긴급 복구] 누락된 필터 상태 변수
+  // ✨ [긴급 추가] 누락된 필터 상태 변수 복구
   DateFilter _selDate = DateFilter.all; 
 
   String _periodLabel(TaskGroupPeriod p) {
@@ -77,7 +76,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
 
-    // 팀 전환 시 이전 팀의 필터/로컬 상태가 남아 '빈 화면'을 만들 수 있어 리셋
     final teamId = teamProv.currentTeamId;
     if (_lastTeamId != null && _lastTeamId != teamId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -101,14 +99,12 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     final filteredTasks = baseTasks.where((t) {
       if (_selProjectId != 'all' && (_selProjectId == 'none' ? t.projectId != null : t.projectId != _selProjectId)) return false;
       
-      // 상태 필터: 진행중(isDone false), 완료(isDone true)
       if (_selStatus == '진행중' && t.isDone) return false;
       if (_selStatus == '완료' && !t.isDone) return false;
       
       if (_selPriority != null && t.priority != _selPriority) return false;
       if (_selAssignee != 'all' && !t.assigneeIds.contains(_selAssignee == 'me' ? myId : _selAssignee)) return false;
       
-      // ✨ 날짜 필터 적용
       final now = DateTime.now();
       DateTime? from;
       switch (_selDate) {
@@ -144,7 +140,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       backgroundColor: AppPalette.background,
       body: Column(
         children: [
-          // 상단 통합 컨트롤 바 (모든 필터 및 토글 포함)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
             child: TaskFilterBar(
@@ -177,13 +172,11 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
               onPriorityChanged: (v) => setState(() => _selPriority = v),
               selAssignee: _selAssignee,
               onAssigneeChanged: (v) => setState(() => _selAssignee = v ?? 'all'),
-              // [요구사항 1] 탭 토글 상태 및 콜백 연결
               showGroupHeaders: _showGroupHeaders,
               onToggleGroupHeaders: () => setState(() => _showGroupHeaders = !_showGroupHeaders),
             ),
           ),
 
-          // 리스트 렌더링 분기
           Expanded(
             child: filteredTasks.isEmpty
                 ? Center(child: Text('조건에 맞는 업무가 없습니다.', style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold)))
