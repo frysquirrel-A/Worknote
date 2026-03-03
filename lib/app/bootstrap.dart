@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:worknote/firebase_options.dart';
 
 import 'package:worknote/app/worknote_app.dart';
 import 'package:worknote/core/crash/crash_reporter.dart';
@@ -20,6 +22,7 @@ import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/schedule/state/schedule_provider.dart';
 
 void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
+  // Hot restart / test runner 등에서 중복 등록 시 예외가 발생할 수 있어 방어.
   if (!Hive.isAdapterRegistered(adapter.typeId)) {
     Hive.registerAdapter(adapter);
   }
@@ -41,6 +44,12 @@ Future<void> bootstrap() async {
     () async {
       // ✨ [구역 대통합 수술] 동일한 Zone 내에서 엔진 및 DB 초기화 실행
       WidgetsFlutterBinding.ensureInitialized();
+
+      // ✨ [클라우드 점화] 롤백으로 사라졌던 Firebase 엔진 스위치 복구
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
       await initializeDateFormatting('ko_KR', null);
 
       await Hive.initFlutter();
