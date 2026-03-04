@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
@@ -67,7 +68,10 @@ class _ScheduleTabState extends State<ScheduleTab> {
         actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DevLogPage())),
+            onPressed: () {
+              // ✨ [수정] 테스트를 위한 강제 크래시 발생
+              FirebaseCrashlytics.instance.crash();
+            },
           ),
         ],
       ),
@@ -181,8 +185,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
           if (a.range == null || b.range == null) return 0;
           final startComp = a.range!.start.compareTo(b.range!.start);
           if (startComp != 0) return startComp;
-          final durA = a.range!.end.difference(a.range!.start).inDays;
-          final durB = b.range!.end.difference(b.range!.start).inDays;
+          final durA = a.range!.end.difference(a.range!.start);
+          final durB = b.range!.end.difference(b.range!.start);
           return durB.compareTo(durA);
         });
 
@@ -409,7 +413,6 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
 
   @override
   Widget build(BuildContext context) {
-    final scheduleProv = context.read<ScheduleProvider>();
     return Container(
       padding: EdgeInsets.only(left: 20, right: 20, top: 18, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
       decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -474,6 +477,7 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
               height: 52,
               child: ElevatedButton(
                   onPressed: () async {
+                    final scheduleProv = context.read<ScheduleProvider>();
                     final title = _titleCtrl.text.trim();
                     if (title.isEmpty) return;
                     if (widget.initial != null) {

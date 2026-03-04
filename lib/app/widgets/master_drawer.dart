@@ -8,8 +8,9 @@ import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/team/ui/team_management_page.dart';
-import 'package:worknote/features/team/ui/dev_log_page.dart';
+import 'package:worknote/features/settings/ui/feedback_page.dart';
 import 'package:worknote/data/services/app_reset_service.dart';
+import 'package:worknote/app/widgets/profile_avatar.dart';
 
 class MasterDrawer extends StatelessWidget {
   const MasterDrawer({super.key});
@@ -106,10 +107,10 @@ class MasterDrawer extends StatelessWidget {
               ],
             ),
           ),
-          _drawerItem(Icons.bug_report_rounded, '개발자 로그', () {
+          _drawerItem(Icons.feedback_rounded, '의견 보내기', () {
             Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const DevLogPage()));
-          }, color: Colors.blueGrey),
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackPage()));
+          }),
           _drawerItem(Icons.logout_rounded, '로그아웃', () => authProv.logout(), color: Colors.redAccent),
           const SizedBox(height: 40),
         ],
@@ -332,20 +333,12 @@ class _ProfileHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              GestureDetector(
+              ProfileAvatar(
+                emoji: avatar ?? initial,
+                userId: current?.id ?? 'me',
+                radius: 28,
+                heroPrefix: 'drawer',
                 onTap: () => MasterDrawer()._showAvatarPicker(context, authProv),
-                child: Hero(
-                  // ✨ [패치 완료] 서랍장 내부의 아바타에는 'drawer_' 접두어를 붙여 태그 충돌 방지
-                  tag: 'drawer_profile_avatar_${current?.id ?? 'me'}',
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFF2563EB),
-                    child: Text(
-                      avatar ?? initial,
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
               ),
               const SizedBox(width: 14),
               Expanded(

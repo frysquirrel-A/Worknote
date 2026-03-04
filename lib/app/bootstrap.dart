@@ -8,6 +8,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:worknote/firebase_options.dart';
+
 import 'package:worknote/app/worknote_app.dart';
 import 'package:worknote/core/crash/crash_reporter.dart';
 import 'package:worknote/core/utils/dev_log.dart';
@@ -36,13 +40,12 @@ void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
   }
 }
 
-/// ✨ [신규] Hive 박스를 안전하게 오픈하는 함수 (에러 시 자동 복구)
+/// Hive 박스를 안전하게 오픈하는 함수 (에러 시 자동 복구)
 Future<Box<T>> _safeOpenBox<T>(String name) async {
   try {
     return await Hive.openBox<T>(name);
   } catch (e) {
     print('[Debug] Hive Box ($name) 오픈 에러 발생: $e. 복구 시도 중...');
-    // 충돌 난 박스 파일을 삭제하고 새로 생성
     await Hive.deleteBoxFromDisk(name);
     return await Hive.openBox<T>(name);
   }
@@ -51,21 +54,26 @@ Future<Box<T>> _safeOpenBox<T>(String name) async {
 Future<void> bootstrap() async {
   print('[Debug] Bootstrap 시작...');
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    DevLog.instance.addLog('Flutter Error: ${details.exception}\n${details.stack}');
-    unawaited(CrashReporter.instance.recordFlutterError(details));
-    FlutterError.presentError(details);
-  };
-
-  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    DevLog.instance.addLog('Platform Error: $error\n$stack');
-    unawaited(CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'));
-    return true;
-  };
-
   runZonedGuarded(() async {
     print('[Debug] Zone 초기화 시작...');
     WidgetsFlutterBinding.ensureInitialized();
+
+    // ✨ [추가] Firebase 및 Crashlytics 초기화
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    
+    // 플러터 프레임워크 에러를 Crashlytics 및 DevLog로 전송
+    FlutterError.onError = (FlutterErrorDetails details) {
+      DevLog.instance.addLog('Flutter Error: ${details.exception}\n${details.stack}');
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      FlutterError.presentError(details);
+    };
+
+    // 비동기 에러까지 모두 포착
+    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      DevLog.instance.addLog('Platform Error: $error\n$stack');
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
 
     print('[Debug] 날짜 포맷 초기화 중...');
     await initializeDateFormatting('ko_KR', null);
@@ -83,7 +91,6 @@ Future<void> bootstrap() async {
     _safeRegisterAdapter(ChatMessageAdapter());
 
     print('[Debug] Hive 박스 오픈 시작 (안전 모드)...');
-    // Typed Boxes
     await _safeOpenBox<Task>('tasks');
     await _safeOpenBox<Project>('projects');
     await _safeOpenBox<JournalEntry>('journals');
@@ -91,7 +98,6 @@ Future<void> bootstrap() async {
     await _safeOpenBox<AppUser>('users');
     await _safeOpenBox<ChatMessage>('messages');
 
-    // Untyped/Meta Boxes
     await _safeOpenBox('settings');
     await _safeOpenBox('chat_threads');
     await _safeOpenBox('task_meta');
@@ -125,6 +131,7 @@ Future<void> bootstrap() async {
     print('[Debug] bootstrap 완료 및 앱 실행됨.');
   }, (Object error, StackTrace stack) {
     DevLog.instance.addLog('Guarded Error: $error\n$stack');
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     print('[Debug] runZonedGuarded 치명적 에러: $error');
     unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
   });

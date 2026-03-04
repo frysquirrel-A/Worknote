@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:worknote/core/models/work_profile.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/app/widgets/profile_avatar.dart';
 
 class ProfileSelectionPage extends StatefulWidget {
   final bool manageMode;
@@ -287,7 +288,6 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
             ),
             itemBuilder: (context, index) {
               final profile = slotMap[index];
-              final heroTag = 'profile_avatar_${profile?.id ?? 'slot_$index'}';
               final occupied = profile != null;
 
               return InkWell(
@@ -314,18 +314,13 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Hero(
-                            tag: heroTag,
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.10),
-                              child: Text(
-                                occupied
-                                    ? ((profile.profileImage?.trim().isNotEmpty ?? false) ? profile.profileImage! : (profile.name.trim().isNotEmpty ? profile.name[0] : '🙂'))
-                                    : '+',
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
+                          ProfileAvatar(
+                            emoji: occupied
+                                ? ((profile.profileImage?.trim().isNotEmpty ?? false) ? profile.profileImage! : (profile.name.trim().isNotEmpty ? profile.name[0] : '🙂'))
+                                : '+',
+                            userId: profile?.id ?? 'slot_$index',
+                            radius: 18,
+                            heroPrefix: 'selection',
                           ),
                           const Spacer(),
                           Container(
@@ -427,18 +422,13 @@ class _ProfileTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Hero(
-                tag: 'profile_avatar_${profile.id}',
-                child: CircleAvatar(
-                  radius: 22,
-                  backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
-                  child: Text(
-                    (profile.profileImage?.trim().isNotEmpty ?? false)
-                        ? profile.profileImage!
-                        : (profile.name.trim().isNotEmpty ? profile.name[0] : '🙂'),
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                ),
+              ProfileAvatar(
+                emoji: (profile.profileImage?.trim().isNotEmpty ?? false)
+                    ? profile.profileImage!
+                    : (profile.name.trim().isNotEmpty ? profile.name[0] : '🙂'),
+                userId: profile.id,
+                radius: 22,
+                heroPrefix: 'selection',
               ),
               const SizedBox(width: 12),
               Expanded(
