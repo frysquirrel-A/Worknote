@@ -10,6 +10,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:worknote/app/worknote_app.dart';
 import 'package:worknote/core/crash/crash_reporter.dart';
+import 'package:worknote/core/utils/dev_log.dart';
 import 'package:worknote/data/hive/hive_adapters.dart';
 import 'package:worknote/data/migrations/hive_migrations.dart';
 import 'package:worknote/data/sync/sync_outbox.dart';
@@ -51,11 +52,13 @@ Future<void> bootstrap() async {
   print('[Debug] Bootstrap 시작...');
 
   FlutterError.onError = (FlutterErrorDetails details) {
+    DevLog.instance.addLog('Flutter Error: ${details.exception}\n${details.stack}');
     unawaited(CrashReporter.instance.recordFlutterError(details));
     FlutterError.presentError(details);
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    DevLog.instance.addLog('Platform Error: $error\n$stack');
     unawaited(CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'));
     return true;
   };
@@ -121,6 +124,7 @@ Future<void> bootstrap() async {
     );
     print('[Debug] bootstrap 완료 및 앱 실행됨.');
   }, (Object error, StackTrace stack) {
+    DevLog.instance.addLog('Guarded Error: $error\n$stack');
     print('[Debug] runZonedGuarded 치명적 에러: $error');
     unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
   });

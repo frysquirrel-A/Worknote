@@ -8,6 +8,7 @@ import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/team/ui/team_management_page.dart';
+import 'package:worknote/features/team/ui/dev_log_page.dart';
 import 'package:worknote/data/services/app_reset_service.dart';
 
 class MasterDrawer extends StatelessWidget {
@@ -105,6 +106,10 @@ class MasterDrawer extends StatelessWidget {
               ],
             ),
           ),
+          _drawerItem(Icons.bug_report_rounded, '개발자 로그', () {
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const DevLogPage()));
+          }, color: Colors.blueGrey),
           _drawerItem(Icons.logout_rounded, '로그아웃', () => authProv.logout(), color: Colors.redAccent),
           const SizedBox(height: 40),
         ],
@@ -330,7 +335,8 @@ class _ProfileHeader extends StatelessWidget {
               GestureDetector(
                 onTap: () => MasterDrawer()._showAvatarPicker(context, authProv),
                 child: Hero(
-                  tag: 'profile_avatar_${current?.id ?? 'drawer'}',
+                  // ✨ [패치 완료] 서랍장 내부의 아바타에는 'drawer_' 접두어를 붙여 태그 충돌 방지
+                  tag: 'drawer_profile_avatar_${current?.id ?? 'me'}',
                   child: CircleAvatar(
                     radius: 28,
                     backgroundColor: const Color(0xFF2563EB),

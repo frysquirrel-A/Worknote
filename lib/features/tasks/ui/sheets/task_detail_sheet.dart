@@ -33,7 +33,6 @@ class _TaskDetailSheetContent extends StatefulWidget {
 }
 
 class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
-  // [Fix] 컨트롤러를 State 내부에서 직접 관리하여 생명주기 안전성 확보
   late TextEditingController _reportCtrl;
   bool _includeInSchedule = false;
   late DateTimeRange _scheduleRange;
@@ -44,7 +43,6 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
     super.initState();
     _reportCtrl = TextEditingController(text: widget.task.completionReport ?? '');
     
-    // 초기 상태 로드
     final prov = context.read<TaskProvider>();
     _includeInSchedule = prov.isIncludedInSchedule(widget.task.id);
     _scheduleRange = prov.effectiveScheduleRange(widget.task) ?? 
@@ -53,7 +51,6 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
 
   @override
   void dispose() {
-    // [Fix] 시트가 닫힐 때 컨트롤러를 안전하게 해제
     _reportCtrl.dispose();
     super.dispose();
   }
@@ -64,11 +61,10 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
     final authProv = context.read<AuthProvider>();
     final journalProv = context.watch<JournalProvider>();
 
-    final myId = authProv.currentUser?.id ?? 'me';
-    final myName = authProv.currentUser?.name ?? '관리자';
+    final myId = authProv.id;
+    final myName = authProv.name;
 
     return Container(
-      // [요구사항 2] 키보드 가림 방지
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
@@ -79,7 +75,6 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      // [요구사항 1] 전체 스크롤 가능하도록 감싸서 무한 오버플로우 방지
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -164,14 +159,17 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
           ),
         ),
         const SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: () => prov.cycleTaskPriority(widget.task),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _priorityColor(widget.task.priority).withValues(alpha: 0.08),
-            foregroundColor: _priorityColor(widget.task.priority),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        // ✨ [패치 완료] Row 내부의 ElevatedButton을 Expanded로 감싸 무한 너비 에러 해결
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => prov.cycleTaskPriority(widget.task),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _priorityColor(widget.task.priority).withValues(alpha: 0.08),
+              foregroundColor: _priorityColor(widget.task.priority),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('중요도', style: TextStyle(fontWeight: FontWeight.w900)),
           ),
-          child: const Text('중요도', style: TextStyle(fontWeight: FontWeight.w900)),
         ),
       ],
     );

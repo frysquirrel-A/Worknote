@@ -35,7 +35,9 @@ class ScheduleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Map<String, dynamic>> itemsForTeam(String teamId) {
+  /// 특정 팀의 일정을 반환하거나, [teamId]가 null이면 전체 팀의 일정을 반환합니다.
+  List<Map<String, dynamic>> itemsForTeam(String? teamId) {
+    if (teamId == null) return [..._items];
     return _items.where((m) => (m['teamId'] ?? '').toString() == teamId).toList();
   }
 
