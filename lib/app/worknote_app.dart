@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:worknote/core/theme/app_theme.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/auth/ui/login_page.dart';
+import 'package:worknote/features/auth/ui/profile_selection_page.dart';
+import 'package:worknote/features/auth/ui/profile_setup_page.dart';
 import 'package:worknote/app/main_shell.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 
@@ -15,11 +17,25 @@ class WorkNoteApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeSetting = context.watch<TeamProvider>().currentThemeMode;
     final themeMode = AppTheme.resolveThemeMode(themeSetting);
-    
-    // AuthProvider 상태 구독
     final authProv = context.watch<AuthProvider>();
 
-    print('[Debug] WorkNoteApp Build - currentProfile: ${authProv.currentProfile?.name ?? "null"}, isLoading: ${authProv.isLoading}');
+    debugPrint(
+      '[WorkNoteApp] profile=${authProv.currentProfile?.name ?? 'null'} '
+      'loading=${authProv.isLoading} pendingGoogle=${authProv.hasPendingGoogleSelection}',
+    );
+
+    Widget rootChild;
+    if (authProv.isLoading) {
+      rootChild = const _SplashLoadingScreen(key: ValueKey('splash'));
+    } else if (authProv.currentProfile == null && authProv.hasPendingGoogleSelection) {
+      rootChild = const ProfileSelectionPage(key: ValueKey('profile_select_root'));
+    } else if (authProv.currentProfile == null) {
+      rootChild = const LoginPage(key: ValueKey('login'));
+    } else if (authProv.needsProfileSetup) {
+      rootChild = const ProfileSetupPage(key: ValueKey('profile_setup'));
+    } else {
+      rootChild = const MainShell(key: ValueKey('main_shell'));
+    }
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -34,17 +50,26 @@ class WorkNoteApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
       locale: const Locale('ko', 'KR'),
-      // ✨ AuthProvider가 초기화 중일 때 스플래시 대기 로직 추가
-      home: authProv.isLoading 
-        ? const _SplashLoadingScreen() 
-        : (authProv.currentProfile == null ? const LoginPage() : const MainShell()),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final slide = Tween<Offset>(begin: const Offset(0.02, 0.0), end: Offset.zero).animate(animation);
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(position: slide, child: child),
+          );
+        },
+        child: rootChild,
+      ),
     );
   }
 }
 
-/// 🎨 초기화 대기 시 보여줄 로딩 화면
 class _SplashLoadingScreen extends StatelessWidget {
-  const _SplashLoadingScreen();
+  const _SplashLoadingScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const Scaffold(

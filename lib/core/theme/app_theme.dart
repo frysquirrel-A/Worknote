@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 
-/// 앱 전역 테마 모음.
 class AppTheme {
   static const Color _seedDark = Color(0xFF0F172A);
+  static const Radius _radius = Radius.circular(18);
 
   static ThemeMode resolveThemeMode(String? setting) {
     final mode = (setting ?? 'light').toLowerCase();
@@ -15,14 +15,11 @@ class AppTheme {
     final bool isBlue = setting == 'blue';
     final seed = AppColors.primary;
 
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: isBlue ? const Color(0xFFF0F7FF) : AppColors.bg,
       primaryColor: seed,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: seed,
-        surface: AppColors.surface,
-      ),
+      colorScheme: ColorScheme.fromSeed(seedColor: seed, surface: AppColors.surface),
       textTheme: GoogleFonts.notoSansKrTextTheme().copyWith(
         displayLarge: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text),
         titleLarge: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.text),
@@ -46,13 +43,15 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
+        hintStyle: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w600),
         labelStyle: const TextStyle(color: AppColors.text2, fontWeight: FontWeight.bold),
-        hintStyle: const TextStyle(color: AppColors.hint),
         prefixIconColor: seed,
         suffixIconColor: seed,
         floatingLabelStyle: const TextStyle(color: AppColors.text2),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.primary, width: 1.4)),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? seed : null),
@@ -67,22 +66,125 @@ class AppTheme {
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-          side: const BorderSide(color: AppColors.border, width: 1.5),
+          borderRadius: const BorderRadius.all(Radius.circular(28)),
+          side: const BorderSide(color: AppColors.border, width: 1.2),
         ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF111827),
+        contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      dividerColor: AppColors.border,
+    );
+
+    return base.copyWith(
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary, width: 1.2),
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+        },
       ),
     );
   }
 
   static ThemeData dark() {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      scaffoldBackgroundColor: _seedDark,
       colorScheme: ColorScheme.fromSeed(seedColor: _seedDark, brightness: Brightness.dark),
       textTheme: GoogleFonts.notoSansKrTextTheme(ThemeData(brightness: Brightness.dark).textTheme).copyWith(
         displayLarge: const TextStyle(fontWeight: FontWeight.w900),
         titleLarge: const TextStyle(fontWeight: FontWeight.w900),
         bodyLarge: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: const Color(0xFF1E293B),
+        contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        hintStyle: const TextStyle(color: Colors.white38),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(_radius),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(_radius),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.4),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF111827),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+      ),
+    );
+
+    return base.copyWith(
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.24)),
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+        ),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+        },
       ),
     );
   }

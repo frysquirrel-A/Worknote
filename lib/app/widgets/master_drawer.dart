@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/auth/ui/profile_selection_page.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
@@ -16,9 +17,10 @@ class MasterDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final authProv = context.watch<AuthProvider>();
-    final myId = authProv.currentUser?.id ?? 'me';
-    final myName = authProv.currentUser?.name ?? '사용자';
-    final avatar = authProv.currentUser?.profileImage;
+    final current = authProv.currentUser;
+    final myId = current?.id ?? 'me';
+    final myName = current?.name.trim().isNotEmpty == true ? current!.name : '사용자';
+    final avatar = current?.profileImage;
     final initial = myName.isNotEmpty ? myName[0] : 'U';
 
     return Drawer(
@@ -28,72 +30,82 @@ class MasterDrawer extends StatelessWidget {
       ),
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-            currentAccountPicture: GestureDetector(
-              onTap: () => _showAvatarPicker(context, authProv),
-              child: CircleAvatar(
-                backgroundColor: const Color(0xFF2563EB),
-                child: Text(
-                  avatar ?? initial,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            accountName: Row(
-              children: [
-                Text(myName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => _showEditNameDialog(context, authProv),
-                  child: const Icon(Icons.edit_rounded, size: 16, color: Colors.blueAccent),
-                ),
-              ],
-            ),
-            accountEmail: Text("직책: ${teamProv.getMyRole(myId)}", style: const TextStyle(color: Colors.grey)),
+          _ProfileHeader(
+            authProv: authProv,
+            teamProv: teamProv,
+            myId: myId,
+            myName: myName,
+            avatar: avatar,
+            initial: initial,
           ),
-
-          _drawerItem(Icons.groups_rounded, "팀 관리", () {
+          _drawerItem(Icons.groups_rounded, '팀 관리', () {
             Navigator.pop(context);
             Navigator.push(context, MaterialPageRoute(builder: (_) => const TeamManagementPage()));
           }),
-
-          _drawerItem(Icons.cloud_sync_rounded, "구글 드라이브 연동", () async {
-            if (!authProv.isGoogleLinked) {
-              final success = await authProv.connectGoogleDrive();
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("연동 성공!")));
+          _drawerItem(
+            Icons.cloud_sync_rounded,
+            authProv.isDriveConnected ? '구글 드라이브 재연결' : '구글 드라이브 연동',
+            () async {
+              final ok = await _ensureCloudReadyWithPrompt(context, authProv);
+              if (!context.mounted) return;
+              if (ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(authProv.isGoogleLinked ? '클라우드 기능을 사용할 준비가 되었습니다.' : '연동이 완료되었습니다.')),
+                );
               }
-            }
-          }, color: authProv.isGoogleLinked ? Colors.green : null),
-
-          _drawerItem(Icons.palette_outlined, "테마 설정", () => _showThemeDialog(context, teamProv)),
-
-          _drawerItem(Icons.restart_alt_rounded, "앱 초기화", () => _showResetDialog(context), color: Colors.deepOrange),
+            },
+            color: authProv.isDriveConnected ? Colors.green : null,
+          ),
+          _drawerItem(
+            Icons.switch_account_rounded,
+            '프로필 관리 / 전환',
+            () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 220),
+                  pageBuilder: (_, animation, __) => FadeTransition(
+                    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                    child: const ProfileSelectionPage(manageMode: true),
+                  ),
+                ),
+              );
+            },
+          ),
+          _drawerItem(Icons.palette_outlined, '테마 설정', () => _showThemeDialog(context, teamProv)),
+          _drawerItem(Icons.restart_alt_rounded, '앱 초기화', () => _showResetDialog(context), color: Colors.deepOrange),
           const Divider(indent: 20, endIndent: 20),
-
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 const Padding(
                   padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
-                  child: Text("내 팀 목록", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: Text('내 팀 목록', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
-                ...teamProv.teams.map((t) => ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  leading: Icon(Icons.hub_rounded, color: t.id == teamProv.currentTeamId ? const Color(0xFF2563EB) : Colors.grey, size: 20),
-                  title: Text(t.name, style: TextStyle(color: Colors.black, fontWeight: t.id == teamProv.currentTeamId ? FontWeight.bold : FontWeight.normal)),
-                  onTap: () {
-                    teamProv.switchTeam(t.id);
-                    Navigator.pop(context);
-                  },
-                )),
+                ...teamProv.teams.map(
+                  (t) => ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                    leading: Icon(
+                      Icons.hub_rounded,
+                      color: t.id == teamProv.currentTeamId ? const Color(0xFF2563EB) : Colors.grey,
+                      size: 20,
+                    ),
+                    title: Text(
+                      t.name,
+                      style: TextStyle(color: Colors.black, fontWeight: t.id == teamProv.currentTeamId ? FontWeight.bold : FontWeight.normal),
+                    ),
+                    onTap: () {
+                      teamProv.switchTeam(t.id);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
               ],
             ),
           ),
-
-          _drawerItem(Icons.logout_rounded, "로그아웃", () => authProv.logout(), color: Colors.redAccent),
+          _drawerItem(Icons.logout_rounded, '로그아웃', () => authProv.logout(), color: Colors.redAccent),
           const SizedBox(height: 40),
         ],
       ),
@@ -109,23 +121,57 @@ class MasterDrawer extends StatelessWidget {
     );
   }
 
+  Future<bool> _ensureCloudReadyWithPrompt(BuildContext context, AuthProvider authProv) async {
+    if (authProv.isDriveConnected) return true;
+
+    final profile = authProv.currentUser;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('구글 연동 필요'),
+        content: Text(
+          profile == null
+              ? '클라우드 기능을 사용하려면 먼저 프로필이 필요합니다.'
+              : profile.isLocal
+                  ? '현재 프로필은 로컬 전용입니다.\n구글 계정을 연결하면 팀 초대/공유/Drive 동기화 기능을 사용할 수 있어요.'
+                  : '현재 프로필(${profile.linkedGoogleEmail ?? '구글 계정'})의 Drive 연결을 복구합니다.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('연결하기')),
+        ],
+      ),
+    );
+
+    if (ok != true) return false;
+    final result = await authProv.connectGoogleDrive(bridgeCurrentLocal: true);
+    if (!context.mounted) return false;
+    if (result.message != null && result.message!.trim().isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+    }
+    return result.ok;
+  }
+
   void _showEditNameDialog(BuildContext context, AuthProvider prov) {
     final ctrl = TextEditingController(text: prov.currentUser?.name);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("이름 변경"),
-        content: TextField(controller: ctrl),
+        title: const Text('이름 변경'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: '새 이름 입력')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final v = ctrl.text.trim();
               if (v.isEmpty) return;
-              prov.updateName(v);
-              Navigator.pop(ctx);
+              final ok = await prov.updateName(v);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? '이름이 변경되었습니다.' : '이름 변경에 실패했습니다.')));
+              }
             },
-            child: const Text("저장"),
+            child: const Text('저장'),
           ),
         ],
       ),
@@ -133,7 +179,7 @@ class MasterDrawer extends StatelessWidget {
   }
 
   void _showAvatarPicker(BuildContext context, AuthProvider authProv) {
-    final avatars = ["👷", "👨‍🔧", "👩‍🔬", "👨‍💻", "👩‍💼", "🦸"];
+    final avatars = ['👷', '👨‍🔧', '👩‍🔬', '👨‍💻', '👩‍💼', '🦸'];
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -143,7 +189,7 @@ class MasterDrawer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("캐릭터 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('캐릭터 선택', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             GridView.builder(
               shrinkWrap: true,
@@ -154,9 +200,9 @@ class MasterDrawer extends StatelessWidget {
               ),
               itemCount: avatars.length,
               itemBuilder: (ctx, i) => GestureDetector(
-                onTap: () {
-                  authProv.updateProfileImage(avatars[i]);
-                  Navigator.pop(ctx);
+                onTap: () async {
+                  await authProv.updateProfileImage(avatars[i]);
+                  if (ctx.mounted) Navigator.pop(ctx);
                 },
                 child: CircleAvatar(
                   radius: 40,
@@ -176,13 +222,13 @@ class MasterDrawer extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("테마 선택"),
+        title: const Text('테마 선택'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: const Text("다크 모드"), onTap: () { prov.changeTheme('dark'); Navigator.pop(ctx); }),
-            ListTile(title: const Text("화이트 모드"), onTap: () { prov.changeTheme('light'); Navigator.pop(ctx); }),
-            ListTile(title: const Text("블루 모드"), onTap: () { prov.changeTheme('blue'); Navigator.pop(ctx); }),
+            ListTile(title: const Text('다크 모드'), onTap: () { prov.changeTheme('dark'); Navigator.pop(ctx); }),
+            ListTile(title: const Text('화이트 모드'), onTap: () { prov.changeTheme('light'); Navigator.pop(ctx); }),
+            ListTile(title: const Text('블루 모드'), onTap: () { prov.changeTheme('blue'); Navigator.pop(ctx); }),
           ],
         ),
       ),
@@ -201,7 +247,7 @@ class MasterDrawer extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('로컬 데이터를 모두 삭제합니다.\n(사용자 계정은 유지됩니다.)'),
+                const Text('로컬 데이터를 모두 삭제합니다.\n(사용자 프로필은 유지됩니다.)'),
                 const SizedBox(height: 10),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
@@ -237,6 +283,150 @@ class MasterDrawer extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  final AuthProvider authProv;
+  final TeamProvider teamProv;
+  final String myId;
+  final String myName;
+  final String? avatar;
+  final String initial;
+
+  const _ProfileHeader({
+    required this.authProv,
+    required this.teamProv,
+    required this.myId,
+    required this.myName,
+    required this.avatar,
+    required this.initial,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final current = authProv.currentUser;
+    final typeLabel = current == null
+        ? '프로필 없음'
+        : current.isGoogleProfile
+            ? 'Google • 슬롯 ${((current.slotIndex ?? 0) + 1)}'
+            : 'Local';
+    final subText = current?.linkedGoogleEmail ?? '직책: ${teamProv.getMyRole(myId)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 18),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.only(topRight: Radius.circular(32)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => MasterDrawer()._showAvatarPicker(context, authProv),
+                child: Hero(
+                  tag: 'profile_avatar_${current?.id ?? 'drawer'}',
+                  child: CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFF2563EB),
+                    child: Text(
+                      avatar ?? initial,
+                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            myName,
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => MasterDrawer()._showEditNameDialog(context, authProv),
+                          child: const Icon(Icons.edit_rounded, size: 16, color: Colors.blueAccent),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(subText, style: const TextStyle(color: Colors.grey), overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(typeLabel, style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w800, fontSize: 11)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 56,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: authProv.profiles.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) {
+                final profile = authProv.profiles[i];
+                final selected = profile.id == current?.id;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () async {
+                    await authProv.switchProfile(profile.id);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? const Color(0xFF2563EB) : Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: selected ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: selected ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFF1F5F9),
+                          child: Text(
+                            (profile.profileImage?.trim().isNotEmpty ?? false) ? profile.profileImage! : (profile.name.trim().isNotEmpty ? profile.name[0] : '🙂'),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          profile.name.trim().isEmpty ? '이름 미설정' : profile.name,
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -25,6 +25,34 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
     super.dispose();
   }
 
+  Future<bool> _ensureCloudReady(AuthProvider authProv) async {
+    if (authProv.isDriveConnected) return true;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('구글 연동 필요'),
+        content: Text(
+          authProv.currentUser?.isLocal == true
+              ? '현재는 로컬 프로필입니다.\n팀 초대/Drive 동기화 기능을 쓰려면 구글 계정을 연결해야 합니다.'
+              : '구글 Drive 연결을 다시 활성화해야 팀 초대 코드를 조회할 수 있습니다.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('연결하기')),
+        ],
+      ),
+    );
+
+    if (ok != true) return false;
+    final result = await authProv.connectGoogleDrive(bridgeCurrentLocal: true);
+    if (!mounted) return false;
+    if (result.message != null && result.message!.trim().isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+    }
+    return result.ok;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
@@ -35,9 +63,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
     final team = teamProv.currentTeam;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('팀 관리'),
-      ),
+      appBar: AppBar(title: const Text('팀 관리')),
       backgroundColor: const Color(0xFFF8FAFC),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -104,6 +130,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     IconButton(
                       tooltip: '재생성',
                       onPressed: () async {
+                        final ready = await _ensureCloudReady(authProv);
+                        if (!ready) return;
                         await teamProv.regenerateInviteCode(team.id);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('초대 코드가 재생성되었습니다.')));
@@ -113,29 +141,19 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  '팀원: ${team.memberIds.length}명',
-                  style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700),
-                ),
+                Text('팀원: ${team.memberIds.length}명', style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
               ],
             ),
           ),
-
           const SizedBox(height: 22),
           _sectionTitle('새 팀 만들기'),
           const SizedBox(height: 10),
           _card(
             child: Column(
               children: [
-                TextField(
-                  controller: _createNameCtrl,
-                  decoration: _inputDecoration('팀 이름'),
-                ),
+                TextField(controller: _createNameCtrl, decoration: _inputDecoration('팀 이름')),
                 const SizedBox(height: 10),
-                TextField(
-                  controller: _createRoleCtrl,
-                  decoration: _inputDecoration('내 역할(예: 관리자/팀원)'),
-                ),
+                TextField(controller: _createRoleCtrl, decoration: _inputDecoration('내 역할(예: 관리자/팀원)')),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -162,7 +180,6 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               ],
             ),
           ),
-
           const SizedBox(height: 22),
           _sectionTitle('초대 코드로 팀 참여'),
           const SizedBox(height: 10),
@@ -183,6 +200,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     onPressed: () async {
                       final code = _joinCodeCtrl.text.trim().toUpperCase();
                       if (code.isEmpty) return;
+                      final ready = await _ensureCloudReady(authProv);
+                      if (!ready) return;
                       final ok = await teamProv.joinTeam(code, myId, myRole: '팀원');
                       if (!context.mounted) return;
                       if (ok) {
@@ -206,13 +225,14 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'TIP: 팀 참여는 "같은 구글 드라이브 파일"을 조회할 수 있어야 가능합니다.\n(다른 구글 계정 간 공유는 Drive 권한 공유가 필요합니다.)',
+                  authProv.isDriveConnected
+                      ? '현재 Drive 연결이 활성화되어 있습니다. 같은 구글 드라이브 데이터 범위에서 초대 코드를 조회합니다.'
+                      : 'TIP: 팀 참여는 Drive 연결이 필요합니다. 로컬 프로필도 구글 계정과 연결하면 바로 사용할 수 있어요.',
                   style: TextStyle(color: Colors.grey[600], height: 1.35, fontSize: 12),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 22),
           _sectionTitle('내 팀 목록'),
           const SizedBox(height: 10),
@@ -222,8 +242,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 final selected = t.id == teamProv.currentTeamId;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                      color: selected ? const Color(0xFF2563EB) : Colors.grey),
+                  leading: Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined, color: selected ? const Color(0xFF2563EB) : Colors.grey),
                   title: Text(t.name, style: TextStyle(fontWeight: selected ? FontWeight.w900 : FontWeight.w700)),
                   subtitle: Text('코드: ${t.inviteCode} • 팀원 ${t.memberIds.length}명'),
                   onTap: () {
@@ -234,7 +253,6 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               }).toList(),
             ),
           ),
-
           const SizedBox(height: 22),
           _sectionTitle('내 정보'),
           const SizedBox(height: 10),
@@ -246,7 +264,11 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 child: Text(authProv.currentUser?.profileImage ?? (myName.isNotEmpty ? myName[0] : 'U')),
               ),
               title: Text(myName, style: const TextStyle(fontWeight: FontWeight.w900)),
-              subtitle: Text('ID: $myId'),
+              subtitle: Text(
+                authProv.isGoogleLinked
+                    ? 'ID: $myId • Google: ${authProv.currentUser?.linkedGoogleEmail ?? ''}'
+                    : 'ID: $myId • 로컬 프로필',
+              ),
             ),
           ),
         ],

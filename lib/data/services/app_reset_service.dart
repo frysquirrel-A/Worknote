@@ -8,8 +8,12 @@ class AppResetService {
   Future<void> reset({required bool withSampleData, required String myId, required String myName}) async {
     final settings = Hive.box('settings');
     final loggedIn = settings.get('logged_in_user_id');
+    final authProfiles = settings.get('auth_profiles_v2');
+    final currentProfileId = settings.get('auth_current_profile_id');
     await settings.clear();
     if (loggedIn != null) await settings.put('logged_in_user_id', loggedIn);
+    if (authProfiles != null) await settings.put('auth_profiles_v2', authProfiles);
+    if (currentProfileId != null) await settings.put('auth_current_profile_id', currentProfileId);
 
     await Hive.box<Task>('tasks').clear();
     await Hive.box<Project>('projects').clear();

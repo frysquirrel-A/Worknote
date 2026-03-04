@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/auth/ui/profile_selection_page.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/app/widgets/master_drawer.dart';
@@ -23,9 +24,9 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _didMigrateLegacy = false;
   AuthProvider? _authProv;
   TeamProvider? _teamProv;
+  String? _lastSyncedUserId;
 
   void _openChatThread(String threadId, String? title) {
     context.read<ChatProvider>().setActiveThread(threadId, title: title ?? '채팅');
@@ -40,27 +41,45 @@ class _MainShellState extends State<MainShell> {
 
     final auth = context.read<AuthProvider>();
     if (_authProv != auth) {
-      _authProv?.removeListener(_maybeMigrateLegacy);
+      _authProv?.removeListener(_syncForActiveUser);
       _authProv = auth;
-      _authProv?.addListener(_maybeMigrateLegacy);
+      _authProv?.addListener(_syncForActiveUser);
     }
 
-    _maybeMigrateLegacy();
+    _syncForActiveUser();
   }
 
-  void _maybeMigrateLegacy() {
-    if (_didMigrateLegacy) return;
+  void _syncForActiveUser() {
     final user = _authProv?.currentUser;
-    if (user == null) return;
-    _didMigrateLegacy = true;
-    final myId = user.id;
-    Future.microtask(() => _teamProv?.migrateLegacyMeToUser(myId));
+    final myId = user?.id;
+    if (myId == null || myId == _lastSyncedUserId) return;
+
+    _lastSyncedUserId = myId;
+    Future.microtask(() async {
+      await _teamProv?.migrateLegacyMeToUser(myId);
+      await _teamProv?.ensureCurrentUserMembership(myId, defaultRole: '관리자');
+    });
   }
 
   @override
   void dispose() {
-    _authProv?.removeListener(_maybeMigrateLegacy);
+    _authProv?.removeListener(_syncForActiveUser);
     super.dispose();
+  }
+
+  void _openProfileManager() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, animation, __) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            child: const ProfileSelectionPage(manageMode: true),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -74,6 +93,8 @@ class _MainShellState extends State<MainShell> {
       const MessengerTab(),
     ];
 
+    final currentName = context.select<AuthProvider, String>((p) => p.currentUser?.name ?? 'WORKNOTE Master');
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8FAFC),
@@ -84,11 +105,25 @@ class _MainShellState extends State<MainShell> {
           icon: const Icon(Icons.menu_open_rounded, size: 28, color: Colors.black87),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: const Text(
-          "WORKNOTE Master",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 20),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'WORKNOTE Master',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 20),
+            ),
+            Text(
+              currentName,
+              style: const TextStyle(color: Colors.black45, fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+          ],
         ),
         actions: [
+          IconButton(
+            tooltip: '프로필 전환',
+            icon: const Icon(Icons.switch_account_rounded, color: Colors.black87),
+            onPressed: _openProfileManager,
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_active_outlined, color: Colors.black87),
             onPressed: () {},

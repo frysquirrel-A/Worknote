@@ -188,6 +188,27 @@ class TeamProvider extends ChangeNotifier {
     }
   }
 
+
+  Future<void> ensureCurrentUserMembership(String userId, {String defaultRole = '관리자'}) async {
+    bool changed = false;
+    for (final team in _teams) {
+      if (!team.memberIds.contains(userId)) {
+        team.memberIds = [...team.memberIds, userId];
+        changed = true;
+      }
+      if (!team.memberRoles.containsKey(userId)) {
+        team.memberRoles[userId] = defaultRole;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    await _localDb.syncAll<Team>('teams', _teams, (t) => t.id);
+    notifyListeners();
+    if (_driveService.isReady) {
+      await _driveService.syncJsonData(_teams.map((e) => e.toJson()).toList(), 'worknote_teams.json');
+    }
+  }
+
   void changeTheme(String mode) {
     _currentThemeMode = mode;
     _localDb.saveSetting('app_theme', mode);
