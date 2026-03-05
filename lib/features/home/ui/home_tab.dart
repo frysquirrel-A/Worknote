@@ -244,14 +244,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               ),
               const SizedBox(height: 12),
               _SectionCard(
-                title: '오늘 업무',
+                title: '오늘 할일',
                 icon: Icons.checklist_rounded,
                 child: todayTasks.isEmpty
                     ? const Padding(
                         padding: EdgeInsets.symmetric(vertical: 18),
                         child: Center(
                           child: Text(
-                            '오늘 마감 업무가 없습니다.',
+                            '오늘 마감 할일이 없습니다.',
                             style: TextStyle(color: AppColors.hint),
                           ),
                         ),
@@ -263,6 +263,36 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                             for (final task in todayTasks)
                               ListTile(
                                 dense: true,
+                                leading: InkWell(
+                                  borderRadius: BorderRadius.circular(99),
+                                  onTap: () => taskProv.updateTaskStatus(
+                                    task,
+                                    !task.isDone,
+                                  ),
+                                  child: Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      color: task.isDone
+                                          ? AppColors.primary
+                                          : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: task.isDone
+                                            ? AppColors.primary
+                                            : const Color(0xFF9CA3AF),
+                                        width: 1.8,
+                                      ),
+                                    ),
+                                    child: task.isDone
+                                        ? const Icon(
+                                            Icons.check_rounded,
+                                            size: 16,
+                                            color: Colors.white,
+                                          )
+                                        : null,
+                                  ),
+                                ),
                                 title: Text(
                                   task.title,
                                   maxLines: 1,
@@ -278,9 +308,9 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '기한: ${task.dueDate.month}/${task.dueDate.day}',
+                                  '기한: ${task.dueDate.month}/${task.dueDate.day} · 중요도: ${_priorityLabel(task.priority)}',
                                   style: const TextStyle(
-                                    color: AppColors.danger,
+                                    color: AppColors.text2,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -326,6 +356,15 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         ),
       ),
     );
+  }
+
+  String _priorityLabel(TaskPriority priority) {
+    return switch (priority) {
+      TaskPriority.high => '상',
+      TaskPriority.medium => '중',
+      TaskPriority.low => '하',
+      TaskPriority.none => '없음',
+    };
   }
 
   void _showTeamPicker(BuildContext context, TeamProvider teamProv) {
@@ -602,6 +641,7 @@ class _ProjectProgressTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final doneCount = tasks.where((t) => t.isDone).length;
     final totalCount = tasks.length;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -680,6 +720,7 @@ class _ProjectProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = progress.clamp(0.0, 1.0);
     final percent = (normalized * 100).round();
+
     return Stack(
       alignment: Alignment.center,
       children: [

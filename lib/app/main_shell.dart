@@ -32,7 +32,7 @@ class _MainShellState extends State<MainShell> {
   void _openChatThread(String threadId, String? title) {
     context.read<ChatProvider>().setActiveThread(
       threadId,
-      title: title ?? 'Chat',
+      title: title ?? '채팅',
     );
     setState(() => _selectedIndex = 5);
   }
@@ -145,7 +145,7 @@ class _MainShellState extends State<MainShell> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Switch profile',
+            tooltip: '프로필 전환',
             icon: const Icon(
               Icons.switch_account_rounded,
               color: Colors.black87,
@@ -215,27 +215,27 @@ class _MainShellState extends State<MainShell> {
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined, size: 22),
-                  label: 'Home',
+                  label: '홈',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.check_circle_outline_rounded, size: 22),
-                  label: 'Tasks',
+                  label: '할일',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined, size: 22),
-                  label: 'Schedule',
+                  label: '일정',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.edit_note_rounded, size: 22),
-                  label: 'Journal',
+                  label: '일지',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.photo_library_outlined, size: 22),
-                  label: 'Gallery',
+                  label: '갤러리',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.chat_bubble_outline_rounded, size: 22),
-                  label: 'Chat',
+                  label: '채팅',
                 ),
               ],
             ),

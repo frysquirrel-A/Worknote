@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
-import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/add_task_sheet.dart';
 import 'package:worknote/features/tasks/ui/widgets/task_card.dart';
@@ -35,15 +34,10 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   bool _isDescending = true;
 
   // 그룹 구분 보기 상태 변수 (TaskFilterBar로 전달됨)
-  bool _showGroupHeaders = true;
+  final bool _showGroupHeaders = true;
 
   // Filter Local State
   String _selProjectId = 'all';
-  String _selStatus = '진행중';
-  TaskPriority? _selPriority;
-  String _selAssignee = 'all';
-  // ✨ [긴급 추가] 누락된 필터 상태 변수 복구
-  DateFilter _selDate = DateFilter.all;
 
   String _periodLabel(TaskGroupPeriod p) {
     switch (p) {
@@ -90,54 +84,20 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
         if (!mounted) return;
         setState(() {
           _selProjectId = 'all';
-          _selStatus = '전체';
-          _selPriority = null;
-          _selAssignee = 'all';
-          _selDate = DateFilter.all;
         });
         context.read<TaskProvider>().resetTeamScopedFilters();
       });
     }
     _lastTeamId = teamId;
 
-    final authProv = context.watch<AuthProvider>();
-    // ✨ [교정] authProv 게터 사용
-    final myId = authProv.id;
-
     final baseTasks = taskProv.tasksForTeam(teamId);
     final filteredTasks = baseTasks.where((t) {
       if (_selProjectId != 'all' &&
           (_selProjectId == 'none'
               ? t.projectId != null
-              : t.projectId != _selProjectId))
+              : t.projectId != _selProjectId)) {
         return false;
-
-      if (_selStatus == '진행중' && t.isDone) return false;
-      if (_selStatus == '완료' && !t.isDone) return false;
-
-      if (_selPriority != null && t.priority != _selPriority) return false;
-      if (_selAssignee != 'all' &&
-          !t.assigneeIds.contains(_selAssignee == 'me' ? myId : _selAssignee))
-        return false;
-
-      // ✨ 날짜 필터 적용
-      final now = DateTime.now();
-      DateTime? from;
-      switch (_selDate) {
-        case DateFilter.all:
-          from = null;
-          break;
-        case DateFilter.today:
-          from = DateTime(now.year, now.month, now.day);
-          break;
-        case DateFilter.week:
-          from = now.subtract(const Duration(days: 7));
-          break;
-        case DateFilter.month:
-          from = now.subtract(const Duration(days: 30));
-          break;
       }
-      if (from != null && t.createdAt.isBefore(from)) return false;
 
       return true;
     }).toList();
@@ -170,8 +130,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
             child: TaskFilterBar(
               taskProv: taskProv,
-              teamProv: teamProv,
-              myId: myId,
               groupValue: _periodLabel(_period),
               groupItems: TaskGroupPeriod.values
                   .map((p) => _periodLabel(p))
@@ -199,18 +157,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
                     : TaskCardLayout.classic;
               }),
               selProjectId: _selProjectId,
-              onProjectChanged: (v) =>
-                  setState(() => _selProjectId = v ?? 'all'),
-              selStatus: _selStatus,
-              onStatusChanged: (v) => setState(() => _selStatus = v ?? 'all'),
-              selPriority: _selPriority,
-              onPriorityChanged: (v) => setState(() => _selPriority = v),
-              selAssignee: _selAssignee,
-              onAssigneeChanged: (v) =>
-                  setState(() => _selAssignee = v ?? 'all'),
-              showGroupHeaders: _showGroupHeaders,
-              onToggleGroupHeaders: () =>
-                  setState(() => _showGroupHeaders = !_showGroupHeaders),
+              onProjectChanged: (v) => setState(() => _selProjectId = v),
             ),
           ),
 
@@ -283,7 +230,7 @@ class _FlatTaskView extends StatelessWidget {
     if (layout == TaskCardLayout.gallery) {
       return GridView.builder(
         controller: scrollController,
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 132),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
@@ -298,7 +245,7 @@ class _FlatTaskView extends StatelessWidget {
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 132),
       itemCount: sortedTasks.length,
       itemBuilder: (ctx, i) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
@@ -337,7 +284,7 @@ class _GroupedTaskView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 132),
       itemCount: groupIds.length,
       itemBuilder: (context, index) {
         final id = groupIds[index];
@@ -453,7 +400,7 @@ class _GroupHeader extends StatelessWidget {
               ),
             ),
             Text(
-              '${count}건',
+              '$count건',
               style: const TextStyle(
                 color: AppTextColor.secondary,
                 fontWeight: FontWeight.w800,

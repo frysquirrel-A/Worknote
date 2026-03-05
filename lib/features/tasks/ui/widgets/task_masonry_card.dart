@@ -37,15 +37,23 @@ class TaskMasonryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           onTap: () => showTaskDetailSheet(context: context, task: task),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    _statusCircle(task.isDone),
-                    const SizedBox(width: 7),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: () =>
+                          taskProv.updateTaskStatus(task, !task.isDone),
+                      child: Padding(
+                        padding: const EdgeInsets.all(1),
+                        child: _statusCircle(task.isDone),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
                     _priorityBadge(task.priority),
                     const Spacer(),
                     _scheduleButton(
@@ -63,9 +71,9 @@ class TaskMasonryCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _projectChip(projectName),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   task.title,
                   maxLines: 2,
@@ -77,110 +85,150 @@ class TaskMasonryCard extends StatelessWidget {
                         ? const Color(0xFF9CA3AF)
                         : const Color(0xFF1F2937),
                     decoration: task.isDone ? TextDecoration.lineThrough : null,
-                    height: 1.2,
+                    height: 1.15,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.fromLTRB(7, 6, 7, 6),
                   decoration: BoxDecoration(
                     color: AppColors.bg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFE5E7EB)),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _metaRow(
-                        '작성',
-                        _fmt(task.createdAt),
-                        const Color(0xFF6B7280),
-                      ),
-                      const SizedBox(height: 3),
-                      _metaRow(
-                        '기한',
-                        _fmt(task.dueDate),
-                        const Color(0xFFEF4444),
-                      ),
-                      const SizedBox(height: 3),
-                      if (task.isDone && task.completedAt != null)
-                        _metaRow(
-                          '완료',
-                          _fmt(task.completedAt!),
-                          AppColors.primary,
-                        )
-                      else
-                        _metaRow('수정', _fmt(task.updatedAt), AppColors.primary),
-                      if (hasSchedule && scheduleRange != null) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          '일정 ${_fmt(scheduleRange.start)}~${_fmt(scheduleRange.end)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFFF59E0B),
-                          ),
+                      Expanded(
+                        flex: 7,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _priorityBadge(task.priority),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '작성: ${_fmt(task.createdAt)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF6B7280),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Expanded(
+                                        child: Text(
+                                          '기한: ${_fmt(task.dueDate)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFFEF4444),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    '중요도: ${_priorityLabel(task.priority)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                  if (task.isDone && task.completedAt != null)
+                                    Text(
+                                      '완료: ${_fmt(task.completedAt!)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  if (hasSchedule && scheduleRange != null)
+                                    Text(
+                                      '일정: ${_fmt(scheduleRange.start)}~${_fmt(scheduleRange.end)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFFF59E0B),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 5),
+                      Container(
+                        width: 1,
+                        height: 46,
+                        color: const Color(0xFFD1D5DB),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '작성자 ${_lastWord(task.creatorName)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF374151),
+                              ),
+                            ),
+                            Text(
+                              '담당 ${_lastWord(task.assigneeName)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              task.assigneeEmoji.isEmpty
+                                  ? '👤'
+                                  : task.assigneeEmoji,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.person,
-                      size: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        _lastWord(task.creatorName),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF4B5563),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _metaRow(String label, String value, Color valueColor) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF6B7280),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: valueColor,
-          ),
-        ),
-      ],
     );
   }
 
@@ -196,7 +244,7 @@ class TaskMasonryCard extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
           color: const Color(0xFFE6EFFF),
           borderRadius: BorderRadius.circular(999),
@@ -222,18 +270,18 @@ class TaskMasonryCard extends StatelessWidget {
     return PremiumButton(
       onTap: onTap,
       child: Container(
-        width: 30,
-        height: 30,
+        width: 28,
+        height: 28,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.primary,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           hasSchedule
               ? Icons.calendar_month_rounded
               : Icons.calendar_today_outlined,
-          size: 16,
+          size: 15,
           color: Colors.white,
         ),
       ),
@@ -242,18 +290,18 @@ class TaskMasonryCard extends StatelessWidget {
 
   Widget _statusCircle(bool isDone) {
     return Container(
-      width: 24,
-      height: 24,
+      width: 23,
+      height: 23,
       decoration: BoxDecoration(
         color: isDone ? AppColors.primary : Colors.transparent,
         shape: BoxShape.circle,
         border: Border.all(
           color: isDone ? AppColors.primary : const Color(0xFF9CA3AF),
-          width: 1.8,
+          width: 1.7,
         ),
       ),
       child: isDone
-          ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
           : null,
     );
   }
@@ -261,12 +309,12 @@ class TaskMasonryCard extends StatelessWidget {
   Widget _priorityBadge(TaskPriority priority) {
     if (priority == TaskPriority.none) {
       return Container(
-        width: 24,
-        height: 24,
+        width: 23,
+        height: 23,
         decoration: BoxDecoration(
           color: Colors.transparent,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFD1D5DB), width: 1.4),
+          border: Border.all(color: const Color(0xFFD1D5DB), width: 1.3),
         ),
       );
     }
@@ -285,23 +333,32 @@ class TaskMasonryCard extends StatelessWidget {
     };
 
     return Container(
-      width: 24,
-      height: 24,
+      width: 23,
+      height: 23,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.transparent,
         shape: BoxShape.circle,
-        border: Border.all(color: color, width: 1.6),
+        border: Border.all(color: color, width: 1.4),
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
-          fontSize: 10,
+          fontSize: 9.5,
           fontWeight: FontWeight.w800,
         ),
       ),
     );
+  }
+
+  String _priorityLabel(TaskPriority priority) {
+    return switch (priority) {
+      TaskPriority.high => '상',
+      TaskPriority.medium => '중',
+      TaskPriority.low => '하',
+      TaskPriority.none => '없음',
+    };
   }
 
   String _fmt(DateTime date) => DateFormat('yy.MM.dd').format(date);
