@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+import 'package:worknote/app/widgets/profile_avatar.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
-import 'package:worknote/features/schedule/state/schedule_provider.dart';
-import 'package:worknote/features/tasks/ui/sheets/add_task_sheet.dart';
-import 'package:worknote/app/widgets/profile_avatar.dart';
 
 class HomeTab extends StatefulWidget {
   final void Function(String threadId, String? title) onOpenChatThread;
+
   const HomeTab({super.key, required this.onOpenChatThread});
 
   @override
@@ -21,37 +19,50 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
-  bool _isGroupedView = false; 
-  bool _membersSwipe = true;
-  bool _projectsSwipe = false;
-  bool _tasksSwipe = false;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); 
+    super.build(context);
 
     final auth = context.watch<AuthProvider>();
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
 
     final me = auth.currentUser;
-    final meId = me?.id ?? 'me';
-    final meName = me?.name ?? '나';
-    final meEmoji = (me?.profileImage != null && me!.profileImage!.isNotEmpty) ? me.profileImage! : '🙂';
+    final myId = me?.id ?? 'me';
+    final myName = me?.name ?? '사용자';
+    final myEmoji = (me?.profileImage != null && me!.profileImage!.isNotEmpty)
+        ? me.profileImage!
+        : '👤';
 
+    final teamId = teamProv.currentTeamId;
     final teamName = teamProv.currentTeam.name;
     final teamInitial = teamName.isNotEmpty ? teamName.characters.first : 'T';
 
     final usersBox = Hive.box<AppUser>('users');
-    final memberIds = teamProv.currentTeam.memberIds;
-    final members = memberIds.map((id) => usersBox.get(id) ?? AppUser(id: id, password: '', name: id, profileImage: '👤')).toList(growable: false);
-    final teamProjects = taskProv.projects.where((p) => p.teamId == teamProv.currentTeamId).toList();
+    final members = teamProv.currentTeam.memberIds
+        .map(
+          (id) =>
+              usersBox.get(id) ??
+              AppUser(id: id, password: '', name: id, profileImage: '👤'),
+        )
+        .toList(growable: false);
 
+    final teamProjects = taskProv.projects
+        .where((p) => p.teamId == teamId)
+        .toList(growable: false);
+    final teamTasks = taskProv.tasksForTeam(teamId);
     final today = DateTime.now();
-    final todayStr = '${today.year}.${today.month.toString().padLeft(2, '0')}.${today.day.toString().padLeft(2, '0')}';
+    final todayTasks = teamTasks
+        .where(
+          (t) =>
+              t.dueDate.year == today.year &&
+              t.dueDate.month == today.month &&
+              t.dueDate.day == today.day,
+        )
+        .toList(growable: false);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -62,86 +73,254 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('안녕하세요, $meName', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                        Text(
+                          '안녕하세요, $myName',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(todayStr, style: const TextStyle(fontSize: 14, color: AppColors.text2)),
+                        Text(
+                          '${today.year}.${today.month.toString().padLeft(2, '0')}.${today.day.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.text2,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  _ProfileAvatarWithTeamBadge(emoji: meEmoji, userId: meId, teamInitial: teamInitial),
+                  _ProfileAvatarWithTeamBadge(
+                    emoji: myEmoji,
+                    userId: myId,
+                    teamInitial: teamInitial,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
-
-              // ✨ [신설] 오늘의 브리핑 카드
-              const _TodayHubCard(),
-              const SizedBox(height: 14),
-
-              _card(context, child: InkWell(borderRadius: BorderRadius.circular(18), onTap: () => _showTeamPicker(context, teamProv), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), child: Row(children: [Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(teamInitial, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('현재 팀', style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(teamName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis)])), const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.text2)])))),
-              const SizedBox(height: 10),
-
-              _card(
-                context, 
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.dashboard_customize_rounded, size: 18, color: AppColors.primary),
-                          SizedBox(width: 6),
-                          Text('화면 뷰 설정', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.text)),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          _MiniBtn(
-                            text: _isGroupedView ? '각각보기' : '묶어보기', 
-                            icon: _isGroupedView ? Icons.view_stream_rounded : Icons.view_agenda_rounded, 
-                            isActive: _isGroupedView,
-                            onTap: () => setState(() => _isGroupedView = !_isGroupedView)
+              _surfaceCard(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => _showTeamPicker(context, teamProv),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          if (!_isGroupedView) ...[
-                            const SizedBox(width: 6),
-                            _MiniBtn(
-                              text: '슬라이드 뷰', 
-                              icon: Icons.swipe_rounded, 
-                              isActive: _membersSwipe && _projectsSwipe && _tasksSwipe,
-                              onTap: () => setState(() {
-                                final newState = !(_membersSwipe && _projectsSwipe && _tasksSwipe);
-                                _membersSwipe = newState; _projectsSwipe = newState; _tasksSwipe = newState;
-                              })
+                          child: Text(
+                            teamInitial,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
                             ),
-                          ]
-                        ],
-                      )
-                    ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '현재 팀',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.text2,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                teamName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.text2,
+                        ),
+                      ],
+                    ),
                   ),
-                )
+                ),
               ),
-              const SizedBox(height: 14),
-              
-              if (_isGroupedView)
-                _DashboardPagerCard(
-                  members: members, teamProv: teamProv, taskProv: taskProv, meId: meId, teamProjects: teamProjects, onOpenChatThread: widget.onOpenChatThread,
-                  membersSwipe: _membersSwipe, projectsSwipe: _projectsSwipe, tasksSwipe: _tasksSwipe,
-                  onToggleMembers: () => setState(() => _membersSwipe = !_membersSwipe),
-                  onToggleProjects: () => setState(() => _projectsSwipe = !_projectsSwipe),
-                  onToggleTasks: () => setState(() => _tasksSwipe = !_tasksSwipe),
-                )
-              else
-                _buildSeparatedCards(members, teamProv, taskProv, meId, teamProjects),
-
-              const SizedBox(height: 14),
-
-              _card(context, child: ListTile(leading: const Icon(Icons.forum_outlined, color: AppColors.primary), title: const Text('팀 대화방 열기', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(teamName, maxLines: 1, overflow: TextOverflow.ellipsis), trailing: const Icon(Icons.chevron_right_rounded), onTap: () { final chatProv = context.read<ChatProvider>(); final threadId = 'grp_${teamProv.currentTeamId}_main'; chatProv.setActiveThread(threadId, title: '$teamName · 대화'); widget.onOpenChatThread(threadId, '$teamName · 대화'); })),
+              const SizedBox(height: 12),
+              _SectionCard(
+                title: '팀원',
+                icon: Icons.people_alt_rounded,
+                child: members.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(
+                          child: Text(
+                            '팀원이 없습니다.',
+                            style: TextStyle(color: AppColors.hint),
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        height: 92,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: members.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final member = members[index];
+                            return _MemberAvatar(
+                              user: member,
+                              isMe: member.id == myId,
+                              role: teamProv.currentTeam.memberRoles[member.id],
+                              onTap: () => _showMemberSheet(
+                                context,
+                                member: member,
+                                role:
+                                    teamProv.currentTeam.memberRoles[member.id],
+                                myId: myId,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 12),
+              _SectionCard(
+                title: '프로젝트 현황',
+                icon: Icons.domain_rounded,
+                child: teamProjects.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(
+                          child: Text(
+                            '프로젝트가 없습니다.',
+                            style: TextStyle(color: AppColors.hint),
+                          ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                        child: Column(
+                          children: [
+                            for (final project in teamProjects)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _ProjectProgressTile(
+                                  project: project,
+                                  tasks: teamTasks
+                                      .where((t) => t.projectId == project.id)
+                                      .toList(growable: false),
+                                  progress: taskProv.projectProgress(
+                                    project.id,
+                                    teamId: teamId,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 12),
+              _SectionCard(
+                title: '오늘 업무',
+                icon: Icons.checklist_rounded,
+                child: todayTasks.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: Center(
+                          child: Text(
+                            '오늘 마감 업무가 없습니다.',
+                            style: TextStyle(color: AppColors.hint),
+                          ),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                        child: Column(
+                          children: [
+                            for (final task in todayTasks)
+                              ListTile(
+                                dense: true,
+                                title: Text(
+                                  task.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    decoration: task.isDone
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: task.isDone
+                                        ? AppColors.muted
+                                        : AppColors.text,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '기한: ${task.dueDate.month}/${task.dueDate.day}',
+                                  style: const TextStyle(
+                                    color: AppColors.danger,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  task.assigneeEmoji.isEmpty
+                                      ? '👤'
+                                      : task.assigneeEmoji,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 12),
+              _surfaceCard(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.forum_outlined,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text(
+                    '팀 대화방 열기',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    teamName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    final chatProv = context.read<ChatProvider>();
+                    final threadId = 'grp_${teamProv.currentTeamId}_main';
+                    final title = '$teamName · 대화';
+                    chatProv.setActiveThread(threadId, title: title);
+                    widget.onOpenChatThread(threadId, title);
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -149,123 +328,258 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildSeparatedCards(List<AppUser> members, TeamProvider teamProv, TaskProvider taskProv, String meId, List<Project> teamProjects) {
-    return Column(
-      children: [
-        _SectionCard(
-          title: '팀원', icon: Icons.people_alt_rounded, isSwipe: _membersSwipe, onToggleSwipe: () => setState(() => _membersSwipe = !_membersSwipe),
-          child: _membersSwipe 
-              ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: members.map((m) => Padding(padding: const EdgeInsets.only(right: 12), child: _MemberAvatar(user: m, isMe: m.id == meId, role: teamProv.currentTeam.memberRoles[m.id], onTap: () => _showMemberProfileSheet(context, member: m, role: teamProv.currentTeam.memberRoles[m.id], myId: meId)))).toList()))
-              : Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Wrap(spacing: 12, runSpacing: 12, children: members.map((m) => _MemberAvatar(user: m, isMe: m.id == meId, role: teamProv.currentTeam.memberRoles[m.id], onTap: () => _showMemberProfileSheet(context, member: m, role: teamProv.currentTeam.memberRoles[m.id], myId: meId))).toList())),
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          title: '프로젝트 현황', icon: Icons.domain_rounded, isSwipe: _projectsSwipe, onToggleSwipe: () => setState(() => _projectsSwipe = !_projectsSwipe),
-          child: teamProjects.isEmpty 
-              ? const Padding(padding: EdgeInsets.all(16), child: Center(child: Text('프로젝트가 없습니다.', style: TextStyle(color: AppColors.hint))))
-              : (_projectsSwipe
-                  ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: teamProjects.map((p) { 
-                      final progress = taskProv.projectProgress(p.id, teamId: teamProv.currentTeamId); 
-                      return Container(width: 200, margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis), const SizedBox(height: 8), Row(children: [Expanded(child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black12, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary), minHeight: 6, borderRadius: BorderRadius.circular(99))), const SizedBox(width: 8), Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))])])); 
-                    }).toList()))
-                  : Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Column(children: teamProjects.map((p) { final progress = taskProv.projectProgress(p.id, teamId: teamProv.currentTeamId); return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [Expanded(child: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)), const SizedBox(width: 12), SizedBox(width: 100, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black12, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary), minHeight: 8, borderRadius: BorderRadius.circular(99))), const SizedBox(width: 8), Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))])); }).toList()))),
-        ),
-        const SizedBox(height: 12),
-        _SectionCard(
-          title: '오늘 업무', icon: Icons.checklist_rounded, isSwipe: _tasksSwipe, onToggleSwipe: () => setState(() => _tasksSwipe = !_tasksSwipe),
-          child: _buildTasksView(taskProv, teamProv, _tasksSwipe),
-        ),
-      ],
+  void _showTeamPicker(BuildContext context, TeamProvider teamProv) {
+    final teams = teamProv.teams;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.black12,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '팀 선택',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (teams.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      '참여 중인 팀이 없습니다.',
+                      style: TextStyle(color: AppColors.text2),
+                    ),
+                  ),
+                if (teams.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.55,
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: teams.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) {
+                        final team = teams[i];
+                        final isCurrent = team.id == teamProv.currentTeamId;
+                        return ListTile(
+                          title: Text(
+                            team.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.text,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${team.memberIds.length}명',
+                            style: const TextStyle(color: AppColors.text2),
+                          ),
+                          trailing: isCurrent
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  color: AppColors.primary,
+                                )
+                              : null,
+                          onTap: () {
+                            teamProv.switchTeam(team.id);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTasksView(TaskProvider taskProv, TeamProvider teamProv, bool isSwipe) {
-    final today = DateTime.now();
-    final tasks = taskProv.tasksForTeam(teamProv.currentTeamId).where((t) => t.dueDate.year == today.year && t.dueDate.month == today.month && t.dueDate.day == today.day).toList();
-    if (tasks.isEmpty) return const Padding(padding: EdgeInsets.all(16), child: Center(child: Text('오늘 마감 업무가 없습니다.', style: TextStyle(color: AppColors.hint))));
-    
-    if (isSwipe) {
-      return SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: tasks.map((t) => Container(width: 220, margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t.title, style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text('기한: ${t.dueDate.month}/${t.dueDate.day}', style: const TextStyle(fontSize: 11, color: AppColors.danger, fontWeight: FontWeight.w800))]))).toList()));
-    } else {
-      return Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Column(children: tasks.map((t) => ListTile(dense: true, visualDensity: VisualDensity.compact, title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis), subtitle: Text('기한: ${t.dueDate.month}/${t.dueDate.day}', style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)))).toList()));
-    }
+  void _showMemberSheet(
+    BuildContext context, {
+    required AppUser member,
+    required String? role,
+    required String myId,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              CircleAvatar(
+                radius: 46,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  member.profileImage ?? '👤',
+                  style: const TextStyle(fontSize: 40),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                member.name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                (role == null || role.trim().isEmpty) ? '팀원' : role,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.text2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    final teamProv = context.read<TeamProvider>();
+                    final chatProv = context.read<ChatProvider>();
+                    final dmId = chatProv.dmThreadId(
+                      teamProv.currentTeamId,
+                      myId,
+                      member.id,
+                    );
+                    final title = 'DM · ${member.name}';
+                    chatProv.setActiveThread(dmId, title: title);
+                    Navigator.pop(ctx);
+                    widget.onOpenChatThread(dmId, title);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.send_rounded),
+                  label: const Text(
+                    '메시지 보내기',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  static Widget _card(BuildContext context, {required Widget child}) { return Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 6))]), child: child); }
-
-  void _showTeamPicker(BuildContext context, TeamProvider teamProv) {
-    final teams = teamProv.teams;
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) {
-      return Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 16), decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(22))), child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)))), const SizedBox(height: 12), const Text('팀 선택', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.text)), const SizedBox(height: 12), if (teams.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('참여 중인 팀이 없습니다.', style: TextStyle(color: AppColors.text2))), if (teams.isNotEmpty) ConstrainedBox(constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.55), child: ListView.separated(shrinkWrap: true, itemBuilder: (_, i) { final t = teams[i];
-      final isCurrent = t.id == teamProv.currentTeamId; return ListTile(title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.text)), subtitle: Text('${t.memberIds.length}명', style: const TextStyle(color: AppColors.text2)), trailing: isCurrent ? const Icon(Icons.check_rounded, color: AppColors.primary) : null, onTap: () { teamProv.switchTeam(t.id); Navigator.pop(ctx); });
-      }, separatorBuilder: (_, __) => const Divider(height: 1), itemCount: teams.length))])));
-    });
-  }
-
-  void _showMemberProfileSheet(BuildContext context, {required AppUser member, required String? role, required String myId}) {
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (ctx) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)))),
-            const SizedBox(height: 24),
-            CircleAvatar(radius: 46, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: Text(member.profileImage ?? '👤', style: const TextStyle(fontSize: 40))),
-            const SizedBox(height: 16),
-            Text(member.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.text)),
-            const SizedBox(height: 4),
-            Text(role == null || role.trim().isEmpty ? '팀원' : role, style: const TextStyle(fontSize: 14, color: AppColors.text2, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity, height: 56,
-              child: ElevatedButton.icon(
-                onPressed: () { 
-                  final teamProv = context.read<TeamProvider>(); final chatProv = context.read<ChatProvider>(); 
-                  final dmId = chatProv.dmThreadId(teamProv.currentTeamId, myId, member.id); 
-                  chatProv.setActiveThread(dmId, title: 'DM · ${member.name}'); 
-                  Navigator.pop(ctx); 
-                  widget.onOpenChatThread(dmId, 'DM · ${member.name}'); 
-                }, 
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0), 
-                icon: const Icon(Icons.send_rounded), 
-                label: const Text('메시지 보내기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900))
-              )
-            )
-          ]
-        )
-      );
-    });
-  }
-}
-
-class _MiniBtn extends StatelessWidget {
-  final String text; final IconData icon; final bool isActive; final VoidCallback onTap;
-  const _MiniBtn({required this.text, required this.icon, required this.isActive, required this.onTap});
-  @override Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: isActive ? AppColors.primary : AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: isActive ? AppColors.primary : AppColors.border)),
-        child: Row(children: [Icon(icon, size: 14, color: isActive ? Colors.white : AppColors.text2), const SizedBox(width: 4), Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isActive ? Colors.white : AppColors.text2))]),
+  static Widget _surfaceCard({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
+      child: child,
     );
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  final String title; final IconData icon; final bool isSwipe; final VoidCallback onToggleSwipe; final Widget child;
-  const _SectionCard({required this.title, required this.icon, required this.isSwipe, required this.onToggleSwipe, required this.child});
-  @override Widget build(BuildContext context) {
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 6))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 4), child: Row(children: [Icon(icon, size: 20, color: AppColors.primary), const SizedBox(width: 8), Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)), const Spacer(), IconButton(icon: Icon(isSwipe ? Icons.view_agenda_rounded : Icons.view_carousel_rounded, size: 20, color: AppColors.text2), onPressed: onToggleSwipe, constraints: const BoxConstraints(), padding: EdgeInsets.zero)])),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Padding(padding: const EdgeInsets.only(bottom: 12), child: child),
         ],
       ),
@@ -273,190 +587,41 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _DashboardPagerCard extends StatefulWidget {
-  final List<AppUser> members; final TeamProvider teamProv; final TaskProvider taskProv; final String meId; final List<Project> teamProjects; final Function(String, String?) onOpenChatThread;
-  final bool membersSwipe; final bool projectsSwipe; final bool tasksSwipe;
-  final VoidCallback onToggleMembers; final VoidCallback onToggleProjects; final VoidCallback onToggleTasks;
+class _ProjectProgressTile extends StatelessWidget {
+  final Project project;
+  final List<Task> tasks;
+  final double progress;
 
-  const _DashboardPagerCard({required this.members, required this.teamProv, required this.taskProv, required this.meId, required this.teamProjects, required this.onOpenChatThread, required this.membersSwipe, required this.projectsSwipe, required this.tasksSwipe, required this.onToggleMembers, required this.onToggleProjects, required this.onToggleTasks});
-  @override State<_DashboardPagerCard> createState() => _DashboardPagerCardState();
-}
-class _DashboardPagerCardState extends State<_DashboardPagerCard> {
-  final PageController _pageController = PageController();
-  int _currentIndex = 0;
-  
-  @override Widget build(BuildContext context) {
-    bool currentSwipe = _currentIndex == 0 ? widget.membersSwipe : (_currentIndex == 1 ? widget.projectsSwipe : widget.tasksSwipe);
-    VoidCallback currentToggle = _currentIndex == 0 ? widget.onToggleMembers : (_currentIndex == 1 ? widget.onToggleProjects : widget.onToggleTasks);
-
-    return Container(
-      height: 310, 
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 6))]), 
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8), 
-          child: Row(children: [
-            Text(['팀원', '프로젝트', '오늘 업무'][_currentIndex], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)), 
-            const Spacer(), 
-            IconButton(icon: Icon(currentSwipe ? Icons.view_agenda_rounded : Icons.view_carousel_rounded, size: 20, color: AppColors.text2), onPressed: currentToggle, constraints: const BoxConstraints(), padding: EdgeInsets.zero),
-            const SizedBox(width: 12),
-            _buildTabButton(0, Icons.people_alt_rounded), const SizedBox(width: 8), 
-            _buildTabButton(1, Icons.domain_rounded), const SizedBox(width: 8), 
-            _buildTabButton(2, Icons.checklist_rounded)
-          ])
-        ), 
-        const Divider(height: 1, color: AppColors.border), 
-        Expanded(
-          child: PageView(
-            controller: _pageController, 
-            physics: currentSwipe ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
-            onPageChanged: (idx) => setState(() => _currentIndex = idx), 
-            children: [_buildMembersView(), _buildProjectsView(), _buildTodayTasksView()]
-          )
-        )
-      ])
-    );
-  }
-  
-  Widget _buildTabButton(int index, IconData icon) { final isActive = _currentIndex == index; return GestureDetector(onTap: () { _pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut); }, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: isActive ? AppColors.primary : AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: isActive ? AppColors.primary : AppColors.border)), child: Icon(icon, size: 16, color: isActive ? Colors.white : AppColors.text2))); }
-  
-  Widget _buildMembersView() => widget.membersSwipe 
-      ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.all(16), child: Row(children: widget.members.map((m) => Padding(padding: const EdgeInsets.only(right: 12), child: _MemberAvatar(user: m, isMe: m.id == widget.meId, role: widget.teamProv.currentTeam.memberRoles[m.id], onTap: () => context.findAncestorStateOfType<_HomeTabState>()?._showMemberProfileSheet(context, member: m, role: widget.teamProv.currentTeam.memberRoles[m.id], myId: widget.meId)))).toList()))
-      : SingleChildScrollView(padding: const EdgeInsets.all(16), child: Wrap(spacing: 12, runSpacing: 12, children: [for (final m in widget.members) _MemberAvatar(user: m, isMe: m.id == widget.meId, role: widget.teamProv.currentTeam.memberRoles[m.id], onTap: () => context.findAncestorStateOfType<_HomeTabState>()?._showMemberProfileSheet(context, member: m, role: widget.teamProv.currentTeam.memberRoles[m.id], myId: widget.meId))]));
-  
-  Widget _buildProjectsView() => widget.projectsSwipe
-      ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.all(16), child: Row(children: widget.teamProjects.map((p) { final progress = widget.taskProv.projectProgress(p.id, teamId: widget.teamProv.currentTeamId); return Container(width: 200, margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis), const SizedBox(height: 8), Row(children: [Expanded(child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black12, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary), minHeight: 6, borderRadius: BorderRadius.circular(99))), const SizedBox(width: 8), Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))])])); }).toList()))
-      : SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [...widget.teamProjects.map((p) { final progress = widget.taskProv.projectProgress(p.id, teamId: widget.teamProv.currentTeamId); return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [Expanded(child: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), const SizedBox(width: 12), SizedBox(width: 100, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black12, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary), minHeight: 8, borderRadius: BorderRadius.circular(99))), const SizedBox(width: 8), Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))])); }), if (widget.teamProjects.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 40), child: Text('프로젝트가 없습니다.', style: TextStyle(color: AppColors.hint))))]));
-  
-  Widget _buildTodayTasksView() { 
-    final today = DateTime.now(); final tasks = widget.taskProv.tasksForTeam(widget.teamProv.currentTeamId).where((t) => t.dueDate.year == today.year && t.dueDate.month == today.month && t.dueDate.day == today.day).toList(); if (tasks.isEmpty) return const Center(child: Text('오늘 마감 업무가 없습니다.', style: TextStyle(color: AppColors.hint))); 
-    return widget.tasksSwipe
-        ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.all(16), child: Row(children: tasks.map((t) => Container(width: 220, margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t.title, style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text('기한: ${t.dueDate.month}/${t.dueDate.day}', style: const TextStyle(fontSize: 11, color: AppColors.danger, fontWeight: FontWeight.w800))]))).toList()))
-        : ListView.builder(padding: const EdgeInsets.all(8), itemCount: tasks.length > 5 ? 5 : tasks.length, itemBuilder: (ctx, i) => ListTile(dense: true, title: Text(tasks[i].title, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis), subtitle: Text('기한: ${tasks[i].dueDate.month}/${tasks[i].dueDate.day}', style: const TextStyle(color: AppColors.danger)))); 
-  }
-}
-
-class _ProfileAvatarWithTeamBadge extends StatelessWidget { final String emoji; final String userId; final String teamInitial; const _ProfileAvatarWithTeamBadge({required this.emoji, required this.userId, required this.teamInitial}); @override Widget build(BuildContext context) { return Stack(clipBehavior: Clip.none, children: [ProfileAvatar(emoji: emoji, userId: userId, heroPrefix: 'appbar'), Positioned(right: -2, bottom: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: Text(teamInitial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900))))]); } }
-class _MemberAvatar extends StatelessWidget { final AppUser user; final bool isMe; final String? role; final VoidCallback onTap; const _MemberAvatar({required this.user, required this.isMe, required this.role, required this.onTap}); @override Widget build(BuildContext context) { return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: Column(mainAxisSize: MainAxisSize.min, children: [Stack(clipBehavior: Clip.none, children: [ProfileAvatar(emoji: user.profileImage ?? '👤', userId: user.id, radius: 26, heroPrefix: 'members'), if (isMe) Positioned(right: -2, top: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: const Text('나', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900))))]), const SizedBox(height: 8), SizedBox(width: 66, child: Text(user.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.text), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)), if (role != null && role!.trim().isNotEmpty) SizedBox(width: 66, child: Text(role!, style: const TextStyle(fontSize: 10, color: AppColors.text2, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center))])); } }
-
-// ✨ [신규] 오늘의 브리핑 카드 위젯
-class _TodayHubCard extends StatelessWidget {
-  const _TodayHubCard();
+  const _ProjectProgressTile({
+    required this.project,
+    required this.tasks,
+    required this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final scheduleProv = context.watch<ScheduleProvider>();
-    final taskProv = context.watch<TaskProvider>();
-    final teamProv = context.watch<TeamProvider>();
-
-    final today = DateTime.now();
-    final todayOnly = DateTime(today.year, today.month, today.day);
-
-    // 오늘 일정 계산 (시작/종료 범위 내에 오늘이 포함되는지 확인)
-    final todayScheduleCount = scheduleProv.itemsForTeam(teamProv.currentTeamId).where((item) {
-      final range = scheduleProv.getRange(item);
-      if (range == null) return false;
-      final start = DateTime(range.start.year, range.start.month, range.start.day);
-      final end = DateTime(range.end.year, range.end.month, range.end.day);
-      return !todayOnly.isBefore(start) && !todayOnly.isAfter(end);
-    }).length;
-
-    // 오늘 마감 업무 계산
-    final todayTaskCount = taskProv.tasksForTeam(teamProv.currentTeamId).where((t) {
-      return !t.isDone &&
-          t.dueDate.year == today.year &&
-          t.dueDate.month == today.month &&
-          t.dueDate.day == today.day;
-    }).length;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.1)),
+    final doneCount = tasks.where((t) => t.isDone).length;
+    final totalCount = tasks.length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
       ),
-      color: AppColors.primary.withValues(alpha: 0.05),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '오늘의 브리핑',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primary),
-                ),
-                Text(
-                  DateFormat('MM월 dd일').format(today),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text2),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _buildInfoItem(
-                  icon: Icons.event_available_rounded,
-                  label: '오늘 일정',
-                  count: todayScheduleCount,
-                  color: Colors.orangeAccent,
-                ),
-                Container(width: 1, height: 40, color: AppColors.primary.withValues(alpha: 0.1), margin: const EdgeInsets.symmetric(horizontal: 20)),
-                _buildInfoItem(
-                  icon: Icons.check_circle_outline_rounded,
-                  label: '마감 업무',
-                  count: todayTaskCount,
-                  color: AppColors.primary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniActionButton(
-                    label: '업무 추가',
-                    icon: Icons.add_task_rounded,
-                    onTap: () => showAddTaskSheet(context: context),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MiniActionButton(
-                    label: '일정 추가',
-                    icon: Icons.calendar_month_rounded,
-                    onTap: () {
-                      // schedule_tab.dart의 비공개 메서드 대신 Provider를 통해 추가 유도하거나
-                      // 공통 시트가 있다면 호출. 여기서는 알림으로 대체하거나
-                      // 필요한 시트 호출 함수가 정의되어 있어야 함.
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('일정 탭에서 계획을 추가해 주세요.')),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem({required IconData icon, required String label, required int count, required Color color}) {
-    return Expanded(
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.text2, fontWeight: FontWeight.w600)),
-              Text('$count개', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)),
-            ],
+          _ProjectNameRow(
+            name: project.name,
+            colorValue: project.colorValue,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _ProjectProgressBar(
+            progress: progress,
+            doneCount: doneCount,
+            totalCount: totalCount,
           ),
         ],
       ),
@@ -464,33 +629,210 @@ class _TodayHubCard extends StatelessWidget {
   }
 }
 
-class _MiniActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
+class _ProjectNameRow extends StatelessWidget {
+  final String name;
+  final int colorValue;
+  final TextStyle? style;
+
+  const _ProjectNameRow({
+    required this.name,
+    required this.colorValue,
+    this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: Color(colorValue),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            name,
+            style: style ?? const TextStyle(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProjectProgressBar extends StatelessWidget {
+  final double progress;
+  final int doneCount;
+  final int totalCount;
+
+  const _ProjectProgressBar({
+    required this.progress,
+    required this.doneCount,
+    required this.totalCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = progress.clamp(0.0, 1.0);
+    final percent = (normalized * 100).round();
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: LinearProgressIndicator(
+            value: normalized,
+            minHeight: 18,
+            backgroundColor: Colors.black12,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+        ),
+        Text(
+          '$doneCount/$totalCount건 | $percent%',
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0F172A),
+            shadows: [Shadow(color: Colors.white, blurRadius: 2)],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileAvatarWithTeamBadge extends StatelessWidget {
+  final String emoji;
+  final String userId;
+  final String teamInitial;
+
+  const _ProfileAvatarWithTeamBadge({
+    required this.emoji,
+    required this.userId,
+    required this.teamInitial,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ProfileAvatar(emoji: emoji, userId: userId, heroPrefix: 'appbar'),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Text(
+              teamInitial,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MemberAvatar extends StatelessWidget {
+  final AppUser user;
+  final bool isMe;
+  final String? role;
   final VoidCallback onTap;
 
-  const _MiniActionButton({required this.label, required this.icon, required this.onTap});
+  const _MemberAvatar({
+    required this.user,
+    required this.isMe,
+    required this.role,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary)),
-          ],
-        ),
+      borderRadius: BorderRadius.circular(14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ProfileAvatar(
+                emoji: user.profileImage ?? '👤',
+                userId: user.id,
+                radius: 26,
+                heroPrefix: 'members',
+              ),
+              if (isMe)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Text(
+                      '나',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 66,
+            child: Text(
+              user.name,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.text,
+              ),
+            ),
+          ),
+          if (role != null && role!.trim().isNotEmpty)
+            SizedBox(
+              width: 66,
+              child: Text(
+                role!,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.text2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

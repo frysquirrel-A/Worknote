@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -55,88 +53,120 @@ Future<Box<T>> _safeOpenBox<T>(String name) async {
 Future<void> bootstrap() async {
   print('[Debug] Bootstrap 시작...');
 
-  runZonedGuarded(() async {
-    print('[Debug] Zone 초기화 시작...');
-    WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      bool firebaseReady = false;
+      print('[Debug] Zone 초기화 시작...');
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Firebase 및 Crashlytics 초기화
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    
-    // 플러터 프레임워크 에러를 Crashlytics 및 DevLog로 전송
-    FlutterError.onError = (FlutterErrorDetails details) {
-      DevLog.instance.addLog('Flutter Error: ${details.exception}\n${details.stack}');
-      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-      FlutterError.presentError(details);
-    };
+      // Firebase 및 Crashlytics 초기화
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        firebaseReady = true;
+      } catch (e, st) {
+        DevLog.instance.addLog('Firebase init failed: $e\n$st');
+        debugPrint(
+          '[Debug] Firebase init failed, continue without Firebase services: $e',
+        );
+      }
 
-    // 비동기 에러까지 모두 포착
-    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-      DevLog.instance.addLog('Platform Error: $error\n$stack');
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+      // 플러터 프레임워크 에러를 Crashlytics 및 DevLog로 전송
+      FlutterError.onError = (FlutterErrorDetails details) {
+        DevLog.instance.addLog(
+          'Flutter Error: ${details.exception}\n${details.stack}',
+        );
+        if (firebaseReady) {
+          FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+        }
+        FlutterError.presentError(details);
+      };
 
-    print('[Debug] 날짜 포맷 초기화 중...');
-    await initializeDateFormatting('ko_KR', null);
+      // 비동기 에러까지 모두 포착
+      PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+        DevLog.instance.addLog('Platform Error: $error\n$stack');
+        if (firebaseReady) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        }
+        return true;
+      };
 
-    print('[Debug] Hive 초기화 시작...');
-    await Hive.initFlutter();
+      print('[Debug] 날짜 포맷 초기화 중...');
+      await initializeDateFormatting('ko_KR', null);
 
-    print('[Debug] 어댑터 등록 중...');
-    _safeRegisterAdapter(TaskPriorityAdapter());
-    _safeRegisterAdapter(TaskAdapter());
-    _safeRegisterAdapter(ProjectAdapter());
-    _safeRegisterAdapter(JournalEntryAdapter());
-    _safeRegisterAdapter(TeamAdapter());
-    _safeRegisterAdapter(AppUserAdapter());
-    _safeRegisterAdapter(ChatMessageAdapter());
-    _safeRegisterAdapter(ProfileFocusPrefsAdapter()); // ✨ [추가] Focus 설정 어댑터 등록
+      print('[Debug] Hive 초기화 시작...');
+      await Hive.initFlutter();
 
-    print('[Debug] Hive 박스 오픈 시작 (안전 모드)...');
-    await _safeOpenBox<Task>('tasks');
-    await _safeOpenBox<Project>('projects');
-    await _safeOpenBox<JournalEntry>('journals');
-    await _safeOpenBox<Team>('teams');
-    await _safeOpenBox<AppUser>('users');
-    await _safeOpenBox<ChatMessage>('messages');
+      print('[Debug] 어댑터 등록 중...');
+      _safeRegisterAdapter(TaskPriorityAdapter());
+      _safeRegisterAdapter(TaskAdapter());
+      _safeRegisterAdapter(ProjectAdapter());
+      _safeRegisterAdapter(JournalEntryAdapter());
+      _safeRegisterAdapter(TeamAdapter());
+      _safeRegisterAdapter(AppUserAdapter());
+      _safeRegisterAdapter(ChatMessageAdapter());
+      _safeRegisterAdapter(
+        ProfileFocusPrefsAdapter(),
+      ); // ✨ [추가] Focus 설정 어댑터 등록
 
-    await _safeOpenBox('settings');
-    await _safeOpenBox('chat_threads');
-    await _safeOpenBox('task_meta');
-    await _safeOpenBox('journal_meta');
-    await _safeOpenBox('schedules');
-    await _safeOpenBox<ProfileFocusPrefs>('focus_prefs'); // ✨ [추가] Focus 설정 박스 오픈
+      print('[Debug] Hive 박스 오픈 시작 (안전 모드)...');
+      await _safeOpenBox<Task>('tasks');
+      await _safeOpenBox<Project>('projects');
+      await _safeOpenBox<JournalEntry>('journals');
+      await _safeOpenBox<Team>('teams');
+      await _safeOpenBox<AppUser>('users');
+      await _safeOpenBox<ChatMessage>('messages');
 
-    print('[Debug] 인프라 및 마이그레이션 시작...');
-    await CrashReporter.instance.init();
-    await SyncOutbox.instance.init();
-    
-    try {
-      await HiveMigrations.run();
-    } catch (e) {
-      print('[Debug] 마이그레이션 중 오류 (무시하고 진행): $e');
-    }
+      await _safeOpenBox('settings');
+      await _safeOpenBox('chat_threads');
+      await _safeOpenBox('task_meta');
+      await _safeOpenBox('journal_meta');
+      await _safeOpenBox('schedules');
+      await _safeOpenBox<ProfileFocusPrefs>(
+        'focus_prefs',
+      ); // ✨ [추가] Focus 설정 박스 오픈
 
-    print('[Debug] runApp 실행 직전...');
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => TeamProvider()..loadTeams()),
-          ChangeNotifierProvider(create: (_) => TaskProvider()..loadData()),
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
-          ChangeNotifierProvider(create: (_) => ChatProvider()),
-          ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
-          ChangeNotifierProvider(create: (_) => FocusProvider()..init()), // ✨ [추가] FocusProvider 등록
-        ],
-        child: const WorkNoteApp(),
-      ),
-    );
-    print('[Debug] bootstrap 완료 및 앱 실행됨.');
-  }, (Object error, StackTrace stack) {
-    DevLog.instance.addLog('Guarded Error: $error\n$stack');
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    print('[Debug] runZonedGuarded 치명적 에러: $error');
-    unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
-  });
+      print('[Debug] 인프라 및 마이그레이션 시작...');
+      await CrashReporter.instance.init();
+      await SyncOutbox.instance.init();
+
+      try {
+        await HiveMigrations.run();
+      } catch (e) {
+        print('[Debug] 마이그레이션 중 오류 (무시하고 진행): $e');
+      }
+
+      print('[Debug] runApp 실행 직전...');
+      runApp(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => TeamProvider()..loadTeams()),
+            ChangeNotifierProvider(create: (_) => TaskProvider()..loadData()),
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider(
+              create: (_) => JournalProvider()..loadJournals(),
+            ),
+            ChangeNotifierProvider(create: (_) => ChatProvider()),
+            ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
+            ChangeNotifierProvider(
+              create: (_) => FocusProvider()..init(),
+            ), // ✨ [추가] FocusProvider 등록
+          ],
+          child: const WorkNoteApp(),
+        ),
+      );
+      print('[Debug] bootstrap 완료 및 앱 실행됨.');
+    },
+    (Object error, StackTrace stack) {
+      DevLog.instance.addLog('Guarded Error: $error\n$stack');
+      if (Firebase.apps.isNotEmpty) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      }
+      print('[Debug] runZonedGuarded 치명적 에러: $error');
+      unawaited(
+        CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'),
+      );
+    },
+  );
 }

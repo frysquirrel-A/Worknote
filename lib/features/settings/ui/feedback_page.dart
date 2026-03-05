@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/features/auth/state/auth_provider.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key});
@@ -23,30 +28,73 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   Future<void> _sendFeedback() async {
     final text = _feedbackCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.length < 5) {
+      _showSnack('의견은 5자 이상 입력해 주세요.');
+      return;
+    }
+    if (Firebase.apps.isEmpty) {
+      _showSnack('Firebase가 초기화되지 않아 전송할 수 없습니다.');
+      return;
+    }
 
     setState(() => _isSending = true);
 
-    try {
-      await FirebaseFirestore.instance.collection('feedbacks').add({
-        'type': _selectedType,
-        'content': text,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+    final auth = context.read<AuthProvider>();
+    final team = context.read<TeamProvider>();
+    final payload = <String, dynamic>{
+      'type': _selectedType,
+      'content': text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'createdAtClient': DateTime.now().toIso8601String(),
+      'userId': auth.currentUser?.id ?? 'unknown',
+      'userName': auth.currentUser?.name ?? 'unknown',
+      'profileId': auth.currentProfile?.id,
+      'teamId': team.currentTeamId,
+      'teamName': team.currentTeam.name,
+      'platform': _platformLabel(),
+      'app': 'worknote',
+      'status': 'new',
+    };
 
-      if (mounted) {
-        setState(() {
-          _isSubmitted = true;
-        });
-      }
+    try {
+      await FirebaseFirestore.instance.collection('feedbacks').add(payload);
+
+      if (!mounted) return;
+      setState(() {
+        _isSubmitted = true;
+      });
+      _feedbackCtrl.clear();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('전송 실패: $e')),
-        );
-      }
+      if (!mounted) return;
+      _showSnack('전송 실패: $e');
     } finally {
-      if (mounted) setState(() => _isSending = false);
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _platformLabel() {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'fuchsia';
     }
   }
 
@@ -57,7 +105,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         backgroundColor: AppColors.bg,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32.0),
+            padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -69,7 +117,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  '소중한 의견이 성공적으로 접수되었습니다!\n더 나은 서비스로 보답하겠습니다.',
+                  '소중한 의견이 성공적으로 접수되었습니다.\n더 나은 서비스로 보답하겠습니다.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.text2, height: 1.5),
                 ),
@@ -82,9 +130,17 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    child: const Text('닫기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                    child: const Text(
+                      '닫기',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -97,7 +153,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('건의하기', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          '건의하기',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         backgroundColor: AppColors.bg,
       ),
       body: SingleChildScrollView(
@@ -105,7 +164,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('문의 유형', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            const Text(
+              '문의 유형',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -116,17 +178,24 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   onSelected: (selected) {
                     if (selected) setState(() => _selectedType = type);
                   },
-                  selectedColor: AppColors.primary.withOpacity(0.2),
+                  selectedColor: AppColors.primary.withValues(alpha: 0.2),
                   checkmarkColor: AppColors.primary,
                   labelStyle: TextStyle(
-                    color: _selectedType == type ? AppColors.primary : AppColors.text,
-                    fontWeight: _selectedType == type ? FontWeight.bold : FontWeight.normal,
+                    color: _selectedType == type
+                        ? AppColors.primary
+                        : AppColors.text,
+                    fontWeight: _selectedType == type
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 );
               }).toList(),
             ),
             const SizedBox(height: 24),
-            const Text('내용', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            const Text(
+              '내용',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _feedbackCtrl,
@@ -150,15 +219,26 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: _isSending
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
-                    : const Text('의견 보내기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                    : const Text(
+                        '의견 보내기',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
               ),
             ),
           ],

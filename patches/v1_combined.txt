@@ -1,0 +1,900 @@
+WORKNOTE PATCH PACKAGE V1 - COMBINED
+PATCH ONLY. Apply in order.
+
+NEW FILE: lib/core/ui/widgets/empty_state_placeholder.dart
+```dart
+import 'package:flutter/material.dart';
+
+import 'package:worknote/core/ui/app_palette.dart';
+
+class EmptyStatePlaceholder extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final String? ctaLabel;
+  final VoidCallback? onTap;
+  final bool compact;
+
+  const EmptyStatePlaceholder({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.ctaLabel,
+    this.onTap,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final iconSize = compact ? 36.0 : 56.0;
+    final outerPadding = compact ? 18.0 : 24.0;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(outerPadding),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Icon(icon, size: iconSize, color: AppColors.muted),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.hint,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.45,
+              ),
+            ),
+            if (ctaLabel != null && onTap != null) ...[
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: onTap,
+                icon: const Icon(Icons.add_rounded),
+                label: Text(ctaLabel!),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+```
+
+TARGET FILE: lib/app/bootstrap.dart
+```diff
+--- bootstrap.dart
++++ bootstrap.dart
+@@ -6,9 +6,12 @@
+ import 'package:intl/intl.dart';
+ import 'package:intl/date_symbol_data_local.dart';
+ import 'package:provider/provider.dart';
++import 'package:firebase_core/firebase_core.dart';
++import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+ import 'package:hive_flutter/hive_flutter.dart';
+ 
+ import 'package:worknote/app/worknote_app.dart';
++import 'package:worknote/firebase_options.dart';
+ import 'package:worknote/core/crash/crash_reporter.dart';
+ import 'package:worknote/core/utils/dev_log.dart';
+ import 'package:worknote/data/hive/hive_adapters.dart';
+@@ -40,40 +43,43 @@
+ Future<Box<T>> _safeOpenBox<T>(String name) async {
+   try {
+     return await Hive.openBox<T>(name);
+-  } catch (e) {
+-    print('[Debug] Hive Box ($name) 오픈 에러 발생: $e. 복구 시도 중...');
+-    // 충돌 난 박스 파일을 삭제하고 새로 생성
+-    await Hive.deleteBoxFromDisk(name);
+-    return await Hive.openBox<T>(name);
++  } catch (e, st) {
++    DevLog.instance.addLog('Hive open failed: $name\n$e\n$st');
++    unawaited(CrashReporter.instance.record(e, st, hint: 'openBox:$name'));
++    rethrow;
+   }
+ }
+ 
+ Future<void> bootstrap() async {
+-  print('[Debug] Bootstrap 시작...');
+-
+-  FlutterError.onError = (FlutterErrorDetails details) {
+-    DevLog.instance.addLog('Flutter Error: ${details.exception}\n${details.stack}');
+-    unawaited(CrashReporter.instance.recordFlutterError(details));
+-    FlutterError.presentError(details);
+-  };
+-
+-  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+-    DevLog.instance.addLog('Platform Error: $error\n$stack');
+-    unawaited(CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'));
+-    return true;
+-  };
+-
+-  runZonedGuarded(() async {
+-    print('[Debug] Zone 초기화 시작...');
++  await runZonedGuarded(() async {
+     WidgetsFlutterBinding.ensureInitialized();
+ 
+-    print('[Debug] 날짜 포맷 초기화 중...');
++    await Firebase.initializeApp(
++      options: DefaultFirebaseOptions.currentPlatform,
++    );
++    await FirebaseCrashlytics.instance
++        .setCrashlyticsCollectionEnabled(!kDebugMode);
++
++    FlutterError.onError = (FlutterErrorDetails details) {
++      DevLog.instance
++          .addLog('Flutter Error: ${details.exception}\n${details.stack}');
++      unawaited(CrashReporter.instance.recordFlutterError(details));
++      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
++      FlutterError.presentError(details);
++    };
++
++    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
++      DevLog.instance.addLog('Platform Error: $error\n$stack');
++      unawaited(
++        CrashReporter.instance.record(error, stack, hint: 'PlatformDispatcher'),
++      );
++      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
++      return true;
++    };
++
+     await initializeDateFormatting('ko_KR', null);
+-
+-    print('[Debug] Hive 초기화 시작...');
+     await Hive.initFlutter();
+ 
+-    print('[Debug] 어댑터 등록 중...');
+     _safeRegisterAdapter(TaskPriorityAdapter());
+     _safeRegisterAdapter(TaskAdapter());
+     _safeRegisterAdapter(ProjectAdapter());
+@@ -82,8 +88,6 @@
+     _safeRegisterAdapter(AppUserAdapter());
+     _safeRegisterAdapter(ChatMessageAdapter());
+ 
+-    print('[Debug] Hive 박스 오픈 시작 (안전 모드)...');
+-    // Typed Boxes
+     await _safeOpenBox<Task>('tasks');
+     await _safeOpenBox<Project>('projects');
+     await _safeOpenBox<JournalEntry>('journals');
+@@ -91,24 +95,22 @@
+     await _safeOpenBox<AppUser>('users');
+     await _safeOpenBox<ChatMessage>('messages');
+ 
+-    // Untyped/Meta Boxes
+     await _safeOpenBox('settings');
+     await _safeOpenBox('chat_threads');
+     await _safeOpenBox('task_meta');
+     await _safeOpenBox('journal_meta');
+     await _safeOpenBox('schedules');
+ 
+-    print('[Debug] 인프라 및 마이그레이션 시작...');
+     await CrashReporter.instance.init();
+     await SyncOutbox.instance.init();
+-    
++
+     try {
+       await HiveMigrations.run();
+-    } catch (e) {
+-      print('[Debug] 마이그레이션 중 오류 (무시하고 진행): $e');
++    } catch (e, st) {
++      DevLog.instance.addLog('Migration error: $e\n$st');
++      FirebaseCrashlytics.instance.recordError(e, st, reason: 'HiveMigrations');
+     }
+ 
+-    print('[Debug] runApp 실행 직전...');
+     runApp(
+       MultiProvider(
+         providers: [
+@@ -117,18 +119,14 @@
+           ChangeNotifierProvider(create: (_) => AuthProvider()),
+           ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
+           ChangeNotifierProvider(create: (_) => ChatProvider()),
+-          ChangeNotifierProvider(create: (_) => ScheduleProvider()),
++          ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
+         ],
+         child: const WorkNoteApp(),
+       ),
+     );
+-    print('[Debug] bootstrap 완료 및 앱 실행됨.');
+   }, (Object error, StackTrace stack) {
+     DevLog.instance.addLog('Guarded Error: $error\n$stack');
+-    print('[Debug] runZonedGuarded 치명적 에러: $error');
+     unawaited(CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'));
++    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+   });
+ }
+-
+-
+-
+
+```
+
+TARGET FILE: android/app/build.gradle.kts
+```diff
+--- build.gradle.kts
++++ build.gradle.kts
+@@ -1,3 +1,6 @@
++import java.io.FileInputStream
++import java.util.Properties
++
+ plugins {
+     id("com.android.application")
+     // START: FlutterFire Configuration
+@@ -7,6 +10,12 @@
+     id("kotlin-android")
+     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+     id("dev.flutter.flutter-gradle-plugin")
++}
++
++val keystoreProperties = Properties()
++val keystorePropertiesFile = rootProject.file("key.properties")
++if (keystorePropertiesFile.exists()) {
++    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+ }
+ 
+ android {
+@@ -36,11 +45,26 @@
+         versionName = flutter.versionName
+     }
+ 
++    signingConfigs {
++        create("release") {
++            if (keystorePropertiesFile.exists()) {
++                storeFile = file(keystoreProperties["storeFile"] as String)
++                storePassword = keystoreProperties["storePassword"] as String
++                keyAlias = keystoreProperties["keyAlias"] as String
++                keyPassword = keystoreProperties["keyPassword"] as String
++            }
++        }
++    }
++
+     buildTypes {
+         release {
+-            // TODO: Add your own signing config for the release build.
+-            // Signing with the debug keys for now, so `flutter run --release` works.
+-            signingConfig = signingConfigs.getByName("debug")
++            signingConfig = if (keystorePropertiesFile.exists()) {
++                signingConfigs.getByName("release")
++            } else {
++                signingConfigs.getByName("debug")
++            }
++            isMinifyEnabled = false
++            isShrinkResources = false
+         }
+     }
+ }
+
+```
+
+TARGET FILE: android/app/src/main/AndroidManifest.xml
+```diff
+--- AndroidManifest.xml
++++ AndroidManifest.xml
+@@ -1,4 +1,5 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
++    <uses-permission android:name="android.permission.INTERNET" />
+     <application
+         android:label="worknote"
+         android:name="${applicationName}"
+
+```
+
+TARGET FILE: ios/Runner/Info.plist
+```diff
+--- Info.plist
++++ Info.plist
+@@ -26,6 +26,22 @@
+ 	<true/>
+ 	<key>UILaunchStoryboardName</key>
+ 	<string>LaunchScreen</string>
++	<key>CFBundleURLTypes</key>
++	<array>
++		<dict>
++			<key>CFBundleTypeRole</key>
++			<string>Editor</string>
++			<key>CFBundleURLSchemes</key>
++			<array>
++				<string>REVERSED_CLIENT_ID_FROM_GoogleService_Info</string>
++			</array>
++		</dict>
++	</array>
++	<key>NSPhotoLibraryUsageDescription</key>
++	<string>일지와 갤러리에 사진을 첨부하기 위해 사진 보관함 접근이 필요합니다.</string>
++	<key>NSPhotoLibraryAddUsageDescription</key>
++	<string>WorkNote에서 만든 이미지를 사진 보관함에 저장하기 위해 접근이 필요합니다.</string>
++
+ 	<key>UIMainStoryboardFile</key>
+ 	<string>Main</string>
+ 	<key>UISupportedInterfaceOrientations</key>
+
+```
+
+TARGET FILE: lib/data/services/local_db_service.dart
+```diff
+--- local_db_service.dart
++++ local_db_service.dart
+@@ -21,16 +21,25 @@
+     await _getBox<T>(boxName).delete(key);
+   }
+ 
+-  // 전체 데이터 덮어쓰기 (서버 동기화 후 로컬 최신화용)
++  // 전체 데이터 병합 동기화 (로컬 전용 데이터는 보존)
+   Future<void> syncAll<T>(String boxName, List<T> items, String Function(T) idGetter) async {
+     final box = _getBox<T>(boxName);
+-    await box.clear(); // 기존 데이터 비우고
+-    
+-    // ID를 키(Key)로 사용하여 저장
+-    final Map<String, T> entries = {
+-      for (var item in items) idGetter(item): item
++
++    final incoming = <String, T>{
++      for (final item in items) idGetter(item): item,
+     };
+-    await box.putAll(entries);
++
++    final existing = <String, T>{};
++    for (final entry in box.toMap().entries) {
++      final key = entry.key;
++      final value = entry.value;
++      if (key is String && value is T) {
++        existing[key] = value;
++      }
++    }
++
++    final merged = <String, T>{...existing, ...incoming};
++    await box.putAll(merged);
+   }
+ 
+   // --- 2. 설정(Settings) 관련 ---
+
+```
+
+TARGET FILE: lib/data/services/app_reset_service.dart
+```diff
+--- app_reset_service.dart
++++ app_reset_service.dart
+@@ -19,6 +19,7 @@
+     await Hive.box<Project>('projects').clear();
+     await Hive.box<JournalEntry>('journals').clear();
+     await Hive.box<Team>('teams').clear();
++    await Hive.box<AppUser>('users').clear();
+     await Hive.box<ChatMessage>('messages').clear();
+     await Hive.box('chat_threads').clear();
+     await Hive.box('task_meta').clear();
+
+```
+
+TARGET FILE: lib/features/gallery/ui/gallery_tab.dart
+```diff
+--- gallery_tab.dart
++++ gallery_tab.dart
+@@ -1,8 +1,12 @@
+ import 'dart:io';
++
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:provider/provider.dart';
+ import 'package:intl/intl.dart';
+ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
++import 'package:worknote/core/ui/app_palette.dart';
++import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
+ import 'package:worknote/features/journal/state/journal_provider.dart';
+ import 'package:worknote/features/team/state/team_provider.dart';
+ 
+@@ -30,17 +34,17 @@
+     final sortedKeys = groupedPhotos.keys.toList()..sort((a, b) => b.compareTo(a));
+ 
+     return Scaffold(
+-      backgroundColor: Colors.transparent,
++      backgroundColor: AppColors.bg,
+       appBar: AppBar(
+         title: const Text("전체 갤러리", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+-        backgroundColor: Colors.transparent,
++        backgroundColor: AppColors.bg,
+         elevation: 0,
+         actions: [IconButton(icon: const Icon(Icons.more_vert_rounded), onPressed: () {})],
+       ),
+       body: sortedKeys.isEmpty
+           ? _buildEmptyView()
+           : ListView.builder(
+-              padding: const EdgeInsets.symmetric(horizontal: 20),
++              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+               itemCount: sortedKeys.length,
+               itemBuilder: (context, index) {
+                 final dateKey = sortedKeys[index];
+@@ -67,14 +71,16 @@
+                       physics: const NeverScrollableScrollPhysics(),
+                       itemCount: photos.length,
+                       itemBuilder: (context, i) {
+-                        return Container(
+-                          decoration: BoxDecoration(
+-                            borderRadius: BorderRadius.circular(16),
+-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+-                          ),
+-                          child: ClipRRect(
+-                            borderRadius: BorderRadius.circular(16),
+-                            child: _buildImage(photos[i]),
++                        return RepaintBoundary(
++                          child: Container(
++                            decoration: BoxDecoration(
++                              borderRadius: BorderRadius.circular(16),
++                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
++                            ),
++                            child: ClipRRect(
++                              borderRadius: BorderRadius.circular(16),
++                              child: _buildImage(photos[i]),
++                            ),
+                           ),
+                         );
+                       },
+@@ -87,41 +93,48 @@
+       floatingActionButton: FloatingActionButton(
+         backgroundColor: const Color(0xFF2563EB),
+         child: const Icon(Icons.camera_alt_rounded, color: Colors.white),
+-        onPressed: () {}, 
++        onPressed: () {
++          HapticFeedback.lightImpact();
++          ScaffoldMessenger.of(context).showSnackBar(
++            const SnackBar(content: Text('사진은 일지 작성에서 함께 추가할 수 있어요.')),
++          );
++        },
+       ),
+     );
+   }
+ 
+   Widget _buildImage(String path) {
+     if (path.startsWith('http')) {
+-      return Image.network(path, fit: BoxFit.cover);
+-    } else {
+-      return Image.file(File(path), fit: BoxFit.cover);
++      return Image.network(
++        path,
++        fit: BoxFit.cover,
++        loadingBuilder: (context, child, progress) {
++          if (progress == null) return child;
++          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
++        },
++        errorBuilder: (context, error, stackTrace) {
++          return const Center(
++            child: Icon(Icons.broken_image_outlined, color: AppColors.muted),
++          );
++        },
++      );
+     }
++    return Image.file(
++      File(path),
++      fit: BoxFit.cover,
++      errorBuilder: (context, error, stackTrace) {
++        return const Center(
++          child: Icon(Icons.image_not_supported_outlined, color: AppColors.muted),
++        );
++      },
++    );
+   }
+ 
+   Widget _buildEmptyView() {
+-    return Center(
+-      child: Column(
+-        mainAxisAlignment: MainAxisAlignment.center,
+-        children: [
+-          Container(
+-            padding: const EdgeInsets.all(28),
+-            decoration: BoxDecoration(
+-              color: Colors.white,
+-              shape: BoxShape.circle,
+-              boxShadow: [
+-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, spreadRadius: 2, offset: const Offset(0, 8))
+-              ]
+-            ),
+-            child: const Icon(Icons.photo_library_rounded, size: 64, color: Color(0xFF94A3B8)),
+-          ),
+-          const SizedBox(height: 24),
+-          const Text("아직 업로드된 사진이 없어요.", style: TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900)),
+-          const SizedBox(height: 8),
+-          const Text("+ 버튼을 눌러 현장 사진을 추가해 보세요!", style: TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w700)),
+-        ],
+-      ),
++    return const EmptyStatePlaceholder(
++      icon: Icons.photo_library_rounded,
++      title: '공유된 사진이 아직 없어요',
++      description: '일지를 작성하면서 사진을 함께 올리면 이곳에 날짜별로 모아볼 수 있어요.',
+     );
+   }
+ }
+
+```
+
+TARGET FILE: lib/features/journal/ui/journal_tab.dart
+```diff
+--- journal_tab.dart
++++ journal_tab.dart
+@@ -1,8 +1,10 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:provider/provider.dart';
+ import 'package:intl/intl.dart';
+ 
+ import 'package:worknote/core/ui/app_palette.dart';
++import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
+ import 'package:worknote/domain/models.dart';
+ import 'package:worknote/features/auth/state/auth_provider.dart';
+ import 'package:worknote/features/journal/state/journal_provider.dart';
+@@ -49,6 +51,7 @@
+       if (_kindFilter != null && journalProv.getKind(j.id) != _kindFilter) return false;
+       return true;
+     }).toList();
++    final hasFilters = _searchQuery.trim().isNotEmpty || _kindFilter != null;
+ 
+     // 일별 그룹핑 로직
+     final Map<String, List<JournalEntry>> grouped = {};
+@@ -120,7 +123,15 @@
+           const SizedBox(height: 8),
+           Expanded(
+             child: allJournals.isEmpty
+-                ? const Center(child: Text('조건에 맞는 일지가 없습니다.', style: TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold)))
++                ? EmptyStatePlaceholder(
++                    icon: hasFilters ? Icons.search_off_rounded : Icons.edit_note_rounded,
++                    title: hasFilters ? '조건에 맞는 일지가 없어요' : '아직 작성된 일지가 없어요',
++                    description: hasFilters
++                        ? '검색어나 종류 필터를 조금 넓혀서 다시 찾아보세요.'
++                        : '업무 기록, 가족 메모, 모임 회고까지 자유롭게 남겨보세요.',
++                    ctaLabel: hasFilters ? null : '일지 작성하기',
++                    onTap: hasFilters ? null : () => showJournalWriteSheet(context: context, myId: myId, myName: myName),
++                  )
+                 : _viewMode == '일별'
+                     ? _DateGroupedJournalView(dateKeys: displayKeys, grouped: grouped, scrollController: _scrollController)
+                     : _FlatJournalView(items: allJournals, scrollController: _scrollController, newestFirst: _newestFirst),
+@@ -141,10 +152,13 @@
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 20), width: double.infinity, height: 50,
+       child: ElevatedButton.icon(
+-        onPressed: onPressed,
++        onPressed: () {
++          HapticFeedback.lightImpact();
++          onPressed();
++        },
+         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10),
+         icon: const Icon(Icons.add_rounded, size: 24),
+-        label: const Text('일지작성', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6)),
++        label: const Text('일지 작성', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+       ),
+     );
+   }
+@@ -159,7 +173,7 @@
+   @override
+   Widget build(BuildContext context) {
+     return ListView.builder(
+-      controller: scrollController, padding: const EdgeInsets.fromLTRB(20, 8, 20, 100), itemCount: dateKeys.length,
++      controller: scrollController, padding: const EdgeInsets.fromLTRB(20, 8, 20, 100), cacheExtent: 640, itemCount: dateKeys.length, keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+       itemBuilder: (context, index) {
+         final key = dateKeys[index];
+         final items = (grouped[key] ?? [])..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+@@ -187,6 +201,8 @@
+     return ListView.builder(
+       controller: scrollController,
+       padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
++      cacheExtent: 640,
++      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+       itemCount: sortedItems.length,
+       itemBuilder: (context, index) {
+         return Padding(
+@@ -215,9 +231,23 @@
+     ]));
+   }
+   Widget _chip({required String label, required bool selected, required VoidCallback onTap, Color color = AppColors.primary}) {
+-    return GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: selected ? color : AppColors.surface, borderRadius: BorderRadius.circular(999), border: Border.all(color: selected ? color : AppColors.border)), child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.text, fontWeight: FontWeight.w900, fontSize: 12))));
+-  }
+-}
+-
+-
+-
++    return Material(
++      color: Colors.transparent,
++      child: InkWell(
++        onTap: () {
++          HapticFeedback.selectionClick();
++          onTap();
++        },
++        borderRadius: BorderRadius.circular(999),
++        child: Container(
++          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
++          decoration: BoxDecoration(color: selected ? color : AppColors.surface, borderRadius: BorderRadius.circular(999), border: Border.all(color: selected ? color : AppColors.border)),
++          child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.text, fontWeight: FontWeight.w800, fontSize: 12)),
++        ),
++      ),
++    );
++  }
++}
++
++
++
+
+```
+
+TARGET FILE: lib/features/journal/ui/sheets/journal_write_sheet.dart
+```diff
+--- journal_write_sheet.dart
++++ journal_write_sheet.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:image_picker/image_picker.dart';
+ import 'package:provider/provider.dart';
+ import 'package:uuid/uuid.dart';
+@@ -129,14 +130,14 @@
+               TextField(
+                 controller: titleCtrl,
+                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold, fontSize: 16),
+-                decoration: InputDecoration(labelText: '제목', labelStyle: const TextStyle(color: AppColors.text2), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
++                decoration: InputDecoration(hintText: '제목', hintStyle: const TextStyle(color: AppColors.hint), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(14)),
+               ),
+               const SizedBox(height: 12),
+               DropdownButtonFormField<String?>(
+                 initialValue: safeRelatedTaskId,
+                 dropdownColor: AppColors.surface,
+                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+-                decoration: InputDecoration(labelText: '관련 업무(선택)', labelStyle: const TextStyle(color: AppColors.text2), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
++                decoration: InputDecoration(hintText: '관련 업무(선택)', hintStyle: const TextStyle(color: AppColors.hint), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(14)),
+                 items: [const DropdownMenuItem(value: null, child: Text('선택 안함')), ...tasksForTeam.map((t) => DropdownMenuItem(value: t.id, child: Text(t.title, overflow: TextOverflow.ellipsis)))],
+                 onChanged: (v) => setState(() => relatedTaskId = v),
+               ),
+@@ -145,7 +146,7 @@
+                 initialValue: safeProjectId,
+                 dropdownColor: AppColors.surface,
+                 style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+-                decoration: InputDecoration(labelText: '프로젝트(선택)', labelStyle: const TextStyle(color: AppColors.text2), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
++                decoration: InputDecoration(hintText: '프로젝트(선택)', hintStyle: const TextStyle(color: AppColors.hint), filled: true, fillColor: AppColors.bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(14)),
+                 items: [const DropdownMenuItem(value: null, child: Text('선택 안함')), ...projectsForTeam.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name)))],
+                 onChanged: (v) => setState(() => selectedProjectId = v),
+               ),
+@@ -224,6 +225,7 @@
+                 height: 56,
+                 child: ElevatedButton(
+                   onPressed: () async {
++                    HapticFeedback.lightImpact();
+                     if (titleCtrl.text.trim().isEmpty) return;
+                     try {
+                       final entryId = const Uuid().v4();
+@@ -239,7 +241,7 @@
+                     }
+                   },
+                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+-                  child: const Text('저장하기', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
++                  child: const Text('저장하기', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                 ),
+               ),
+             ],
+@@ -252,11 +254,14 @@
+   Widget _kindChip({required String label, required bool selected, required VoidCallback onTap}) {
+     return Expanded(
+       child: GestureDetector(
+-        onTap: onTap,
++        onTap: () {
++          HapticFeedback.selectionClick();
++          onTap();
++        },
+         child: Container(
+           padding: const EdgeInsets.symmetric(vertical: 8),
+           decoration: BoxDecoration(color: selected ? AppColors.primary : AppColors.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? AppColors.primary : AppColors.border)),
+-          child: Center(child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.text2, fontWeight: FontWeight.w900, fontSize: 12))),
++          child: Center(child: Text(label, style: TextStyle(color: selected ? Colors.white : AppColors.text2, fontWeight: FontWeight.w800, fontSize: 12))),
+         ),
+       ),
+     );
+
+```
+
+TARGET FILE: lib/features/schedule/ui/schedule_tab.dart
+```diff
+--- schedule_tab.dart
++++ schedule_tab.dart
+@@ -1,7 +1,9 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:intl/intl.dart';
+ import 'package:provider/provider.dart';
+ import 'package:worknote/core/ui/app_palette.dart';
++import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
+ import 'package:worknote/domain/models.dart';
+ import 'package:worknote/features/auth/state/auth_provider.dart';
+ import 'package:worknote/features/schedule/state/schedule_provider.dart';
+@@ -72,11 +74,14 @@
+         ],
+       ),
+       floatingActionButton: FloatingActionButton.extended(
+-        onPressed: () => _showPersonalScheduleSheet(context: context, teamId: teamId, myId: myId, myName: myName),
++        onPressed: () {
++          HapticFeedback.lightImpact();
++          _showPersonalScheduleSheet(context: context, teamId: teamId, myId: myId, myName: myName);
++        },
+         backgroundColor: AppColors.primary,
+         foregroundColor: Colors.white,
+         icon: const Icon(Icons.add_rounded),
+-        label: const Text('계획 추가', style: TextStyle(fontWeight: FontWeight.w900)),
++        label: const Text('계획 추가', style: TextStyle(fontWeight: FontWeight.w800)),
+       ),
+       body: SingleChildScrollView(
+         child: Column(
+@@ -117,7 +122,10 @@
+                       FilterChip(
+                         label: const Text('모든 팀 일정 보기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                         selected: _showAllTeams,
+-                        onSelected: (v) => setState(() => _showAllTeams = v),
++                        onSelected: (v) {
++                          HapticFeedback.selectionClick();
++                          setState(() => _showAllTeams = v);
++                        },
+                         selectedColor: AppColors.primary.withOpacity(0.15),
+                         checkmarkColor: AppColors.primary,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+@@ -132,7 +140,17 @@
+             if (selectedEvents.isEmpty)
+               Padding(
+                 padding: const EdgeInsets.only(top: 40, bottom: 100),
+-                child: Center(child: Text(_selectedDay == null ? '날짜를 선택해 주세요' : '계획이 없습니다.', style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.bold))),
++                child: EmptyStatePlaceholder(
++                  icon: _selectedDay == null ? Icons.calendar_month_rounded : Icons.event_busy_rounded,
++                  title: _selectedDay == null ? '날짜를 선택해 주세요' : '선택한 날짜에 계획이 없어요',
++                  description: _selectedDay == null
++                      ? '달력에서 날짜를 고르면 업무 계획과 개인 일정을 함께 볼 수 있어요.'
++                      : '이 날짜에는 아직 등록된 계획이나 일정이 없어요. 새 계획을 추가해보세요.',
++                  ctaLabel: _selectedDay == null ? null : '계획 추가',
++                  onTap: _selectedDay == null
++                      ? null
++                      : () => _showPersonalScheduleSheet(context: context, teamId: teamId, myId: myId, myName: myName),
++                ),
+               )
+             else
+               ListView.builder(
+
+```
+
+TARGET FILE: lib/features/tasks/ui/task_tab.dart
+```diff
+--- task_tab.dart
++++ task_tab.dart
+@@ -1,8 +1,10 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:intl/intl.dart';
+ import 'package:provider/provider.dart';
+ 
+ import 'package:worknote/core/ui/app_palette.dart';
++import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
+ import 'package:worknote/domain/models.dart';
+ import 'package:worknote/features/auth/state/auth_provider.dart';
+ import 'package:worknote/features/tasks/state/task_provider.dart';
+@@ -181,7 +183,13 @@
+ 
+           Expanded(
+             child: filteredTasks.isEmpty
+-                ? Center(child: Text('조건에 맞는 업무가 없습니다.', style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold)))
++                ? EmptyStatePlaceholder(
++                    icon: Icons.assignment_rounded,
++                    title: '조건에 맞는 업무가 없어요',
++                    description: '필터를 조금 넓히거나 새 업무를 추가해서 흐름을 시작해보세요.',
++                    ctaLabel: '업무 추가',
++                    onTap: () => showAddTaskSheet(context: context),
++                  )
+                 : _showGroupHeaders 
+                   ? _GroupedTaskView(
+                       groupIds: displayKeys,
+@@ -248,6 +256,7 @@
+           mainAxisSpacing: 12,
+           mainAxisExtent: 160,
+         ),
++        cacheExtent: 720,
+         itemCount: sortedTasks.length,
+         itemBuilder: (ctx, i) => TaskMasonryCard(task: sortedTasks[i], taskProv: taskProv),
+       );
+@@ -256,6 +265,7 @@
+     return ListView.builder(
+       controller: scrollController,
+       padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
++      cacheExtent: 720,
+       itemCount: sortedTasks.length,
+       itemBuilder: (ctx, i) => Padding(
+         padding: const EdgeInsets.only(bottom: 10),
+@@ -400,10 +410,13 @@
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 20), width: double.infinity, height: 50,
+       child: ElevatedButton.icon(
+-        onPressed: onPressed,
++        onPressed: () {
++          HapticFeedback.lightImpact();
++          onPressed();
++        },
+         style: ElevatedButton.styleFrom(backgroundColor: AppPalette.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10),
+         icon: const Icon(Icons.add_rounded, size: 24),
+-        label: const Text('업무 추가', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.6)),
++        label: const Text('업무 추가', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+       ),
+     );
+   }
+
+```
+
+TARGET FILE: lib/features/tasks/ui/widgets/task_card.dart
+```diff
+--- task_card.dart
++++ task_card.dart
+@@ -31,7 +31,7 @@
+     return Container(
+       margin: const EdgeInsets.only(bottom: 12),
+       decoration: BoxDecoration(
+-        color: Colors.white,
++        color: AppColors.surface,
+         borderRadius: BorderRadius.circular(20),
+         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))]
+       ),
+@@ -63,7 +63,7 @@
+                       Container(
+                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                         decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6)),
+-                        child: Text('# $projectName', style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
++                        child: Text('# $projectName', style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w800)),
+                       ),
+                       const SizedBox(height: 6),
+ 
+@@ -71,7 +71,7 @@
+                         task.title,
+                         style: TextStyle(
+                           fontSize: 16,
+-                          fontWeight: FontWeight.w900,
++                          fontWeight: FontWeight.w800,
+                           color: task.isDone ? AppColors.hint : AppColors.text,
+                           decoration: task.isDone ? TextDecoration.lineThrough : null,
+                         ),
+@@ -91,7 +91,7 @@
+                                   spacing: 8, runSpacing: 4,
+                                   children: [
+                                     Text("작성: ${_fmtDate(task.createdAt)}", style: const TextStyle(color: AppColors.text2, fontSize: 12, fontWeight: FontWeight.w600)),
+-                                    Text("기한: ${_fmtDate(task.dueDate)}", style: const TextStyle(color: AppColors.danger, fontSize: 12, fontWeight: FontWeight.w900)),
++                                    Text("기한: ${_fmtDate(task.dueDate)}", style: const TextStyle(color: AppColors.danger, fontSize: 12, fontWeight: FontWeight.w800)),
+                                     Text("수정: ${_fmtDate(task.updatedAt)}", style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                                   ],
+                                 ),
+
+```
+
+REFERENCE FULL FILES INCLUDED IN ZIP:
+- worknote_patch_package_v1/bootstrap.patched.dart
+- worknote_patch_package_v1/gallery_tab.patched.dart
+- worknote_patch_package_v1/task_tab.patched.dart

@@ -1,0 +1,431 @@
+WORKNOTE PATCH PACKAGE V2 - DELTA
+Apply after v1.
+
+NEW FILE: lib/core/ui/widgets/press_scale.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+enum PressScaleHaptic {
+  none,
+  selection,
+  light,
+  medium,
+}
+
+class PressScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double pressedScale;
+  final Duration downDuration;
+  final Duration upDuration;
+  final Curve downCurve;
+  final Curve upCurve;
+  final PressScaleHaptic haptic;
+
+  const PressScale({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.pressedScale = 0.975,
+    this.downDuration = const Duration(milliseconds: 90),
+    this.upDuration = const Duration(milliseconds: 140),
+    this.downCurve = Curves.easeOutCubic,
+    this.upCurve = Curves.easeOutBack,
+    this.haptic = PressScaleHaptic.light,
+  });
+
+  @override
+  State<PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<PressScale> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (!mounted) return;
+    setState(() => _pressed = value);
+  }
+
+  void _fireHaptic() {
+    switch (widget.haptic) {
+      case PressScaleHaptic.none:
+        return;
+      case PressScaleHaptic.selection:
+        HapticFeedback.selectionClick();
+        return;
+      case PressScaleHaptic.light:
+        HapticFeedback.lightImpact();
+        return;
+      case PressScaleHaptic.medium:
+        HapticFeedback.mediumImpact();
+        return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: enabled ? (_) => _setPressed(true) : null,
+      onTapCancel: enabled ? () => _setPressed(false) : null,
+      onTapUp: enabled ? (_) => _setPressed(false) : null,
+      onTap: enabled
+          ? () {
+              _fireHaptic();
+              widget.onTap?.call();
+            }
+          : null,
+      child: AnimatedScale(
+        scale: _pressed ? widget.pressedScale : 1,
+        duration: _pressed ? widget.downDuration : widget.upDuration,
+        curve: _pressed ? widget.downCurve : widget.upCurve,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+```
+
+TARGET FILE: lib/core/ui/app_palette.dart
+```diff
+--- lib/core/ui/app_palette.dart
++++ lib/core/ui/app_palette.dart
+@@ -1,6 +1,11 @@
+ import 'package:flutter/material.dart';
+ 
+ /// 직관적인 색 체계를 위한 확정 팔레트
++///
++/// NOTE
++/// - 기존 밝은 톤 AppColors는 그대로 유지합니다.
++/// - Messenger/다크 시트/프리미엄 화면에서만 아래 dark 계열 토큰을 점진 적용하세요.
++/// - 전역 bg/surface를 즉시 교체하지 말고 화면 단위 PATCH로 사용하세요.
+ class AppColors {
+   static const bg = Color(0xFFF3F4F6);         // 화면 배경
+   static const surface = Colors.white;         // 카드/시트
+@@ -15,6 +20,19 @@
+   static const danger = Color(0xFFDC2626);     // 빨강(기한/지연)
+   static const success = Color(0xFF16A34A);    // 초록(완료)
+   static const warning = Color(0xFFF59E0B);    // 주황(중요/주의)
++
++  // Premium dark tokens (v2 delta)
++  static const darkBg = Color(0xFF061121);
++  static const darkSurface = Color(0xFF0D1A32);
++  static const darkSurface2 = Color(0xFF122347);
++  static const darkBorder = Color(0xFF22324D);
++  static const darkText = Color(0xFFF8FAFC);
++  static const darkHint = Color(0xFF94A3B8);
++
++  static const premiumBlue = Color(0xFF5B8CFF);
++  static const premiumBlueStrong = Color(0xFF3F74F2);
++  static const premiumTeal = Color(0xFF15C7D6);
++  static const destructive = Color(0xFFFF5B65);
+ }
+ 
+ /// Legacy 호환을 위한 클래스 (AppColors로 점진적 교체 권장)
+@@ -34,4 +52,24 @@
+   static const success = AppColors.success;
+   static const warning = AppColors.warning;
+   static const danger = AppColors.danger;
+-}+}
++
++class AppGradients {
++  static const messengerPanel = LinearGradient(
++    begin: Alignment.topLeft,
++    end: Alignment.bottomRight,
++    colors: [
++      AppColors.darkSurface2,
++      AppColors.darkBg,
++    ],
++  );
++
++  static const premiumCard = LinearGradient(
++    begin: Alignment.topLeft,
++    end: Alignment.bottomRight,
++    colors: [
++      Color(0xFF162544),
++      Color(0xFF0E1A33),
++    ],
++  );
++}
+
+```
+
+TARGET FILE: lib/app/main_shell.dart
+```diff
+--- lib/app/main_shell.dart
++++ lib/app/main_shell.dart
+@@ -1,4 +1,5 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
+ import 'package:provider/provider.dart';
+ 
+ import 'package:worknote/features/auth/state/auth_provider.dart';
+@@ -27,10 +28,25 @@
+   AuthProvider? _authProv;
+   TeamProvider? _teamProv;
+   String? _lastSyncedUserId;
++  late final List<Widget> _tabs;
+ 
+   void _openChatThread(String threadId, String? title) {
+     context.read<ChatProvider>().setActiveThread(threadId, title: title ?? '채팅');
+     setState(() => _selectedIndex = 5);
++  }
++
++
++  @override
++  void initState() {
++    super.initState();
++    _tabs = [
++      HomeTab(onOpenChatThread: _openChatThread),
++      const TeamTaskTab(),
++      const ScheduleTab(),
++      const JournalTab(),
++      const GalleryTab(),
++      const MessengerTab(),
++    ];
+   }
+ 
+   @override
+@@ -84,15 +100,6 @@
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final List<Widget> tabs = [
+-      HomeTab(onOpenChatThread: _openChatThread),
+-      const TeamTaskTab(),
+-      const ScheduleTab(),
+-      const JournalTab(),
+-      const GalleryTab(),
+-      const MessengerTab(),
+-    ];
+-
+     final currentName = context.select<AuthProvider, String>((p) => p.currentUser?.name ?? 'WORKNOTE Master');
+ 
+     return Scaffold(
+@@ -132,7 +139,7 @@
+         ],
+       ),
+       drawer: const MasterDrawer(),
+-      body: tabs[_selectedIndex],
++      body: IndexedStack(index: _selectedIndex, children: _tabs),
+       bottomNavigationBar: Container(
+         padding: const EdgeInsets.only(top: 4, bottom: 8),
+         decoration: BoxDecoration(
+@@ -160,7 +167,11 @@
+               backgroundColor: Colors.transparent,
+               elevation: 0,
+               selectedIndex: _selectedIndex,
+-              onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
++              onDestinationSelected: (idx) {
++                if (_selectedIndex == idx) return;
++                HapticFeedback.selectionClick();
++                setState(() => _selectedIndex = idx);
++              },
+               indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
+               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+               destinations: const [
+
+```
+
+TARGET FILE: lib/features/chat/state/chat_provider.dart
+```diff
+--- lib/features/chat/state/chat_provider.dart
++++ lib/features/chat/state/chat_provider.dart
+@@ -17,7 +17,6 @@
+   String get activeThreadId => _activeThreadId;
+   String get activeThreadTitle => _activeThreadTitle ?? '대화방';
+ 
+-  
+   String _inferTeamIdFromThreadId(String threadId) {
+     // Known patterns:
+     // - grp_{teamId}_{uuid}
+@@ -56,6 +55,40 @@
+       ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+   }
+ 
++  ChatMessage? getLastMessage(String threadId) {
++    final messages = _allMessages.where((m) => m.teamId == threadId).toList()
++      ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
++    return messages.isEmpty ? null : messages.first;
++  }
++
++  bool hasMessages(String threadId) {
++    return _allMessages.any((m) => m.teamId == threadId);
++  }
++
++  Map<String, dynamic>? getThreadMeta(String threadId) {
++    final raw = Hive.box('chat_threads').get(threadId);
++    if (raw is Map) {
++      return Map<String, dynamic>.from(raw);
++    }
++    return null;
++  }
++
++  DateTime? _threadUpdatedAt(Map<String, dynamic> thread) {
++    final raw = thread['updatedAt'] ?? thread['createdAt'];
++    if (raw is String) return DateTime.tryParse(raw);
++    return null;
++  }
++
++  Future<void> _touchThread(String threadId) async {
++    final box = Hive.box('chat_threads');
++    final raw = box.get(threadId);
++    if (raw is! Map) return;
++
++    final data = Map<String, dynamic>.from(raw);
++    data['updatedAt'] = DateTime.now().toIso8601String();
++    await box.put(threadId, data);
++  }
++
+   // DM 스레드 ID 생성 헬퍼
+   String dmThreadId(String teamId, String uid1, String uid2) {
+     final ids = [uid1, uid2]..sort();
+@@ -68,6 +101,7 @@
+     required String title,
+     required List<String> memberIds,
+   }) async {
++    final now = DateTime.now().toIso8601String();
+     final threadId = 'grp_${teamId}_${const Uuid().v4()}';
+     final threadData = {
+       'id': threadId,
+@@ -75,7 +109,8 @@
+       'type': 'group',
+       'title': title,
+       'memberIds': memberIds,
+-      'createdAt': DateTime.now().toIso8601String(),
++      'createdAt': now,
++      'updatedAt': now,
+     };
+     await Hive.box('chat_threads').put(threadId, threadData);
+ 
+@@ -101,9 +136,11 @@
+   // 그룹 이름 변경
+   Future<void> renameGroupThread(String threadId, String newTitle) async {
+     final box = Hive.box('chat_threads');
+-    final Map<String, dynamic>? data = box.get(threadId) != null ? Map<String, dynamic>.from(box.get(threadId)) : null;
++    final Map<String, dynamic>? data =
++        box.get(threadId) != null ? Map<String, dynamic>.from(box.get(threadId)) : null;
+     if (data != null) {
+       data['title'] = newTitle;
++      data['updatedAt'] = DateTime.now().toIso8601String();
+       await box.put(threadId, data);
+ 
+       // Outbox: thread rename
+@@ -154,11 +191,12 @@
+ 
+   // 특정 대화방 메시지 삭제
+   Future<void> clearThreadMessages(String threadId) async {
+-    _allMessages = _allMessages.where((m) => m.teamId != threadId).toList();
++    final deleteIds = _allMessages.where((m) => m.teamId == threadId).map((m) => m.id).toList();
++    _allMessages.removeWhere((m) => m.teamId == threadId);
++
+     final box = Hive.box<ChatMessage>('messages');
+-    await box.clear();
+-    for (final m in _allMessages) {
+-      await box.put(m.id, m);
++    if (deleteIds.isNotEmpty) {
++      await box.deleteAll(deleteIds);
+     }
+ 
+     // Outbox: thread messages cleared
+@@ -179,10 +217,20 @@
+   // 팀별 그룹 스레드 목록 조회
+   List<Map<String, dynamic>> getGroupThreads(String teamId) {
+     final box = Hive.box('chat_threads');
+-    return box.values
++    final threads = box.values
+         .where((t) => t['teamId'] == teamId && t['type'] == 'group')
+         .map((t) => Map<String, dynamic>.from(t))
+         .toList();
++
++    threads.sort((a, b) {
++      final aAt = _threadUpdatedAt(a);
++      final bAt = _threadUpdatedAt(b);
++      if (aAt == null && bAt == null) return 0;
++      if (aAt == null) return 1;
++      if (bAt == null) return -1;
++      return bAt.compareTo(aAt);
++    });
++    return threads;
+   }
+ 
+   void startPolling() {
+@@ -203,12 +251,15 @@
+ 
+   /// threadId를 teamId 필드에 저장하여 호환성 유지
+   Future<void> sendMessage(String threadId, String content, String senderId, String senderName) async {
++    final trimmed = content.trim();
++    if (trimmed.isEmpty) return;
++
+     final newMsg = ChatMessage(
+       id: const Uuid().v4(),
+       teamId: threadId,
+       senderId: senderId,
+       senderName: senderName,
+-      content: content,
++      content: trimmed,
+       sentAt: DateTime.now(),
+     );
+ 
+@@ -219,6 +270,8 @@
+     } catch (_) {
+       // If persisting fails, keep in-memory only (avoid crashing chat UX)
+     }
++
++    await _touchThread(threadId);
+ 
+     // Outbox: message send
+     unawaited(
+@@ -231,7 +284,7 @@
+           'threadId': threadId,
+           'senderId': senderId,
+           'senderName': senderName,
+-          'content': content,
++          'content': trimmed,
+           'sentAt': newMsg.sentAt.toIso8601String(),
+         },
+       ),
+@@ -245,10 +298,14 @@
+   Future<void> _sync() async {
+     if (!_driveService.isReady) return;
+     final data = await _driveService.syncJsonData(
+-        _allMessages.map((e) => e.toJson()).toList(), 'worknote_chats.json');
++      _allMessages.map((e) => e.toJson()).toList(),
++      'worknote_chats.json',
++    );
+     if (data == null) return;
+ 
+-    _allMessages = data.map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e))).toList();
++    _allMessages = data
++        .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e)))
++        .toList();
+ 
+     final box = Hive.box<ChatMessage>('messages');
+     await box.clear();
+@@ -258,4 +315,4 @@
+ 
+     notifyListeners();
+   }
+-}+}
+
+```
+
+SPEC PATCH ONLY (real source from project ZIP required):
+- lib/features/chat/ui/messenger_tab.dart
+- Read `messenger_patch_spec.md` in this package and apply against the real source.
+- Reason: this file was `[Binary file]` in the snapshot, so exact diff would be fake and unsafe.
+
+MANUAL VERIFY AFTER APPLY:
+1. flutter pub get
+2. flutter analyze
+3. open Messenger tab
+4. switch tabs and come back -> selected conversation should remain
+5. send a normal message
+6. send whitespace-only input -> no message should be created
+7. open thread selector sheet
+8. open chat management sheet
+9. confirm no obvious layout overflow near bottom safe area / keyboard

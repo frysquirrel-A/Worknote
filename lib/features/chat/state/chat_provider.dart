@@ -1,13 +1,16 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worknote/data/services/drive_service.dart';
 import 'package:worknote/data/sync/sync_outbox.dart';
 import 'package:worknote/domain/models.dart';
-import 'package:worknote/data/services/drive_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final DriveService _driveService = DriveService();
+  final Uuid _uuid = const Uuid();
+
   List<ChatMessage> _allMessages = [];
   Timer? _pollingTimer;
 
@@ -16,16 +19,6 @@ class ChatProvider extends ChangeNotifier {
 
   String get activeThreadId => _activeThreadId;
   String get activeThreadTitle => _activeThreadTitle ?? '대화방';
-
-  
-  String _inferTeamIdFromThreadId(String threadId) {
-    // Known patterns:
-    // - grp_{teamId}_{uuid}
-    // - dm_{teamId}_{uid1}_{uid2}
-    final parts = threadId.split('_');
-    if (parts.length >= 2 && parts[1].isNotEmpty) return parts[1];
-    return 'unknown';
-  }
 
   ChatProvider() {
     _loadLocal();
@@ -50,36 +43,51 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// threadId를 기준으로 메시지 필터링 (기본 teamId와 호환)
   List<ChatMessage> getMessages(String threadId) {
     return _allMessages.where((m) => m.teamId == threadId).toList()
       ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
   }
 
-  // DM 스레드 ID 생성 헬퍼
+  bool hasMessages(String threadId) {
+    return _allMessages.any((m) => m.teamId == threadId);
+  }
+
+  ChatMessage? getLastMessage(String threadId) {
+    final messages = getMessages(threadId);
+    return messages.isEmpty ? null : messages.first;
+  }
+
+  Map<String, dynamic>? getThreadMeta(String threadId) {
+    final raw = Hive.box('chat_threads').get(threadId);
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
   String dmThreadId(String teamId, String uid1, String uid2) {
     final ids = [uid1, uid2]..sort();
     return 'dm_${teamId}_${ids[0]}_${ids[1]}';
   }
 
-  // 그룹 스레드 생성
   Future<String> createGroupThread({
     required String teamId,
     required String title,
     required List<String> memberIds,
   }) async {
-    final threadId = 'grp_${teamId}_${const Uuid().v4()}';
+    final now = DateTime.now().toIso8601String();
+    final threadId = 'grp_${teamId}_${_uuid.v4()}';
     final threadData = {
       'id': threadId,
       'teamId': teamId,
       'type': 'group',
       'title': title,
       'memberIds': memberIds,
-      'createdAt': DateTime.now().toIso8601String(),
+      'createdAt': now,
+      'updatedAt': now,
     };
     await Hive.box('chat_threads').put(threadId, threadData);
 
-    // Outbox: thread create
     unawaited(
       SyncOutbox.instance.enqueue(
         teamId: teamId,
@@ -98,50 +106,54 @@ class ChatProvider extends ChangeNotifier {
     return threadId;
   }
 
-  // 그룹 이름 변경
   Future<void> renameGroupThread(String threadId, String newTitle) async {
     final box = Hive.box('chat_threads');
-    final Map<String, dynamic>? data = box.get(threadId) != null ? Map<String, dynamic>.from(box.get(threadId)) : null;
-    if (data != null) {
-      data['title'] = newTitle;
-      await box.put(threadId, data);
+    final dynamic raw = box.get(threadId);
+    final Map<String, dynamic>? data = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : null;
+    if (data == null) return;
 
-      // Outbox: thread rename
-      unawaited(
-        SyncOutbox.instance.enqueue(
-          teamId: (data['teamId'] ?? 'unknown').toString(),
-          entity: 'chat_thread',
-          action: 'rename',
-          entityId: threadId,
-          payload: {
-            'title': newTitle,
-          },
-        ),
-      );
+    data['title'] = newTitle;
+    data['updatedAt'] = DateTime.now().toIso8601String();
+    await box.put(threadId, data);
 
-      if (_activeThreadId == threadId) _activeThreadTitle = newTitle;
-      notifyListeners();
+    unawaited(
+      SyncOutbox.instance.enqueue(
+        teamId: (data['teamId'] ?? 'unknown').toString(),
+        entity: 'chat_thread',
+        action: 'rename',
+        entityId: threadId,
+        payload: {'title': newTitle},
+      ),
+    );
+
+    if (_activeThreadId == threadId) {
+      _activeThreadTitle = newTitle;
     }
+    notifyListeners();
   }
 
-  // 그룹 삭제
-  Future<void> deleteGroupThread(String threadId, {bool clearMessages = true}) async {
+  Future<void> deleteGroupThread(
+    String threadId, {
+    bool clearMessages = true,
+  }) async {
     final box = Hive.box('chat_threads');
     final dynamic raw = box.get(threadId);
-    final Map<String, dynamic>? data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+    final Map<String, dynamic>? data = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : null;
 
     await box.delete(threadId);
 
-    // Outbox: thread delete
     unawaited(
       SyncOutbox.instance.enqueue(
-        teamId: (data?['teamId'] ?? _inferTeamIdFromThreadId(threadId)).toString(),
+        teamId: (data?['teamId'] ?? _inferTeamIdFromThreadId(threadId))
+            .toString(),
         entity: 'chat_thread',
         action: 'delete',
         entityId: threadId,
-        payload: {
-          'clearMessages': clearMessages.toString(),
-        },
+        payload: {'clearMessages': clearMessages.toString()},
       ),
     );
 
@@ -152,16 +164,18 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 특정 대화방 메시지 삭제
   Future<void> clearThreadMessages(String threadId) async {
-    _allMessages = _allMessages.where((m) => m.teamId != threadId).toList();
+    final deleteIds = _allMessages
+        .where((m) => m.teamId == threadId)
+        .map((m) => m.id)
+        .toList();
+    _allMessages.removeWhere((m) => m.teamId == threadId);
+
     final box = Hive.box<ChatMessage>('messages');
-    await box.clear();
-    for (final m in _allMessages) {
-      await box.put(m.id, m);
+    if (deleteIds.isNotEmpty) {
+      await box.deleteAll(deleteIds);
     }
 
-    // Outbox: thread messages cleared
     unawaited(
       SyncOutbox.instance.enqueue(
         teamId: _inferTeamIdFromThreadId(threadId),
@@ -176,13 +190,22 @@ class ChatProvider extends ChangeNotifier {
     await _sync();
   }
 
-  // 팀별 그룹 스레드 목록 조회
   List<Map<String, dynamic>> getGroupThreads(String teamId) {
     final box = Hive.box('chat_threads');
-    return box.values
-        .where((t) => t['teamId'] == teamId && t['type'] == 'group')
+    final threads = box.values
+        .whereType<Map>()
         .map((t) => Map<String, dynamic>.from(t))
+        .where((t) => t['teamId'] == teamId && t['type'] == 'group')
         .toList();
+    threads.sort((a, b) {
+      final aAt = _threadUpdatedAt(a);
+      final bAt = _threadUpdatedAt(b);
+      if (aAt == null && bAt == null) return 0;
+      if (aAt == null) return 1;
+      if (bAt == null) return -1;
+      return bAt.compareTo(aAt);
+    });
+    return threads;
   }
 
   void startPolling() {
@@ -201,14 +224,21 @@ class ChatProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  /// threadId를 teamId 필드에 저장하여 호환성 유지
-  Future<void> sendMessage(String threadId, String content, String senderId, String senderName) async {
+  Future<void> sendMessage(
+    String threadId,
+    String content,
+    String senderId,
+    String senderName,
+  ) async {
+    final normalized = content.trim();
+    if (normalized.isEmpty) return;
+
     final newMsg = ChatMessage(
-      id: const Uuid().v4(),
+      id: _uuid.v4(),
       teamId: threadId,
       senderId: senderId,
       senderName: senderName,
-      content: content,
+      content: normalized,
       sentAt: DateTime.now(),
     );
 
@@ -217,10 +247,11 @@ class ChatProvider extends ChangeNotifier {
     try {
       await Hive.box<ChatMessage>('messages').put(newMsg.id, newMsg);
     } catch (_) {
-      // If persisting fails, keep in-memory only (avoid crashing chat UX)
+      // Keep in-memory if local persistence fails.
     }
 
-    // Outbox: message send
+    await _touchThread(threadId);
+
     unawaited(
       SyncOutbox.instance.enqueue(
         teamId: _inferTeamIdFromThreadId(threadId),
@@ -231,24 +262,28 @@ class ChatProvider extends ChangeNotifier {
           'threadId': threadId,
           'senderId': senderId,
           'senderName': senderName,
-          'content': content,
+          'content': normalized,
           'sentAt': newMsg.sentAt.toIso8601String(),
         },
       ),
     );
 
     notifyListeners();
-
     await _sync();
   }
 
   Future<void> _sync() async {
     if (!_driveService.isReady) return;
+
     final data = await _driveService.syncJsonData(
-        _allMessages.map((e) => e.toJson()).toList(), 'worknote_chats.json');
+      _allMessages.map((e) => e.toJson()).toList(),
+      'worknote_chats.json',
+    );
     if (data == null) return;
 
-    _allMessages = data.map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e))).toList();
+    _allMessages = data
+        .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
 
     final box = Hive.box<ChatMessage>('messages');
     await box.clear();
@@ -257,5 +292,38 @@ class ChatProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  String _inferTeamIdFromThreadId(String threadId) {
+    if (threadId.isEmpty) return 'unknown';
+
+    if (!threadId.contains('_')) {
+      return threadId;
+    }
+
+    final parts = threadId.split('_');
+    if ((parts.first == 'grp' || parts.first == 'dm') &&
+        parts.length >= 2 &&
+        parts[1].isNotEmpty) {
+      return parts[1];
+    }
+
+    return threadId;
+  }
+
+  DateTime? _threadUpdatedAt(Map<String, dynamic> thread) {
+    final raw = thread['updatedAt'] ?? thread['createdAt'];
+    if (raw is String) return DateTime.tryParse(raw);
+    return null;
+  }
+
+  Future<void> _touchThread(String threadId) async {
+    final box = Hive.box('chat_threads');
+    final raw = box.get(threadId);
+    if (raw is! Map) return;
+
+    final data = Map<String, dynamic>.from(raw);
+    data['updatedAt'] = DateTime.now().toIso8601String();
+    await box.put(threadId, data);
   }
 }

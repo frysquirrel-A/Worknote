@@ -100,113 +100,92 @@ class TaskFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 14,
-            offset: Offset(0, 6),
-            color: Color(0x14000000),
-          ),
-        ],
-        border: Border.all(color: Colors.black87, width: 1),
-      ),
-      child: Row(
-        children: [
-          // LEFT: filters (scroll)
-          Flexible(
-            fit: FlexFit.loose,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _twoLineBox(
-                    label: '프로젝트',
-                    value: _projectLabel(selProjectId),
-                    onTap: () => _pickFromSheet(
-                      context: context,
-                      title: '프로젝트 선택',
-                      current: selProjectId,
-                      items: _projectItems(),
-                      itemLabel: (id) => _projectLabel(id),
-                      onPicked: (v) => onProjectChanged(v),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _twoLineBox(
-                    label: '상태',
-                    value: selStatus,
-                    onTap: () => _pickFromSheet(
-                      context: context,
-                      title: '상태 선택',
-                      current: selStatus,
-                      items: const ['진행중', '완료'],
-                      itemLabel: (s) => s,
-                      onPicked: (v) => onStatusChanged(v),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _twoLineBox(
-                    label: '중요도',
-                    value: _priorityDisplay(selPriority),
-                    onTap: () => _pickFromSheet<Object>(
-                      context: context,
-                      title: '중요도 선택',
-                      current: selPriority ?? _SheetItem.all,
-                      items: const [
-                        _SheetItem.all,
-                        TaskPriority.high,
-                        TaskPriority.medium,
-                        TaskPriority.low,
-                        TaskPriority.none,
-                      ],
-                      itemLabel: (v) {
-                        if (v == _SheetItem.all) return '전체';
-                        if (v is TaskPriority) return _priorityDisplay(v);
-                        return v.toString();
-                      },
-                      onPicked: (picked) {
-                        if (picked == _SheetItem.all) {
-                          onPriorityChanged(null);
-                        } else {
-                          onPriorityChanged(picked as TaskPriority);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _twoLineBox(
-                    label: '담당자',
-                    value: _assigneeLabel(selAssignee),
-                    onTap: () => _pickFromSheet(
-                      context: context,
-                      title: '담당자 선택',
-                      current: selAssignee,
-                      items: _assigneeItems(),
-                      itemLabel: (id) => _assigneeLabel(id),
-                      onPicked: (v) => onAssigneeChanged(v),
-                    ),
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _twoLineBox(
+                label: '프로젝트',
+                value: _projectLabel(selProjectId),
+                onTap: () => _pickFromSheet(
+                  context: context,
+                  title: '프로젝트 선택',
+                  current: selProjectId,
+                  items: _projectItems(),
+                  itemLabel: (id) => _projectLabel(id),
+                  onPicked: (v) => onProjectChanged(v),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              _twoLineBox(
+                label: '상태',
+                value: selStatus,
+                onTap: () => _pickFromSheet(
+                  context: context,
+                  title: '상태 선택',
+                  current: selStatus,
+                  items: const ['진행중', '완료'],
+                  itemLabel: (s) => s,
+                  onPicked: (v) => onStatusChanged(v),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _twoLineBox(
+                label: '중요도',
+                value: _priorityDisplay(selPriority),
+                onTap: () => _pickFromSheet<Object>(
+                  context: context,
+                  title: '중요도 선택',
+                  current: selPriority ?? _SheetItem.all,
+                  items: const [
+                    _SheetItem.all,
+                    TaskPriority.high,
+                    TaskPriority.medium,
+                    TaskPriority.low,
+                    TaskPriority.none,
+                  ],
+                  itemLabel: (v) {
+                    if (v == _SheetItem.all) return '전체';
+                    if (v is TaskPriority) return _priorityDisplay(v);
+                    return v.toString();
+                  },
+                  onPicked: (picked) {
+                    if (picked == _SheetItem.all) {
+                      onPriorityChanged(null);
+                    } else {
+                      onPriorityChanged(picked as TaskPriority);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              _twoLineBox(
+                label: '담당자',
+                value: _assigneeLabel(selAssignee),
+                onTap: () => _pickFromSheet(
+                  context: context,
+                  title: '담당자 선택',
+                  current: selAssignee,
+                  items: _assigneeItems(),
+                  itemLabel: (id) => _assigneeLabel(id),
+                  onPicked: (v) => onAssigneeChanged(v),
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(width: 10),
-          Container(width: 1, height: 28, color: AppPalette.border),
-          const SizedBox(width: 10),
-
-          // RIGHT: group/sort boxes + icons
-          Row(
-            mainAxisSize: MainAxisSize.min,
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
               _twoLineBox(
                 label: '분류',
                 value: groupValue,
-                minWidth: 78,
+                minWidth: 96,
                 onTap: () => _pickFromSheet(
                   context: context,
                   title: '분류 선택',
@@ -220,7 +199,7 @@ class TaskFilterBar extends StatelessWidget {
               _twoLineBox(
                 label: '기간',
                 value: _sortLabel(sortValue),
-                minWidth: 86,
+                minWidth: 104,
                 onTap: () => _pickFromSheet(
                   context: context,
                   title: '정렬 선택',
@@ -232,20 +211,38 @@ class TaskFilterBar extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               _iconBtn(
-                icon: newestFirst ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                tooltip: newestFirst ? '내림차순' : '오름차순',
-                onTap: onToggleNewestFirst,
+                icon: Icons.grid_view_rounded,
+                tooltip: '갤러리 보기',
+                selected: isGallery,
+                onTap: isGallery ? () {} : onToggleGallery,
               ),
               const SizedBox(width: 8),
               _iconBtn(
-                icon: isGallery ? Icons.grid_view_outlined : Icons.view_agenda_outlined,
-                tooltip: isGallery ? '갤러리 보기' : '리스트 보기',
-                onTap: onToggleGallery,
+                icon: Icons.view_agenda_rounded,
+                tooltip: '리스트 보기',
+                selected: !isGallery,
+                onTap: isGallery ? onToggleGallery : () {},
+              ),
+              const SizedBox(width: 8),
+              _iconBtn(
+                icon: Icons.label_rounded,
+                tooltip: showGroupHeaders ? '그룹 보기 켜짐' : '그룹 보기 꺼짐',
+                selected: showGroupHeaders,
+                onTap: onToggleGroupHeaders,
+              ),
+              const SizedBox(width: 8),
+              _iconBtn(
+                icon: newestFirst
+                    ? Icons.arrow_downward_rounded
+                    : Icons.arrow_upward_rounded,
+                tooltip: newestFirst ? '내림차순' : '오름차순',
+                selected: false,
+                onTap: onToggleNewestFirst,
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -301,61 +298,73 @@ class TaskFilterBar extends StatelessWidget {
     required String label,
     required String value,
     required VoidCallback onTap,
-    double minWidth = 92,
+    double minWidth = 98,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
         constraints: BoxConstraints(minWidth: minWidth),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black87, width: 1),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              offset: Offset(0, 4),
-              color: Color(0x12000000),
-            )
-          ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF4B5563), width: 1),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.black54)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _iconBtn({required IconData icon, required String tooltip, required VoidCallback onTap}) {
+  Widget _iconBtn({
+    required IconData icon,
+    required String tooltip,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black87, width: 1),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              offset: Offset(0, 4),
-              color: Color(0x12000000),
-            )
-          ],
+          color: selected ? const Color(0xFFE8F0FF) : AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppPalette.primary : const Color(0xFF4B5563),
+            width: 1,
+          ),
         ),
         child: Tooltip(
           message: tooltip,
-          child: Icon(icon, size: 18, color: AppPalette.primary),
+          child: Icon(
+            icon,
+            size: 20,
+            color: selected ? AppPalette.primary : const Color(0xFF374151),
+          ),
         ),
       ),
     );
@@ -385,11 +394,24 @@ class TaskFilterBar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(99))),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Flexible(
@@ -401,8 +423,16 @@ class TaskFilterBar extends StatelessWidget {
                       final it = items[i];
                       final isSel = it == current;
                       return ListTile(
-                        title: Text(itemLabel(it), style: const TextStyle(fontWeight: FontWeight.w700)),
-                        trailing: isSel ? const Icon(Icons.check_rounded, color: Color(0xFF2563EB)) : null,
+                        title: Text(
+                          itemLabel(it),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        trailing: isSel
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: Color(0xFF2563EB),
+                              )
+                            : null,
                         onTap: () => Navigator.pop(ctx, it),
                       );
                     },
@@ -422,6 +452,4 @@ class TaskFilterBar extends StatelessWidget {
 }
 
 /// BottomSheet에서 "전체"를 표현하기 위한 sentinel.
-enum _SheetItem {
-  all,
-}
+enum _SheetItem { all }
