@@ -40,14 +40,14 @@ void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
   }
 }
 
-/// Hive 박스를 안전하게 오픈하는 함수 (에러 시 자동 복구)
+/// Hive 박스를 안전하게 오픈하는 함수 (에러 시 rethrow)
 Future<Box<T>> _safeOpenBox<T>(String name) async {
   try {
     return await Hive.openBox<T>(name);
   } catch (e) {
-    print('[Debug] Hive Box ($name) 오픈 에러 발생: $e. 복구 시도 중...');
-    await Hive.deleteBoxFromDisk(name);
-    return await Hive.openBox<T>(name);
+    // ✨ [수정] 데이터 삭제 폭탄 제거 및 로그 기록
+    DevLog.instance.addLog('Hive open failed: $name / $e');
+    rethrow;
   }
 }
 
@@ -58,7 +58,7 @@ Future<void> bootstrap() async {
     print('[Debug] Zone 초기화 시작...');
     WidgetsFlutterBinding.ensureInitialized();
 
-    // ✨ [추가] Firebase 및 Crashlytics 초기화
+    // Firebase 및 Crashlytics 초기화
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     
     // 플러터 프레임워크 에러를 Crashlytics 및 DevLog로 전송
@@ -123,7 +123,8 @@ Future<void> bootstrap() async {
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
           ChangeNotifierProvider(create: (_) => ChatProvider()),
-          ChangeNotifierProvider(create: (_) => ScheduleProvider()),
+          // ✨ [수정] 일정 데이터 즉시 로드
+          ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
         ],
         child: const WorkNoteApp(),
       ),

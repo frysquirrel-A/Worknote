@@ -21,12 +21,11 @@ class LocalDatabaseService {
     await _getBox<T>(boxName).delete(key);
   }
 
-  // 전체 데이터 덮어쓰기 (서버 동기화 후 로컬 최신화용)
+  // 데이터 병합 및 저장 (P1 패치: clear 방지)
   Future<void> syncAll<T>(String boxName, List<T> items, String Function(T) idGetter) async {
     final box = _getBox<T>(boxName);
-    await box.clear(); // 기존 데이터 비우고
     
-    // ID를 키(Key)로 사용하여 저장
+    // ✨ [수정] clear() 삭제 및 ID 기반 병합 저장
     final Map<String, T> entries = {
       for (var item in items) idGetter(item): item
     };
