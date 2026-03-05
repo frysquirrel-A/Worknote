@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/core/ui/app_palette.dart';
+import 'package:worknote/core/theme/premium_theme.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/journal/ui/sheets/journal_detail_sheet.dart';
@@ -22,39 +23,79 @@ class JournalCard extends StatelessWidget {
       onTap: () => showJournalDetailSheet(context: context, entry: entry),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A2336), Color(0xFF121A2B)],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.10)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.24),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            )
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text(DateFormat('yyyy-MM-dd').format(entry.date), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  DateFormat('yyyy-MM-dd').format(entry.date),
+                  style: const TextStyle(
+                    color: WorkNotePremium.accent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
                 const Spacer(),
                 _kindBadge(kind),
-                if (hasPhotos) ...[const SizedBox(width: 6), _smallStat(Icons.photo_rounded, '${entry.photos.length}')],
-                if (updates.isNotEmpty) ...[const SizedBox(width: 6), _smallStat(Icons.timeline_rounded, '${updates.length}')],
+                if (hasPhotos) ...[const SizedBox(width: 8), _smallStat(Icons.photo_rounded, '${entry.photos.length}')],
+                if (updates.isNotEmpty) ...[const SizedBox(width: 8), _smallStat(Icons.timeline_rounded, '${updates.length}')],
               ],
             ),
-            const SizedBox(height: 10),
-            Text(entry.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppColors.text), maxLines: 2, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 8),
-            Text(entry.content, style: const TextStyle(color: AppColors.hint, height: 1.5), maxLines: 3, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
+            Text(
+              entry.title,
+              style: WorkNoteType.subHeading.copyWith(color: WorkNotePremium.textMain),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              entry.content,
+              style: const TextStyle(color: WorkNotePremium.textMuted, height: 1.5, fontSize: 14),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.person, size: 14, color: AppColors.muted),
+                const Icon(Icons.person_outline_rounded, size: 14, color: WorkNotePremium.textMuted),
                 const SizedBox(width: 6),
-                Expanded(child: Text(entry.userName, style: const TextStyle(color: AppColors.text2, fontWeight: FontWeight.w800, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                Expanded(
+                  child: Text(
+                    entry.userName,
+                    style: const TextStyle(
+                      color: WorkNotePremium.textMuted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 if (entry.isPrivate) ...[
-                  const Icon(Icons.lock_rounded, size: 14, color: AppColors.warning),
+                  const Icon(Icons.lock_outline_rounded, size: 14, color: Color(0xFFFBBF24)),
                   const SizedBox(width: 4),
-                  const Text('비공개', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w800, fontSize: 12)),
+                  const Text(
+                    '비공개',
+                    style: TextStyle(color: Color(0xFFFBBF24), fontWeight: FontWeight.w700, fontSize: 12),
+                  ),
                 ]
               ],
             ),
@@ -67,9 +108,9 @@ class JournalCard extends StatelessWidget {
 
 Widget _kindBadge(JournalKind kind) {
   final Color c = switch (kind) {
-    JournalKind.note => AppColors.primary,
-    JournalKind.progress => AppColors.warning,
-    JournalKind.completionReport => AppColors.success,
+    JournalKind.note => WorkNotePremium.primary,
+    JournalKind.progress => const Color(0xFFF59E0B),
+    JournalKind.completionReport => const Color(0xFF10B981),
   };
   final String label = switch (kind) {
     JournalKind.note => '일반',
@@ -78,19 +119,32 @@ Widget _kindBadge(JournalKind kind) {
   };
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(color: c.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: c.withValues(alpha: 0.25))),
-    child: Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w900, fontSize: 11)),
+    decoration: BoxDecoration(
+      color: c.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: c.withValues(alpha: 0.20)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(color: c, fontWeight: FontWeight.w900, fontSize: 11),
+    ),
   );
 }
 
 Widget _smallStat(IconData icon, String text) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(999), border: Border.all(color: AppColors.border)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 14, color: AppColors.hint),
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 14, color: WorkNotePremium.textMuted),
       const SizedBox(width: 4),
-      Text(text, style: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w900, fontSize: 11)),
-    ]),
+      Text(
+        text,
+        style: const TextStyle(
+          color: WorkNotePremium.textMuted,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    ],
   );
 }

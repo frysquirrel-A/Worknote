@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
+import 'package:worknote/features/schedule/state/schedule_provider.dart';
+import 'package:worknote/features/tasks/ui/sheets/add_task_sheet.dart';
 import 'package:worknote/app/widgets/profile_avatar.dart';
 
 class HomeTab extends StatefulWidget {
@@ -74,6 +77,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   _ProfileAvatarWithTeamBadge(emoji: meEmoji, userId: meId, teamInitial: teamInitial),
                 ],
               ),
+              const SizedBox(height: 14),
+
+              // ✨ [신설] 오늘의 브리핑 카드
+              const _TodayHubCard(),
               const SizedBox(height: 14),
 
               _card(context, child: InkWell(borderRadius: BorderRadius.circular(18), onTap: () => _showTeamPicker(context, teamProv), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), child: Row(children: [Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: Text(teamInitial, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('현재 팀', style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(teamName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis)])), const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.text2)])))),
@@ -331,3 +338,160 @@ class _DashboardPagerCardState extends State<_DashboardPagerCard> {
 
 class _ProfileAvatarWithTeamBadge extends StatelessWidget { final String emoji; final String userId; final String teamInitial; const _ProfileAvatarWithTeamBadge({required this.emoji, required this.userId, required this.teamInitial}); @override Widget build(BuildContext context) { return Stack(clipBehavior: Clip.none, children: [ProfileAvatar(emoji: emoji, userId: userId, heroPrefix: 'appbar'), Positioned(right: -2, bottom: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: Text(teamInitial, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900))))]); } }
 class _MemberAvatar extends StatelessWidget { final AppUser user; final bool isMe; final String? role; final VoidCallback onTap; const _MemberAvatar({required this.user, required this.isMe, required this.role, required this.onTap}); @override Widget build(BuildContext context) { return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(14), child: Column(mainAxisSize: MainAxisSize.min, children: [Stack(clipBehavior: Clip.none, children: [ProfileAvatar(emoji: user.profileImage ?? '👤', userId: user.id, radius: 26, heroPrefix: 'members'), if (isMe) Positioned(right: -2, top: -2, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white, width: 2)), child: const Text('나', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900))))]), const SizedBox(height: 8), SizedBox(width: 66, child: Text(user.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.text), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)), if (role != null && role!.trim().isNotEmpty) SizedBox(width: 66, child: Text(role!, style: const TextStyle(fontSize: 10, color: AppColors.text2, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center))])); } }
+
+// ✨ [신규] 오늘의 브리핑 카드 위젯
+class _TodayHubCard extends StatelessWidget {
+  const _TodayHubCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheduleProv = context.watch<ScheduleProvider>();
+    final taskProv = context.watch<TaskProvider>();
+    final teamProv = context.watch<TeamProvider>();
+
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    // 오늘 일정 계산 (시작/종료 범위 내에 오늘이 포함되는지 확인)
+    final todayScheduleCount = scheduleProv.itemsForTeam(teamProv.currentTeamId).where((item) {
+      final range = scheduleProv.getRange(item);
+      if (range == null) return false;
+      final start = DateTime(range.start.year, range.start.month, range.start.day);
+      final end = DateTime(range.end.year, range.end.month, range.end.day);
+      return !todayOnly.isBefore(start) && !todayOnly.isAfter(end);
+    }).length;
+
+    // 오늘 마감 업무 계산
+    final todayTaskCount = taskProv.tasksForTeam(teamProv.currentTeamId).where((t) {
+      return !t.isDone &&
+          t.dueDate.year == today.year &&
+          t.dueDate.month == today.month &&
+          t.dueDate.day == today.day;
+    }).length;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.1)),
+      ),
+      color: AppColors.primary.withValues(alpha: 0.05),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '오늘의 브리핑',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primary),
+                ),
+                Text(
+                  DateFormat('MM월 dd일').format(today),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text2),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                _buildInfoItem(
+                  icon: Icons.event_available_rounded,
+                  label: '오늘 일정',
+                  count: todayScheduleCount,
+                  color: Colors.orangeAccent,
+                ),
+                Container(width: 1, height: 40, color: AppColors.primary.withValues(alpha: 0.1), margin: const EdgeInsets.symmetric(horizontal: 20)),
+                _buildInfoItem(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: '마감 업무',
+                  count: todayTaskCount,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniActionButton(
+                    label: '업무 추가',
+                    icon: Icons.add_task_rounded,
+                    onTap: () => showAddTaskSheet(context: context),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MiniActionButton(
+                    label: '일정 추가',
+                    icon: Icons.calendar_month_rounded,
+                    onTap: () {
+                      // schedule_tab.dart의 비공개 메서드 대신 Provider를 통해 추가 유도하거나
+                      // 공통 시트가 있다면 호출. 여기서는 알림으로 대체하거나
+                      // 필요한 시트 호출 함수가 정의되어 있어야 함.
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('일정 탭에서 계획을 추가해 주세요.')),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoItem({required IconData icon, required String label, required int count, required Color color}) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.text2, fontWeight: FontWeight.w600)),
+              Text('$count개', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _MiniActionButton({required this.label, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary)),
+          ],
+        ),
+      ),
+    );
+  }
+}

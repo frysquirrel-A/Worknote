@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:worknote/core/models/work_profile.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/app/widgets/profile_avatar.dart';
+import 'package:worknote/features/profile/ui/sheets/profile_focus_sheet.dart';
 
 class ProfileSelectionPage extends StatefulWidget {
   final bool manageMode;
@@ -112,6 +113,18 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
     );
   }
 
+  void _showFocusSheet(WorkProfile profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ProfileFocusSheet(
+        profileId: profile.id,
+        profileName: profile.name,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -147,6 +160,7 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
                 manageMode: widget.manageMode,
                 onSelectProfile: (profile) => _run(() => auth.selectPendingGoogleProfile(profile.id)),
                 onCreateSlot: (slotIndex) => _run(() => auth.createPendingGoogleSlot(preferredSlot: slotIndex)),
+                onFocusTap: _showFocusSheet,
               ),
               const SizedBox(height: 20),
             ],
@@ -163,6 +177,7 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
                       profile: current,
                       isCurrent: true,
                       onTap: () {},
+                      onFocusTap: () => _showFocusSheet(current),
                       onMenuSelected: (action) {
                         switch (action) {
                           case _ProfileAction.rename:
@@ -195,6 +210,7 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
                             if (!mounted) return;
                             if (widget.manageMode) Navigator.of(context).maybePop();
                           },
+                          onFocusTap: () => _showFocusSheet(profile),
                           onMenuSelected: (action) {
                             switch (action) {
                               case _ProfileAction.rename:
@@ -254,12 +270,14 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
   final bool manageMode;
   final Future<void> Function(WorkProfile profile) onSelectProfile;
   final Future<void> Function(int slotIndex) onCreateSlot;
+  final void Function(WorkProfile profile) onFocusTap;
 
   const _PendingGoogleSlotsSection({
     required this.working,
     required this.manageMode,
     required this.onSelectProfile,
     required this.onCreateSlot,
+    required this.onFocusTap,
   });
 
   @override
@@ -284,7 +302,7 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.3,
+              childAspectRatio: 1.1,
             ),
             itemBuilder: (context, index) {
               final profile = slotMap[index];
@@ -323,14 +341,12 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
                             heroPrefix: 'selection',
                           ),
                           const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(999),
+                          if (occupied)
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.tune_rounded, size: 18, color: Color(0xFF2563EB)),
+                              onPressed: () => onFocusTap(profile),
                             ),
-                            child: Text('슬롯 ${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF2563EB))),
-                          ),
                         ],
                       ),
                       const Spacer(),
@@ -339,10 +355,10 @@ class _PendingGoogleSlotsSection extends StatelessWidget {
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         occupied ? '기존 슬롯으로 진입' : '새 프로필 만들기',
-                        style: const TextStyle(color: Colors.black54, fontSize: 12),
+                        style: const TextStyle(color: Colors.black54, fontSize: 11),
                       ),
                     ],
                   ),
@@ -393,12 +409,14 @@ class _ProfileTile extends StatelessWidget {
   final WorkProfile profile;
   final bool isCurrent;
   final VoidCallback onTap;
+  final VoidCallback onFocusTap;
   final void Function(_ProfileAction action) onMenuSelected;
 
   const _ProfileTile({
     required this.profile,
     required this.isCurrent,
     required this.onTap,
+    required this.onFocusTap,
     required this.onMenuSelected,
   });
 
@@ -461,6 +479,11 @@ class _ProfileTile extends StatelessWidget {
                     Text(subtitle, style: const TextStyle(color: Colors.black54), overflow: TextOverflow.ellipsis),
                   ],
                 ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.tune_rounded, color: Color(0xFF2563EB)),
+                onPressed: onFocusTap,
+                tooltip: 'Focus 설정',
               ),
               PopupMenuButton<_ProfileAction>(
                 onSelected: onMenuSelected,

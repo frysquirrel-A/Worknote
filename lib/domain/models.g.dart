@@ -23,21 +23,21 @@ class TaskAdapter extends TypeAdapter<Task> {
       creatorId: fields[3] as String,
       creatorName: fields[4] as String,
       assigneeId: fields[5] as String,
-      assigneeName: fields[6] as String,
-      assigneeEmoji: fields[7] as String,
-      assigneeIds: (fields[8] as List).cast<String>(),
-      assigneeNames: (fields[9] as List).cast<String>(),
-      assigneeEmojis: (fields[10] as List).cast<String>(),
-      projectId: fields[11] as String?,
-      createdAt: fields[12] as DateTime,
-      dueDate: fields[13] as DateTime,
-      updatedAt: fields[14] as DateTime?,
-      completedAt: fields[15] as DateTime?,
-      isDone: fields[16] as bool,
-      priority: fields[17] as TaskPriority,
-      status: fields[18] as TaskStatus,
-      taskNotes: (fields[19] as List?)?.cast<String>(),
-      completionReport: fields[20] as String?,
+      status: fields[6] as TaskStatus,
+      priority: fields[7] as TaskPriority,
+      completionReport: fields[8] as String?,
+      assigneeName: fields[9] as String,
+      assigneeEmoji: fields[10] as String,
+      assigneeIds: (fields[11] as List).cast<String>(),
+      assigneeNames: (fields[12] as List).cast<String>(),
+      assigneeEmojis: (fields[13] as List).cast<String>(),
+      projectId: fields[14] as String?,
+      createdAt: fields[15] as DateTime,
+      dueDate: fields[16] as DateTime,
+      updatedAt: fields[17] as DateTime?,
+      completedAt: fields[18] as DateTime?,
+      isDone: fields[19] as bool,
+      taskNotes: (fields[20] as List?)?.cast<String>(),
     );
   }
 
@@ -58,35 +58,35 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(5)
       ..write(obj.assigneeId)
       ..writeByte(6)
-      ..write(obj.assigneeName)
-      ..writeByte(7)
-      ..write(obj.assigneeEmoji)
-      ..writeByte(8)
-      ..write(obj.assigneeIds)
-      ..writeByte(9)
-      ..write(obj.assigneeNames)
-      ..writeByte(10)
-      ..write(obj.assigneeEmojis)
-      ..writeByte(11)
-      ..write(obj.projectId)
-      ..writeByte(12)
-      ..write(obj.createdAt)
-      ..writeByte(13)
-      ..write(obj.dueDate)
-      ..writeByte(14)
-      ..write(obj.updatedAt)
-      ..writeByte(15)
-      ..write(obj.completedAt)
-      ..writeByte(16)
-      ..write(obj.isDone)
-      ..writeByte(17)
-      ..write(obj.priority)
-      ..writeByte(18)
       ..write(obj.status)
+      ..writeByte(7)
+      ..write(obj.priority)
+      ..writeByte(8)
+      ..write(obj.completionReport)
+      ..writeByte(9)
+      ..write(obj.assigneeName)
+      ..writeByte(10)
+      ..write(obj.assigneeEmoji)
+      ..writeByte(11)
+      ..write(obj.assigneeIds)
+      ..writeByte(12)
+      ..write(obj.assigneeNames)
+      ..writeByte(13)
+      ..write(obj.assigneeEmojis)
+      ..writeByte(14)
+      ..write(obj.projectId)
+      ..writeByte(15)
+      ..write(obj.createdAt)
+      ..writeByte(16)
+      ..write(obj.dueDate)
+      ..writeByte(17)
+      ..write(obj.updatedAt)
+      ..writeByte(18)
+      ..write(obj.completedAt)
       ..writeByte(19)
-      ..write(obj.taskNotes)
+      ..write(obj.isDone)
       ..writeByte(20)
-      ..write(obj.completionReport);
+      ..write(obj.taskNotes);
   }
 
   @override
@@ -142,55 +142,6 @@ class TeamAdapter extends TypeAdapter<Team> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is TeamAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
-}
-
-class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
-  @override
-  final int typeId = 7;
-
-  @override
-  ChatMessage read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
-    return ChatMessage(
-      id: fields[0] as String,
-      teamId: fields[1] as String,
-      senderId: fields[2] as String,
-      senderName: fields[3] as String,
-      content: fields[4] as String,
-      sentAt: fields[5] as DateTime,
-    );
-  }
-
-  @override
-  void write(BinaryWriter writer, ChatMessage obj) {
-    writer
-      ..writeByte(6)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.teamId)
-      ..writeByte(2)
-      ..write(obj.senderId)
-      ..writeByte(3)
-      ..write(obj.senderName)
-      ..writeByte(4)
-      ..write(obj.content)
-      ..writeByte(5)
-      ..write(obj.sentAt);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ChatMessageAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
@@ -341,6 +292,55 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is JournalEntryAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ChatMessageAdapter extends TypeAdapter<ChatMessage> {
+  @override
+  final int typeId = 7;
+
+  @override
+  ChatMessage read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return ChatMessage(
+      id: fields[0] as String,
+      teamId: fields[1] as String,
+      senderId: fields[2] as String,
+      senderName: fields[3] as String,
+      content: fields[4] as String,
+      sentAt: fields[5] as DateTime,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, ChatMessage obj) {
+    writer
+      ..writeByte(6)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.teamId)
+      ..writeByte(2)
+      ..write(obj.senderId)
+      ..writeByte(3)
+      ..write(obj.senderName)
+      ..writeByte(4)
+      ..write(obj.content)
+      ..writeByte(5)
+      ..write(obj.sentAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ChatMessageAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

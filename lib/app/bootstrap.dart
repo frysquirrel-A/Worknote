@@ -33,6 +33,8 @@ import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/schedule/state/schedule_provider.dart';
+import 'package:worknote/features/profile/state/focus_provider.dart';
+import 'package:worknote/features/profile/models/profile_focus_prefs.dart';
 
 void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
   if (!Hive.isAdapterRegistered(adapter.typeId)) {
@@ -45,7 +47,6 @@ Future<Box<T>> _safeOpenBox<T>(String name) async {
   try {
     return await Hive.openBox<T>(name);
   } catch (e) {
-    // ✨ [수정] 데이터 삭제 폭탄 제거 및 로그 기록
     DevLog.instance.addLog('Hive open failed: $name / $e');
     rethrow;
   }
@@ -89,6 +90,7 @@ Future<void> bootstrap() async {
     _safeRegisterAdapter(TeamAdapter());
     _safeRegisterAdapter(AppUserAdapter());
     _safeRegisterAdapter(ChatMessageAdapter());
+    _safeRegisterAdapter(ProfileFocusPrefsAdapter()); // ✨ [추가] Focus 설정 어댑터 등록
 
     print('[Debug] Hive 박스 오픈 시작 (안전 모드)...');
     await _safeOpenBox<Task>('tasks');
@@ -103,6 +105,7 @@ Future<void> bootstrap() async {
     await _safeOpenBox('task_meta');
     await _safeOpenBox('journal_meta');
     await _safeOpenBox('schedules');
+    await _safeOpenBox<ProfileFocusPrefs>('focus_prefs'); // ✨ [추가] Focus 설정 박스 오픈
 
     print('[Debug] 인프라 및 마이그레이션 시작...');
     await CrashReporter.instance.init();
@@ -123,8 +126,8 @@ Future<void> bootstrap() async {
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => JournalProvider()..loadJournals()),
           ChangeNotifierProvider(create: (_) => ChatProvider()),
-          // ✨ [수정] 일정 데이터 즉시 로드
           ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
+          ChangeNotifierProvider(create: (_) => FocusProvider()..init()), // ✨ [추가] FocusProvider 등록
         ],
         child: const WorkNoteApp(),
       ),

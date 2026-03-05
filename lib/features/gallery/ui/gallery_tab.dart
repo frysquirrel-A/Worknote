@@ -94,9 +94,25 @@ class GalleryTab extends StatelessWidget {
 
   Widget _buildImage(String path) {
     if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover);
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey));
+        },
+      );
     } else {
-      return Image.file(File(path), fit: BoxFit.cover);
+      return Image.file(
+        File(path),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+        },
+      );
     }
   }
 
@@ -119,7 +135,7 @@ class GalleryTab extends StatelessWidget {
           const SizedBox(height: 24),
           const Text("아직 업로드된 사진이 없어요.", style: TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          const Text("+ 버튼을 눌러 현장 사진을 추가해 보세요!", style: TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w700)),
+          const Text("+ 버튼을 눌러 팀 사진이나 기록 이미지를 추가해 보세요!", style: TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w700)),
         ],
       ),
     );
