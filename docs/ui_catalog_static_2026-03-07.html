@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkNote UI Static Catalog</title>
+  <style>
+    :root { --bg:#08111f; --panel:#0f1c33; --text:#edf4ff; --muted:#9bb0d0; --blue:#5b8cff; --warn:#ffb454; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Segoe UI,Arial,sans-serif; background:linear-gradient(180deg,#0a1427,#08111f); color:var(--text); }
+    .wrap { max-width:1200px; margin:0 auto; padding:24px; }
+    .panel { background:rgba(15,28,51,.94); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:20px; margin-bottom:18px; }
+    h1,h2,h3 { margin-top:0; }
+    p,li { line-height:1.7; }
+    code { background:rgba(255,255,255,.08); padding:2px 6px; border-radius:8px; }
+    a { color:#b4cbff; }
+    .tag { display:inline-block; padding:4px 10px; border-radius:999px; background:rgba(91,140,255,.14); color:#d3e0ff; font-size:12px; font-weight:700; margin-bottom:10px; }
+    .warn { color:var(--warn); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>WorkNote UI Static Catalog</h1>
+      <p>Generated: 2026-03-07<br>Mode: execution-free UI catalog<br>Basis: source code + project docs only</p>
+    </div>
+    <div class="panel">
+      <h2>Environment Summary</h2>
+      <ul>
+        <li><code>flutter</code>, <code>dart</code>, and <code>adb</code> are not directly available in the current shell PATH.</li>
+        <li>No app launch, screenshot capture, or XML dump was performed for this report.</li>
+        <li>This is a source-based UI map only.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Critical Findings Before Any Redesign</h2>
+      <ul>
+        <li class="warn">Encoding damage is already present in docs and multiple user-facing UI files.</li>
+        <li class="warn">Gallery currently contains a dead floating action button.</li>
+        <li class="warn">Messenger has a clearer premium-dark system than the rest of the app, so the product visual language is split.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Home</span>
+      <h2>Home / Drawer</h2>
+      <p>Main dashboard and context hub for user, team, project summary, and quick entry points.</p>
+      <ul>
+        <li>Source: <code>lib/app/main_shell.dart</code>, <code>lib/app/widgets/master_drawer.dart</code>, <code>lib/features/home/ui/home_tab.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Modules &gt; Home</code>, <code>ARCHITECTURE.md - 1. Product Identity</code>, <code>ARCHITECTURE.md - 4.2 Team/Group</code></li>
+        <li class="warn">Drawer mixes risky actions with normal management flows.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Tasks</span>
+      <h2>Tasks</h2>
+      <p>High-density task management surface with a compact control strip, card/list variants, and creation sheet.</p>
+      <ul>
+        <li>Source: <code>task_tab.dart</code>, <code>task_filter_bar.dart</code>, <code>add_task_sheet.dart</code>, <code>task_card.dart</code>, <code>task_masonry_card.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Providers &gt; TaskProvider</code>, <code>ARCHITECTURE.md - 4.3 Tasks</code></li>
+        <li class="warn">Top controls look structurally dense even before runtime validation.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Schedule</span>
+      <h2>Schedule</h2>
+      <p>Calendar-first planning view with search, month navigation, mode toggle, and all-team aggregation.</p>
+      <ul>
+        <li>Source: <code>lib/features/schedule/ui/schedule_tab.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Providers &gt; ScheduleProvider</code>, <code>ARCHITECTURE.md - 4.4 Schedule</code></li>
+        <li class="warn">A crash/debug action still exists in the app bar.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Journal</span>
+      <h2>Journal</h2>
+      <p>Feed-plus-composer module that links notes, tasks, projects, privacy, and photos.</p>
+      <ul>
+        <li>Source: <code>journal_tab.dart</code>, <code>journal_write_sheet.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Modules &gt; Journal</code>, <code>ARCHITECTURE.md - 4.5 Journal</code></li>
+        <li class="warn">Composer density is high and text damage reduces clarity further.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Gallery</span>
+      <h2>Gallery</h2>
+      <p>Date-grouped media browsing using masonry layout and network/local image rendering.</p>
+      <ul>
+        <li>Source: <code>lib/features/gallery/ui/gallery_tab.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Modules &gt; Gallery</code>, <code>ARCHITECTURE.md - 4.6 Gallery</code></li>
+        <li class="warn">Floating action button currently has no implementation.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="tag">Messenger</span>
+      <h2>Messenger</h2>
+      <p>The strongest premium-dark implementation in the product, with thread selection, message list, composer, and send CTA.</p>
+      <ul>
+        <li>Source: <code>lib/features/chat/ui/messenger_tab.dart</code></li>
+        <li>Docs: <code>PROJECT_MAP.md - Providers &gt; ChatProvider</code>, <code>ARCHITECTURE.md - 4.7 Messenger</code>, <code>PATCHLOG.md - v2 Patch Package</code></li>
+        <li class="warn">Messenger feels more systematized than the rest of the app, which exposes global design inconsistency.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Priority Suggestions</h2>
+      <ul>
+        <li>P0: repair encoding damage</li>
+        <li>P0: remove or gate schedule crash action</li>
+        <li>P0: replace gallery dead FAB</li>
+        <li>P1: simplify Tasks control strip</li>
+        <li>P1: reorganize Home drawer risk actions</li>
+        <li>P2: decide whether premium dark remains messenger-only or expands further</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -4,7 +4,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 
 /// Google Drive sync service using JSON files.
-/// 
+///
 /// Files:
 /// - worknote_teams.json
 /// - worknote_chats.json
@@ -26,7 +26,10 @@ class DriveService {
 
   /// Generic JSON sync: Read -> Merge -> Write
   /// - policy: union by 'id', timestamp priority
-  Future<List<dynamic>?> syncJsonData(List<dynamic> localData, String fileName) async {
+  Future<List<dynamic>?> syncJsonData(
+    List<dynamic> localData,
+    String fileName,
+  ) async {
     if (!isReady) return null;
 
     try {
@@ -46,7 +49,15 @@ class DriveService {
     final fileId = await _getFileId(fileName);
     if (fileId == null) return null;
 
-    final response = await _api!.files.get(fileId, downloadOptions: drive.DownloadOptions.metadata) as drive.Media;
+    final response = await _api!.files.get(
+      fileId,
+      downloadOptions: drive.DownloadOptions.fullMedia,
+    );
+    if (response is! drive.Media) {
+      debugPrint("❌ Drive read failed ($fileName): non-media response");
+      return null;
+    }
+
     final List<int> data = [];
     await for (final chunk in response.stream) {
       data.addAll(chunk);
@@ -54,7 +65,7 @@ class DriveService {
 
     final content = utf8.decode(data);
     if (content.isEmpty) return [];
-    
+
     return json.decode(content);
   }
 
@@ -86,14 +97,21 @@ class DriveService {
   // --- Private Helpers ---
 
   Future<String?> _getFileId(String name) async {
-    final list = await _api!.files.list(q: "name = '$name' and trashed = false", spaces: 'drive');
+    final list = await _api!.files.list(
+      q: "name = '$name' and trashed = false",
+      spaces: 'drive',
+    );
     if (list.files == null || list.files!.isEmpty) return null;
     return list.files!.first.id;
   }
 
   Future<String> _getOrCreateFolder(String folderName) async {
-    final list = await _api!.files.list(q: "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
-    if (list.files != null && list.files!.isNotEmpty) return list.files!.first.id!;
+    final list = await _api!.files.list(
+      q: "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+    );
+    if (list.files != null && list.files!.isNotEmpty) {
+      return list.files!.first.id!;
+    }
 
     final folder = drive.File()
       ..name = folderName
@@ -130,8 +148,12 @@ class DriveService {
       }
     }
 
-    for (var x in a) { process(x); }
-    for (var x in b) { process(x); }
+    for (var x in a) {
+      process(x);
+    }
+    for (var x in b) {
+      process(x);
+    }
 
     return map.values.toList();
   }

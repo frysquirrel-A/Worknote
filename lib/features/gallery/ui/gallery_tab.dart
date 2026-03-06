@@ -4,12 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 
 class GalleryTab extends StatelessWidget {
   const GalleryTab({super.key});
+
+  void _showNotReadyMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('사진 추가는 일지 작성 화면에서 먼저 지원됩니다.'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +33,7 @@ class GalleryTab extends StatelessWidget {
     for (final journal in teamJournals) {
       if (journal.photos.isEmpty) continue;
       final dateKey = DateFormat('yyyy-MM-dd').format(journal.date);
-      groupedPhotos
-          .putIfAbsent(dateKey, () => <String>[])
-          .addAll(journal.photos);
+      groupedPhotos.putIfAbsent(dateKey, () => <String>[]).addAll(journal.photos);
     }
 
     final sortedKeys = groupedPhotos.keys.toList()
@@ -48,7 +55,7 @@ class GalleryTab extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () {},
+            onPressed: () => _showNotReadyMessage(context),
           ),
         ],
       ),
@@ -75,7 +82,7 @@ class GalleryTab extends StatelessWidget {
                             width: 4,
                             height: 16,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB),
+                              color: AppColors.premiumBlue,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -122,8 +129,8 @@ class GalleryTab extends StatelessWidget {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2563EB),
-        onPressed: () {},
+        backgroundColor: AppColors.premiumBlue,
+        onPressed: () => _showNotReadyMessage(context),
         child: const Icon(Icons.camera_alt_rounded, color: Colors.white),
       ),
     );

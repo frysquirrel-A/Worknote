@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/app/widgets/master_drawer.dart';
+import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/auth/ui/profile_selection_page.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
@@ -110,15 +111,16 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppPalette.shellBackground,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.darkBg,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.menu_open_rounded,
             size: 28,
-            color: Colors.black87,
+            color: AppColors.darkText,
           ),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
@@ -128,15 +130,15 @@ class _MainShellState extends State<MainShell> {
             const Text(
               'WORKNOTE Master',
               style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w600,
+                color: AppColors.darkText,
+                fontWeight: FontWeight.w700,
                 fontSize: 20,
               ),
             ),
             Text(
               currentName,
               style: const TextStyle(
-                color: Colors.black45,
+                color: AppColors.darkHint,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -148,14 +150,14 @@ class _MainShellState extends State<MainShell> {
             tooltip: '프로필 전환',
             icon: const Icon(
               Icons.switch_account_rounded,
-              color: Colors.black87,
+              color: AppColors.darkText,
             ),
             onPressed: _openProfileManager,
           ),
           IconButton(
             icon: const Icon(
               Icons.notifications_active_outlined,
-              color: Colors.black87,
+              color: AppColors.darkText,
             ),
             onPressed: () {},
           ),
@@ -167,10 +169,10 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.only(top: 4, bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.darkBg,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.16),
               blurRadius: 15,
               offset: const Offset(0, -2),
             ),
@@ -182,22 +184,22 @@ class _MainShellState extends State<MainShell> {
               labelTextStyle: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return const TextStyle(
-                    color: Color(0xFF2563EB),
+                    color: AppColors.premiumBlue,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   );
                 }
                 return const TextStyle(
-                  color: Colors.black87,
+                  color: AppColors.darkHint,
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
                 );
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const IconThemeData(color: Color(0xFF2563EB));
+                  return const IconThemeData(color: AppColors.premiumBlue);
                 }
-                return const IconThemeData(color: Colors.black87);
+                return const IconThemeData(color: AppColors.darkHint);
               }),
             ),
             child: NavigationBar(
@@ -210,7 +212,7 @@ class _MainShellState extends State<MainShell> {
                 HapticFeedback.selectionClick();
                 setState(() => _selectedIndex = idx);
               },
-              indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.08),
+              indicatorColor: AppColors.premiumBlue.withValues(alpha: 0.18),
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               destinations: const [
                 NavigationDestination(

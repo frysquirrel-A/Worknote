@@ -1,0 +1,29 @@
+WorkNote runtime visual review session: 2026-03-07_010008
+Mode: reuse existing safe captures only; no new runtime actions performed while generating this report.
+
+Recommended next manual actions:
+- Review the external branch triggered from Home and identify the exact control or deep link responsible.
+- Decide whether Tasks top controls should be simplified for one-handed use.
+- Decide whether Messenger's premium-dark direction should remain unique or become a broader shell language.
+
+Unsafe actions avoided:
+- Google sign-in
+- Account picker
+- Browser or webview auth
+- Logout
+- Reset or delete flows
+- Payment flows
+
+Unresolved blockers:
+- Home exploration can unexpectedly leave the app and open Google Calendar.
+- Back navigation after the external branch lands on the Android launcher.
+- Messenger thread-picker tap produced no visible state change in this session.
+
+Visited areas:
+- Home
+- Tasks
+- Schedule
+- Journal
+- Gallery
+- Messenger
+- External/Auth/Unexpected

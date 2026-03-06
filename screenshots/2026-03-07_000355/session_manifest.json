@@ -1,0 +1,117 @@
+{
+  "session_folder": "C:\\Users\\Ryzen\\Desktop\\Flutter_App_Dev\\dev\\worknote\\screenshots\\2026-03-07_000355",
+  "generated_at": "2026-03-07T00:32:29",
+  "step_count": 18,
+  "current_visible_screen_summary": "??? ??? ?? ???? ??? ?? ?? ?? ??",
+  "ui_type": "?? WorkNote UI",
+  "action_history": [
+    {
+      "step": 1,
+      "screen": "step_01_home_root",
+      "action": "? ?? ? ? ?? ?? ??",
+      "section": "Home"
+    },
+    {
+      "step": 2,
+      "screen": "step_02_home_drawer",
+      "action": "?? ??? ?? ??",
+      "section": "Home"
+    },
+    {
+      "step": 3,
+      "screen": "step_03_home_profile_switch",
+      "action": "??? ??? ?? ?? ?",
+      "section": "Home"
+    },
+    {
+      "step": 4,
+      "screen": "step_04_home_notifications",
+      "action": "??? ?? ?? ?",
+      "section": "Home"
+    },
+    {
+      "step": 5,
+      "screen": "step_04b_home_team_card",
+      "action": "?? ? ?? ?",
+      "section": "Home"
+    },
+    {
+      "step": 6,
+      "screen": "step_04c_home_member_card",
+      "action": "?? ?? ?? ?",
+      "section": "Home"
+    },
+    {
+      "step": 7,
+      "screen": "step_05_tasks_root",
+      "action": "?? Tasks ? ??",
+      "section": "Tasks"
+    },
+    {
+      "step": 8,
+      "screen": "step_06_tasks_due_filter",
+      "action": "?? ??? ?? ?",
+      "section": "Tasks"
+    },
+    {
+      "step": 9,
+      "screen": "step_07_tasks_add_form",
+      "action": "?? ?? CTA ?",
+      "section": "Tasks"
+    },
+    {
+      "step": 10,
+      "screen": "step_08_schedule_root",
+      "action": "?? Schedule ? ??",
+      "section": "Schedule"
+    },
+    {
+      "step": 11,
+      "screen": "step_09_schedule_prev_month",
+      "action": "?? ? ??? ?",
+      "section": "Schedule"
+    },
+    {
+      "step": 12,
+      "screen": "step_10_schedule_all_teams",
+      "action": "?? ? ?? ?? ?",
+      "section": "Schedule"
+    },
+    {
+      "step": 13,
+      "screen": "step_11_journal_root",
+      "action": "?? Journal ? ??",
+      "section": "Journal"
+    },
+    {
+      "step": 14,
+      "screen": "step_12_journal_status_filter",
+      "action": "?? ?? ?? ? ?",
+      "section": "Journal"
+    },
+    {
+      "step": 15,
+      "screen": "step_12b_journal_write_form",
+      "action": "?? ?? CTA ?",
+      "section": "Journal"
+    },
+    {
+      "step": 16,
+      "screen": "step_13_gallery_root",
+      "action": "?? Gallery ? ??",
+      "section": "Gallery"
+    },
+    {
+      "step": 17,
+      "screen": "step_14_messenger_root",
+      "action": "?? Messenger ? ??",
+      "section": "Messenger"
+    },
+    {
+      "step": 18,
+      "screen": "step_15_messenger_thread_picker",
+      "action": "??? ?? ?? ?",
+      "section": "Messenger"
+    }
+  ]
+}

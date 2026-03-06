@@ -1,8 +1,8 @@
 ﻿# PROJECT_MAP.md — WorkNote Project Map (Codex)
 
 ## Purpose
-This file is a fast navigation map for Codex.  
-WorkNote is a multi-context collaboration app (work + family + couples + clubs + communities).  
+This file is a fast navigation map for Codex.
+WorkNote is a multi-context collaboration app (work + family + couples + clubs + communities).
 The app organizes life contexts into multiple Groups and provides unified management:
 Tasks / Schedule / Journal / Gallery / Messenger.
 
@@ -31,7 +31,7 @@ PATCH ONLY. No architecture refactors. No file/folder renames. No feature remova
     - `currentUser`
     - `currentProfile`
   - Local-first + Google multi-profile concept exists.
-  - Any auth work must NOT refactor unrelated screens.
+  - Any auth work must not refactor unrelated screens.
 
 - **TeamProvider**
   - Handles team/group switching.

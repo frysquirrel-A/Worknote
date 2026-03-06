@@ -50,8 +50,9 @@ class _JournalTabState extends State<JournalTab> {
           j.title.toLowerCase().contains(q) ||
           j.content.toLowerCase().contains(q);
       if (!matchesTeam || !matchesSearch) return false;
-      if (_kindFilter != null && journalProv.getKind(j.id) != _kindFilter)
+      if (_kindFilter != null && journalProv.getKind(j.id) != _kindFilter) {
         return false;
+      }
       return true;
     }).toList();
 
@@ -139,10 +140,16 @@ class _JournalTabState extends State<JournalTab> {
           const SizedBox(height: 8),
           Expanded(
             child: allJournals.isEmpty
-                ? const EmptyStatePlaceholder(
+                ? EmptyStatePlaceholder(
                     icon: Icons.menu_book_outlined,
                     title: '조건에 맞는 일지가 없어요',
                     description: '검색 조건을 바꾸거나 새 일지를 작성해 보세요.',
+                    ctaLabel: '+ 첫 일지 작성하기',
+                    onTap: () => showJournalWriteSheet(
+                      context: context,
+                      myId: myId,
+                      myName: myName,
+                    ),
                     compact: true,
                   )
                 : _viewMode == '일별'

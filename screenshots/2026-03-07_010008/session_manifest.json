@@ -1,0 +1,487 @@
+{
+    "sessionFolder":  "C:\\Users\\Ryzen\\Desktop\\Flutter_App_Dev\\dev\\worknote\\screenshots\\2026-03-07_010008",
+    "sessionName":  "2026-03-07_010008",
+    "createdAt":  "2026-03-07T01:12:33",
+    "mode":  "runtime visual review report from existing captures only",
+    "totalSteps":  13,
+    "counts":  {
+                   "internalScreens":  11,
+                   "externalScreens":  2,
+                   "repeatedScreens":  null,
+                   "blankScreens":  0,
+                   "anrScreens":  0
+               },
+    "visitedAreas":  [
+                         "Home",
+                         "Tasks",
+                         "Schedule",
+                         "Journal",
+                         "Gallery",
+                         "Messenger",
+                         "External/Auth/Unexpected"
+                     ],
+    "unsafeActionsAvoided":  [
+                                 "Google sign-in",
+                                 "Account picker",
+                                 "Browser or webview auth",
+                                 "Logout",
+                                 "Reset or delete flows",
+                                 "Payment or purchase flows"
+                             ],
+    "blockers":  [
+                     "One internal-looking action opened an external Google Calendar branch.",
+                     "Back navigation from the external branch returned to the Android launcher.",
+                     "Messenger picker tap produced no visible change in this session."
+                 ],
+    "steps":  [
+                  {
+                      "stepNumber":  1,
+                      "key":  "launch",
+                      "fileBase":  "step_01_launch",
+                      "title":  "Launch state with member detail sheet",
+                      "action":  "Launch app into last visible internal state",
+                      "classification":  "Home",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Home dashboard is visible with a member detail bottom sheet already open. The screen shows greeting, current team card, member strip, project status cards, and a message CTA in the sheet.",
+                      "visibleFeatures":  [
+                                              "Greeting header",
+                                              "Current team selector card",
+                                              "Team member avatars",
+                                              "Project status area",
+                                              "Bottom sheet with message CTA",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Light dashboard shell with rounded cards and a modal bottom sheet for member-specific quick action.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: App Shell \u0026 Navigation \u003e Drawer",
+                                           "PROJECT_MAP.md: Modules \u003e Home",
+                                           "ARCHITECTURE.md: 1. Product Identity",
+                                           "ARCHITECTURE.md: 4.2 Team/Group"
+                                       ],
+                      "findings":  [
+                                       "App can reopen into a transient sheet state rather than a clean root screen."
+                                   ],
+                      "pngFile":  "step_01_launch.png",
+                      "xmlFile":  "step_01_launch.xml",
+                      "pngSize":  128846,
+                      "xmlSize":  5064
+                  },
+                  {
+                      "stepNumber":  2,
+                      "key":  "home-root",
+                      "fileBase":  "step_02_home_root",
+                      "title":  "Stable Home root",
+                      "action":  "Dismiss transient sheet and stabilize Home root",
+                      "classification":  "Home",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Stable Home screen with greeting, current team card, member list, project status section, today task cards, floating AI shortcut, and bottom navigation.",
+                      "visibleFeatures":  [
+                                              "Top app bar",
+                                              "Greeting and profile text",
+                                              "Current team card",
+                                              "Member row",
+                                              "Project status section",
+                                              "Today task section",
+                                              "Floating chat/AI shortcut",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Card-based operational dashboard. Most surfaces are light with blue accents and generous spacing.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Home",
+                                           "ARCHITECTURE.md: 1. Product Identity",
+                                           "AI_CHECKLIST.md: 6. UI REGRESSION SAFETY"
+                                       ],
+                      "findings":  [
+                                       "Home acts as the main operational dashboard, but the number of card blocks makes first-glance scanning busy."
+                                   ],
+                      "pngFile":  "step_02_home_root.png",
+                      "xmlFile":  "step_02_home_root.xml",
+                      "pngSize":  165276,
+                      "xmlSize":  16460
+                  },
+                  {
+                      "stepNumber":  3,
+                      "key":  "home-drawer",
+                      "fileBase":  "step_03_home_drawer",
+                      "title":  "Drawer root",
+                      "action":  "Open drawer from Home",
+                      "classification":  "Home",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Drawer exposes team management, Google Drive connection, profile management, theme settings, app reset, feedback, and logout.",
+                      "visibleFeatures":  [
+                                              "Profile summary",
+                                              "Team management",
+                                              "Google Drive integration",
+                                              "Profile switch",
+                                              "Theme settings",
+                                              "App reset",
+                                              "Feedback",
+                                              "Logout"
+                                          ],
+                      "designConcept":  "Administrative side rail for context and account management. High-risk actions are mixed with ordinary settings.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: App Shell \u0026 Navigation \u003e Drawer",
+                                           "ARCHITECTURE.md: 4.1 Auth / Profiles",
+                                           "AI_CHECKLIST.md: 8. RELEASE SAFETY"
+                                       ],
+                      "findings":  [
+                                       "Reset and logout sit close to ordinary options, which raises accidental-action risk."
+                                   ],
+                      "pngFile":  "step_03_home_drawer.png",
+                      "xmlFile":  "step_03_home_drawer.xml",
+                      "pngSize":  116901,
+                      "xmlSize":  10806
+                  },
+                  {
+                      "stepNumber":  4,
+                      "key":  "external-calendar",
+                      "fileBase":  "step_04_home_team_sheet",
+                      "title":  "Unexpected external branch",
+                      "action":  "Tap a team-related control from Home area",
+                      "classification":  "External/Auth/Unexpected",
+                      "internalUi":  false,
+                      "externalUi":  true,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "The interaction leaves WorkNote and opens a Google Calendar / Workspace screen instead of a safe internal sheet.",
+                      "visibleFeatures":  [
+                                              "Google Calendar branding",
+                                              "External app shell",
+                                              "Not a WorkNote surface"
+                                          ],
+                      "designConcept":  "This is not an internal app design. It is an unintended external branch during review.",
+                      "documentRefs":  [
+                                           "AGENTS.md: Dangerous Actions",
+                                           "ARCHITECTURE.md: 4.2 Team/Group",
+                                           "AI_CHECKLIST.md: 8. RELEASE SAFETY"
+                                       ],
+                      "findings":  [
+                                       "A seemingly internal team action can escape into an external Google app. This is a review blocker for automated exploration."
+                                   ],
+                      "pngFile":  "step_04_home_team_sheet.png",
+                      "xmlFile":  "step_04_home_team_sheet.xml",
+                      "pngSize":  48982,
+                      "xmlSize":  32193
+                  },
+                  {
+                      "stepNumber":  5,
+                      "key":  "launcher-after-external",
+                      "fileBase":  "step_05_launcher_after_external",
+                      "title":  "Android launcher after external branch",
+                      "action":  "Press back after external app opened",
+                      "classification":  "External/Auth/Unexpected",
+                      "internalUi":  false,
+                      "externalUi":  true,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Back navigation exits to the Android launcher instead of returning directly to WorkNote.",
+                      "visibleFeatures":  [
+                                              "Android home screen",
+                                              "Third-party launcher UI",
+                                              "No WorkNote content"
+                                          ],
+                      "designConcept":  "Not an app design state; this captures control loss after an external branch.",
+                      "documentRefs":  [
+                                           "AGENTS.md: Dangerous Actions",
+                                           "AI_CHECKLIST.md: 14. STOP CONDITIONS"
+                                       ],
+                      "findings":  [
+                                       "Once the external branch is opened, safe exploration loses app context and must recover manually."
+                                   ],
+                      "pngFile":  "step_05_launcher_after_external.png",
+                      "xmlFile":  "step_05_launcher_after_external.xml",
+                      "pngSize":  1394091,
+                      "xmlSize":  13653
+                  },
+                  {
+                      "stepNumber":  6,
+                      "key":  "tasks-root",
+                      "fileBase":  "step_06_tasks_root",
+                      "title":  "Tasks root",
+                      "action":  "Return to WorkNote and switch to Tasks",
+                      "classification":  "Tasks",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Tasks root shows filter boxes, view toggles, grouped task sections, custom cards, and an add-task CTA.",
+                      "visibleFeatures":  [
+                                              "Filter controls",
+                                              "List/grid/view toggles",
+                                              "Grouped task sections by date",
+                                              "Rich task cards",
+                                              "Add task CTA",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Dense productivity board with compact filters and information-rich cards.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Tasks",
+                                           "ARCHITECTURE.md: 4.3 Tasks",
+                                           "AI_CHECKLIST.md: 6. UI REGRESSION SAFETY"
+                                       ],
+                      "findings":  [
+                                       "The top control strip is visually dense and likely easy to mis-tap on small screens."
+                                   ],
+                      "pngFile":  "step_06_tasks_root.png",
+                      "xmlFile":  "step_06_tasks_root.xml",
+                      "pngSize":  235442,
+                      "xmlSize":  17399
+                  },
+                  {
+                      "stepNumber":  7,
+                      "key":  "tasks-add-form",
+                      "fileBase":  "step_07_tasks_add_form",
+                      "title":  "Add-task form",
+                      "action":  "Open add-task flow from Tasks",
+                      "classification":  "Tasks",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Bottom-sheet task form with title input, assignee, project, due date, priority, plan options, and save CTA.",
+                      "visibleFeatures":  [
+                                              "Title field",
+                                              "Assignee selector",
+                                              "Project selector",
+                                              "Due date",
+                                              "Priority control",
+                                              "Plan/calendar toggle",
+                                              "Save CTA"
+                                          ],
+                      "designConcept":  "Structured bottom-sheet composer optimized for task metadata entry.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Providers \u003e TaskProvider",
+                                           "PROJECT_MAP.md: Modules \u003e Tasks",
+                                           "ARCHITECTURE.md: 4.3 Tasks"
+                                       ],
+                      "findings":  [
+                                       "Form is functionally rich, but the metadata stack makes the sheet cognitively dense."
+                                   ],
+                      "pngFile":  "step_07_tasks_add_form.png",
+                      "xmlFile":  "step_07_tasks_add_form.xml",
+                      "pngSize":  189746,
+                      "xmlSize":  7332
+                  },
+                  {
+                      "stepNumber":  8,
+                      "key":  "schedule-root",
+                      "fileBase":  "step_08_schedule_root",
+                      "title":  "Schedule root",
+                      "action":  "Switch to Schedule",
+                      "classification":  "Schedule",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Monthly calendar view with month navigation, search, mode toggles, and combined schedule/task planning content below.",
+                      "visibleFeatures":  [
+                                              "Monthly calendar",
+                                              "Previous/next month arrows",
+                                              "Search",
+                                              "Mode toggles",
+                                              "Aggregated schedule cards",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Operational planning surface combining calendar navigation with grouped schedule content.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Schedule",
+                                           "ARCHITECTURE.md: 4.4 Schedule",
+                                           "PATCHLOG.md: v2 Patch Package"
+                                       ],
+                      "findings":  [
+                                       "Calendar navigation is core to this screen, so hitbox quality matters directly to usability."
+                                   ],
+                      "pngFile":  "step_08_schedule_root.png",
+                      "xmlFile":  "step_08_schedule_root.xml",
+                      "pngSize":  134341,
+                      "xmlSize":  41322
+                  },
+                  {
+                      "stepNumber":  9,
+                      "key":  "journal-root",
+                      "fileBase":  "step_09_journal_root",
+                      "title":  "Journal root",
+                      "action":  "Switch to Journal",
+                      "classification":  "Journal",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Journal feed root with filters, timeline/list content, write CTA, and feed cards.",
+                      "visibleFeatures":  [
+                                              "Journal list/feed",
+                                              "Filters",
+                                              "Write CTA",
+                                              "Content cards",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Feed-style content surface that balances browsing and quick entry.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Journal",
+                                           "ARCHITECTURE.md: 4.5 Journal",
+                                           "AI_CHECKLIST.md: 6. UI REGRESSION SAFETY"
+                                       ],
+                      "findings":  [
+                                       "Journal sits between feed and form mental models; entry points should stay visually obvious."
+                                   ],
+                      "pngFile":  "step_09_journal_root.png",
+                      "xmlFile":  "step_09_journal_root.xml",
+                      "pngSize":  148041,
+                      "xmlSize":  12133
+                  },
+                  {
+                      "stepNumber":  10,
+                      "key":  "journal-write-form",
+                      "fileBase":  "step_10_journal_write_form",
+                      "title":  "Journal write form",
+                      "action":  "Open write flow from Journal",
+                      "classification":  "Journal",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Write sheet exposes title/body composition plus attachment and relation controls.",
+                      "visibleFeatures":  [
+                                              "Title/body inputs",
+                                              "Attachment/photo actions",
+                                              "Relation selectors",
+                                              "Privacy or metadata controls",
+                                              "Save CTA"
+                                          ],
+                      "designConcept":  "Content-composer sheet with secondary structure for linked project/task context.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Journal",
+                                           "ARCHITECTURE.md: 4.5 Journal",
+                                           "AI_CHECKLIST.md: 5. PROVIDER LIFECYCLE SAFETY"
+                                       ],
+                      "findings":  [
+                                       "The sheet is feature-rich and likely needs clear hierarchy to avoid form fatigue."
+                                   ],
+                      "pngFile":  "step_10_journal_write_form.png",
+                      "xmlFile":  "step_10_journal_write_form.xml",
+                      "pngSize":  114214,
+                      "xmlSize":  8753
+                  },
+                  {
+                      "stepNumber":  11,
+                      "key":  "gallery-root",
+                      "fileBase":  "step_11_gallery_root",
+                      "title":  "Gallery root",
+                      "action":  "Switch to Gallery",
+                      "classification":  "Gallery",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Gallery root shows date-grouped images with a floating camera/add button in the lower right.",
+                      "visibleFeatures":  [
+                                              "Date-grouped section",
+                                              "Image thumbnail",
+                                              "Overflow menu",
+                                              "Floating camera/add button",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Minimal archive view with strong whitespace and a single primary capture/import action.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Gallery",
+                                           "ARCHITECTURE.md: 4.6 Gallery",
+                                           "AI_CHECKLIST.md: 6. UI REGRESSION SAFETY"
+                                       ],
+                      "findings":  [
+                                       "Gallery looks visually clean, but the floating action must clearly communicate whether it is active or just a placeholder."
+                                   ],
+                      "pngFile":  "step_11_gallery_root.png",
+                      "xmlFile":  "step_11_gallery_root.xml",
+                      "pngSize":  234095,
+                      "xmlSize":  10901
+                  },
+                  {
+                      "stepNumber":  12,
+                      "key":  "messenger-root",
+                      "fileBase":  "step_12_messenger_root",
+                      "title":  "Messenger root",
+                      "action":  "Switch to Messenger",
+                      "classification":  "Messenger",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  false,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "Messenger root uses a premium dark surface, a thread selector, empty-state center, and a bottom composer with send CTA.",
+                      "visibleFeatures":  [
+                                              "Thread selector",
+                                              "Dark background",
+                                              "Empty-state placeholder",
+                                              "Composer input",
+                                              "Send button",
+                                              "Bottom navigation"
+                                          ],
+                      "designConcept":  "Messenger is the strongest premium-dark surface in the app, with a focused chat-first layout.",
+                      "documentRefs":  [
+                                           "PROJECT_MAP.md: Modules \u003e Messenger",
+                                           "ARCHITECTURE.md: 4.7 Messenger",
+                                           "PATCHLOG.md: v2 Patch Package",
+                                           "AI_CHECKLIST.md: 7. MESSENGER SAFETY"
+                                       ],
+                      "findings":  [
+                                       "Messenger is visually more coherent than the lighter tabs, which makes the app-wide design language feel split."
+                                   ],
+                      "pngFile":  "step_12_messenger_root.png",
+                      "xmlFile":  "step_12_messenger_root.xml",
+                      "pngSize":  93840,
+                      "xmlSize":  9616
+                  },
+                  {
+                      "stepNumber":  13,
+                      "key":  "messenger-thread-picker-repeat",
+                      "fileBase":  "step_13_messenger_thread_picker",
+                      "title":  "Messenger repeated state after picker tap",
+                      "action":  "Tap near the thread-picker control",
+                      "classification":  "Messenger",
+                      "internalUi":  true,
+                      "externalUi":  false,
+                      "repeated":  true,
+                      "blank":  false,
+                      "anr":  false,
+                      "screenSummary":  "The resulting screen is visually identical to the previous Messenger root. The attempted picker interaction did not create a meaningful state change.",
+                      "visibleFeatures":  [
+                                              "Same thread selector",
+                                              "Same empty state",
+                                              "Same composer",
+                                              "No visible dropdown or sheet"
+                                          ],
+                      "designConcept":  "Repeated state capture used to prove that the interaction did not transition to a new visible screen.",
+                      "documentRefs":  [
+                                           "AI_CHECKLIST.md: 14. STOP CONDITIONS",
+                                           "ARCHITECTURE.md: 4.7 Messenger"
+                                       ],
+                      "findings":  [
+                                       "The attempted thread-picker interaction appears to have no visible feedback in this capture sequence."
+                                   ],
+                      "pngFile":  "step_13_messenger_thread_picker.png",
+                      "xmlFile":  "step_13_messenger_thread_picker.xml",
+                      "pngSize":  93840,
+                      "xmlSize":  9616
+                  }
+              ]
+}

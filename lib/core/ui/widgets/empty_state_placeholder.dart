@@ -9,6 +9,7 @@ class EmptyStatePlaceholder extends StatelessWidget {
   final String? ctaLabel;
   final VoidCallback? onTap;
   final bool compact;
+  final bool dark;
 
   const EmptyStatePlaceholder({
     super.key,
@@ -18,12 +19,18 @@ class EmptyStatePlaceholder extends StatelessWidget {
     this.ctaLabel,
     this.onTap,
     this.compact = false,
+    this.dark = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final iconSize = compact ? 36.0 : 56.0;
     final outerPadding = compact ? 18.0 : 24.0;
+    final shellColor = dark ? AppColors.darkSurface : AppColors.surface;
+    final borderColor = dark ? AppColors.darkBorder : AppColors.border;
+    final iconColor = dark ? AppColors.darkHint : AppColors.muted;
+    final titleColor = dark ? AppColors.darkText : AppColors.text;
+    final descriptionColor = dark ? AppColors.darkHint : AppColors.hint;
 
     return Center(
       child: Padding(
@@ -34,25 +41,25 @@ class EmptyStatePlaceholder extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(outerPadding),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: shellColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: borderColor),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black.withValues(alpha: dark ? 0.18 : 0.06),
                     blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: Icon(icon, size: iconSize, color: AppColors.muted),
+              child: Icon(icon, size: iconSize, color: iconColor),
             ),
             const SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.text,
+              style: TextStyle(
+                color: titleColor,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -61,8 +68,8 @@ class EmptyStatePlaceholder extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.hint,
+              style: TextStyle(
+                color: descriptionColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 height: 1.45,
@@ -70,11 +77,11 @@ class EmptyStatePlaceholder extends StatelessWidget {
             ),
             if (ctaLabel != null && onTap != null) ...[
               const SizedBox(height: 18),
-              FilledButton.icon(
+              ElevatedButton.icon(
                 onPressed: onTap,
                 icon: const Icon(Icons.add_rounded),
                 label: Text(ctaLabel!),
-                style: FilledButton.styleFrom(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -90,4 +97,3 @@ class EmptyStatePlaceholder extends StatelessWidget {
     );
   }
 }
-

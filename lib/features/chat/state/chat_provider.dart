@@ -281,15 +281,22 @@ class ChatProvider extends ChangeNotifier {
     );
     if (data == null) return;
 
-    _allMessages = data
+    final box = Hive.box<ChatMessage>('messages');
+    final mergedById = <String, ChatMessage>{
+      for (final local in box.values) local.id: local,
+    };
+
+    final syncedMessages = data
         .map((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e)))
         .toList();
 
-    final box = Hive.box<ChatMessage>('messages');
-    await box.clear();
-    for (final m in _allMessages) {
+    for (final m in syncedMessages) {
+      mergedById[m.id] = m;
       await box.put(m.id, m);
     }
+
+    _allMessages = mergedById.values.toList()
+      ..sort((a, b) => a.sentAt.compareTo(b.sentAt));
 
     notifyListeners();
   }

@@ -1,8 +1,8 @@
 ﻿# ARCHITECTURE.md — WorkNote Architecture & Patch Rules
 
 ## 1. Product Identity
-WorkNote is NOT a construction-only app.  
-It’s a multi-context collaboration hub: work + family + couples + clubs + communities.  
+WorkNote is NOT a construction-only app.
+It’s a multi-context collaboration hub: work + family + couples + clubs + communities.
 Users separate life contexts into multiple **Groups** and manage them in one app.
 
 ## 2. Technical Stack

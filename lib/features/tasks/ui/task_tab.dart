@@ -33,7 +33,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   TaskSortField _sortField = TaskSortField.dueDate;
   bool _isDescending = true;
 
-  // 그룹 구분 보기 상태 변수 (TaskFilterBar로 전달됨)
+  // ?? ?? ?? ??? TaskFilterBar? ????.
   final bool _showGroupHeaders = true;
 
   // Filter Local State
@@ -163,10 +163,12 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
 
           Expanded(
             child: filteredTasks.isEmpty
-                ? const EmptyStatePlaceholder(
+                ? EmptyStatePlaceholder(
                     icon: Icons.task_alt_rounded,
                     title: '조건에 맞는 업무가 없어요',
                     description: '필터를 조정하거나 새로운 업무를 추가해 보세요.',
+                    ctaLabel: '+ 첫 업무 추가하기',
+                    onTap: () => showAddTaskSheet(context: context),
                     compact: true,
                   )
                 : _showGroupHeaders

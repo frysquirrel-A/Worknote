@@ -1,44 +1,385 @@
-# WorkNote 개선 체크리스트 (AI 작업용)
+﻿# AI_CHECKLIST.md — WorkNote Safe Patch Checklist for Codex
 
-이 체크리스트는 프로젝트의 현재 상태와 남은 작업, 그리고 최근에 완료된 핵심 마일스톤을 관리합니다.
+## Purpose
+This file is a safety checklist for AI agents working on the WorkNote Flutter repository.
 
-## 최근 완료된 핵심 작업 (v1.2)
-- [x] **홈(Home) 탭 대개편**: 뷰 설정 카드(묶어보기/각각보기/슬라이드뷰) 추가 및 상태 유지 적용.
-- [x] **업무(Tasks) 카드 혁신**: 리스트/갤러리 하이브리드 디자인 및 모든 날짜 정보 2줄 밀집 배치 완료.
-- [x] **다중 팀 데이터 격리**: 팀 전환 시 프로젝트 및 업무 데이터가 완벽하게 분리되어 필터링되도록 보장.
-- [x] **명칭 통일**: '계획' 탭을 '스케줄'로 변경하여 사용자 직관성 강화.
-- [x] **샘플 데이터 엔진 고도화**: AppResetService를 통한 성격이 다른 3개 팀(건설, 가족, 개발) 자동 생성.
+Use this before and after every patch.
 
-## 1) 빌드/분석(상시 점검)
-- [x] `flutter clean` / `flutter pub get` 후 `flutter run` 빌드 성공
-- [x] `dart analyze` 에러 0개
-- [x] Hive 박스 오픈 순서 및 데이터 마이그레이션 안정화
-
-## 2) 홈(Home) 탭 UX
-- [x] 팀 선택 박스 및 글로벌 뷰 설정 토글 기능
-- [x] 프로필 팝업 개선 (중앙 정렬 아바타 + 하단 꽉 찬 메시지 버튼)
-- [x] 묶어보기 모드에서 하위 슬라이드와 메인 탭 간 제스처 충돌 방지 로직 적용
-- [x] `AutomaticKeepAliveClientMixin`을 통한 탭 이동 시 상태 유지
-
-## 3) 업무(Tasks) 탭 UX
-- [x] 프로젝트 태그(#) 및 진행 상태 배지 추가
-- [x] 날짜 정보(작성, 기한, 수정, 완료/일정)를 카드 중앙에 2줄로 촘촘하게 배치
-- [x] 작성자/담당자 정보를 우측에 수직 구분 배치하여 시인성 확보
-- [x] 캘린더 아이콘 터치 시 일정 탭 즉시 연동(Schedule Meta)
-- [x] 갤러리(Masonry) 뷰 정보 밀도 보강 (리스트뷰와 정보 수준 동기화)
-
-## 4) 스케줄(Schedule) 탭
-- [x] 하단 네비게이션 라벨 '스케줄'로 변경
-- [x] 업무 탭의 '일정 포함' 토글 결과가 달력/리스트에 실시간 반영
-
-## 5) 일지(Journal) 및 사진(Gallery) 탭
-- [x] 일지 작성/수정 시트 안정화
-- [ ] (추가 예정) 일지 목록의 필터링 및 검색 강화
-- [ ] (추가 예정) 갤러리 빈 상태 UX 및 다중 업로드 가이드
-
-## 6) 시스템/관리자
-- [x] AppResetService: 팀별 독립된 멤버/역할/프로젝트 생성 로직 완비
-- [x] 팀 전환 시 Provider 레벨에서의 데이터 격리 로직 점검 완료
+The priority is:
+1. Do not break existing features
+2. Do not corrupt data
+3. Do not regress UI
+4. Do not refactor architecture unless explicitly requested
 
 ---
-**주의**: 모든 UI 수정 시 `AppColors` 및 `AppPalette`를 사용하여 테마 일관성을 유지하고, Flutter 최신 버전의 `withValues(alpha: ...)` 패턴을 준수해야 합니다.
+
+## 1. PATCH ONLY RULE
+Before modifying anything, confirm:
+- Am I applying a minimal diff?
+- Am I preserving file names and folder structure?
+- Am I keeping existing functionality?
+- Am I avoiding broad refactors?
+
+If the answer is "no" to any of these, STOP and report.
+
+---
+
+## 2. PROTECTED FILES
+These files are protected and must not be modified unless the user explicitly approves:
+- lib/features/tasks/ui/widgets/task_card.dart
+- lib/features/tasks/ui/widgets/task_masonry_card.dart
+
+If a requested fix seems to require editing these files:
+- STOP
+- explain why
+- ask for explicit approval
+
+---
+
+## 3. ARCHITECTURE GUARDRAILS
+Do NOT change these unless explicitly asked:
+- Provider-based state architecture
+- Hive persistence model
+- Firebase integration structure
+- Main tab structure
+- Drawer-based major navigation
+- AuthProvider public compatibility:
+  - currentUser
+  - currentProfile
+
+Do not replace Provider with another state management solution.
+Do not move features between layers.
+
+---
+
+## 4. HIVE / LOCAL DATA SAFETY
+Before touching persistence code, check:
+- Am I deleting a box or clearing all records?
+- Am I changing a key name?
+- Am I changing object meaning without migration?
+- Am I introducing destructive sync?
+
+Forbidden patterns unless explicitly approved:
+- `Hive.deleteBoxFromDisk(...)` as runtime recovery
+- whole-box `clear()` during sync
+- schema-breaking model changes without migration
+- cross-profile or cross-team data writes
+
+Preferred patterns:
+- merge-by-id
+- per-record put/delete
+- preserve auth/profile identity data
+- report manual migration needs instead of guessing
+
+---
+
+## 5. PROVIDER LIFECYCLE SAFETY
+When editing widget/provider interaction, always check:
+- no `notifyListeners()` during build
+- no `setState()` after dispose
+- after async gaps, check `mounted` before using context
+- do not introduce circular provider updates
+- do not reset tab/provider state unexpectedly on navigation
+
+If adding async UI code, prefer:
+```dart
+if (!mounted) return;
+
+before:
+
+Navigator calls
+
+SnackBar
+
+Dialogs
+
+bottom sheets
+
+context.read/watch dependent actions
+
+6. UI REGRESSION SAFETY
+
+Before changing UI, check:
+
+Am I preserving the existing screen structure?
+
+Am I changing a visual style only, not behavior?
+
+Am I touching a screen outside the requested scope?
+
+Am I removing any visible information from cards/forms?
+
+Never remove core information from task cards, including:
+
+created date
+
+updated date
+
+due date
+
+plan/calendar toggle
+
+assignee
+
+priority
+
+status
+
+Use:
+
+SnackBar for recoverable error
+
+hintText preferred over labelText
+
+premium dark direction if styling is being updated
+
+Do not introduce a brand-new design system if only polish is requested.
+
+7. MESSENGER SAFETY
+
+Messenger is a core module.
+
+Do not:
+
+remove messenger tab
+
+break DM thread behavior
+
+break group thread behavior
+
+remove AI conversation hooks if present
+
+rewrite message model without migration plan
+
+If working on messenger:
+
+preserve existing thread IDs
+
+preserve empty-message guard
+
+avoid destructive full-box sync
+
+keep keyboard dismissal and input behavior intact
+
+8. RELEASE SAFETY
+
+Before changing native config, check:
+
+Android
+
+INTERNET permission present
+
+do not guess final applicationId
+
+do not silently keep debug signing as a production solution
+
+report SHA/manual Firebase setup clearly
+
+iOS
+
+do not invent real REVERSED_CLIENT_ID values
+
+if GoogleService-Info.plist is missing, report as manual blocker
+
+add only permissions actually needed by features
+
+If native config cannot be fully completed from repo context:
+
+patch only what is safe
+
+report remaining human-required steps
+
+9. DEPENDENCY SAFETY
+
+Before removing any package from pubspec.yaml:
+
+search the whole repository first
+
+confirm it is unused in actual source
+
+confirm it is not needed by generated/native/build files
+
+if uncertain, REPORT ONLY and do not remove
+
+Never remove dependencies just because they looked unused in an incomplete snapshot.
+
+10. PLACEHOLDER / INCOMPLETE FILE SAFETY
+
+If a file appears to be:
+
+placeholder content
+
+truncated
+
+binary/unreadable
+
+clearly different from planning docs
+
+Then:
+
+inspect the real repository version first
+
+do not assume old snapshot content is still current
+
+apply only minimal changes after inspection
+
+if uncertain, report and stop
+
+11. RESPONSIVE UI SAFETY
+
+When adjusting layout:
+
+Prefer:
+
+SafeArea
+
+Expanded / Flexible
+
+spacing cleanup
+
+MediaQuery only when needed
+
+Avoid:
+
+hardcoded fixed widths/heights unless already strongly intentional
+
+rewriting entire layouts
+
+replacing working layouts just for aesthetics
+
+Always check likely overflow zones:
+
+app bars
+
+drawer headers
+
+chips
+
+bottom sheets
+
+composer/input rows
+
+long title rows
+
+12. INTERACTION SAFETY
+
+When adding haptics / animation:
+
+Allowed:
+
+lightImpact on important CTA
+
+selectionClick on tab/chip switch
+
+tiny press-scale interactions
+
+Avoid:
+
+animation spam
+
+global behavior rewrites
+
+changing every button at once
+
+introducing inconsistent duplicate interaction systems
+
+Prefer reusing existing shared interaction widgets.
+
+13. COMMAND SAFETY
+
+Recommended workflow:
+
+inspect relevant files
+
+apply small patch
+
+run flutter analyze
+
+if safe, continue
+
+report modified files and manual steps
+
+If environment allows, optional:
+
+flutter build apk --debug
+
+flutter build ios --no-codesign
+
+Do not claim build success without actually running the build.
+
+14. STOP CONDITIONS
+
+Stop immediately and report if any of these occur:
+
+protected files would need modification
+
+Hive migration is required
+
+Provider architecture would need redesign
+
+analyzer errors appear and need broad refactor
+
+real repository differs significantly from planning assumptions
+
+requested change would delete or disable a feature
+
+15. FINAL REPORT FORMAT
+
+Every task should end with:
+
+Modified files
+
+Added files
+
+Analyzer result
+
+Build result (only if actually run)
+
+Protected files untouched: yes/no
+
+Manual human-required steps
+
+Remaining blockers (P0 / P1)
+
+16. WORKNOTE-SPECIFIC REMINDERS
+
+This app is NOT work-only.
+It supports:
+
+work
+
+family
+
+couples
+
+clubs
+
+communities
+
+Therefore:
+
+avoid construction-only wording
+
+avoid work-only assumptions
+
+keep language broad and inclusive across contexts
+
+Preferred vocabulary:
+
+plan / 계획 in task context
+
+group/team concepts must remain flexible
+
+keep Home / Tasks / Schedule / Journal / Gallery / Messenger all intact
+
+17. IF UNSURE
+
+If unsure:
+
+do not invent
+
+do not refactor
+
+do not "clean up" broadly
+
+report uncertainty clearly

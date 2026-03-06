@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkNote Runtime Visual Review Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #5b6472;
+      --line: #d8dee8;
+      --blue: #2563eb;
+      --navy: #0b1730;
+      --warn: #b45309;
+      --danger: #c2410c;
+      --ok: #166534;
+      --shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Arial, sans-serif;
+      background: linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 32px 24px 80px; }
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+      color: #fff;
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 32px; }
+    .hero p { margin: 6px 0; color: rgba(255,255,255,0.9); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .stat {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .stat .num { font-size: 28px; font-weight: 700; }
+    .topgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 24px 0 28px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 20px; }
+    .panel ul { margin: 0; padding-left: 18px; }
+    .section { margin-top: 34px; }
+    .section h2 {
+      margin: 0 0 16px;
+      font-size: 26px;
+      color: var(--navy);
+      border-left: 6px solid var(--blue);
+      padding-left: 12px;
+    }
+    .card {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) 1fr;
+      gap: 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+      align-items: start;
+    }
+    .thumb-wrap {
+      background: #eef2f7;
+      border-radius: 18px;
+      padding: 10px;
+      border: 1px solid #e5eaf1;
+    }
+    .thumb {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      border: 1px solid #d7deea;
+      background: #fff;
+    }
+    .meta h3 { margin: 0 0 10px; font-size: 22px; }
+    .meta p { margin: 8px 0; line-height: 1.5; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .meta ul { margin-top: 8px; padding-left: 18px; }
+    .badges { margin: 0 0 10px; }
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+      margin-bottom: 6px;
+    }
+    .internal { background: #dbeafe; color: #1d4ed8; }
+    .external { background: #ffedd5; color: var(--danger); }
+    .repeated { background: #ede9fe; color: #6d28d9; }
+    .issue { background: #fef3c7; color: var(--warn); }
+    .links a {
+      display: inline-block;
+      margin-right: 14px;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .small { color: var(--muted); font-size: 13px; }
+    code {
+      background: #eef2ff;
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+    @media (max-width: 900px) {
+      .card { grid-template-columns: 1fr; }
+      .wrap { padding: 20px 14px 48px; }
+      .hero h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>WorkNote Runtime Visual Review Report</h1>
+      <p>Session: <strong>2026-03-07_010008</strong></p>
+      <p>Generated from existing safe captures only. No new runtime actions were performed during report generation.</p>
+      <div class="stats">
+        <div class="stat"><div class="num">13</div><div>Total steps</div></div>
+        <div class="stat"><div class="num">11</div><div>Internal screens</div></div>
+        <div class="stat"><div class="num">2</div><div>External/unexpected screens</div></div>
+        <div class="stat"><div class="num"></div><div>Repeated screens</div></div>
+        <div class="stat"><div class="num">0</div><div>Blank / ANR screens</div></div>
+      </div>
+    </section>
+
+    <section class="topgrid">
+      <div class="panel">
+        <h2>Recommended next manual actions</h2>
+        <ul>
+          <li>Reproduce the Home team-related interaction manually and identify the exact control that deep-links out to Google Calendar.</li>
+<li>Decide whether the Tasks control strip should be simplified before wider UI polish.</li>
+<li>Decide whether Messenger&#39;s premium-dark language should remain isolated or become a broader product direction.</li>
+
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Unsafe actions avoided</h2>
+        <ul>
+          <li>Google sign-in</li>
+<li>Account picker</li>
+<li>Browser or webview auth</li>
+<li>Logout</li>
+<li>Reset or delete flows</li>
+<li>Payment or purchase flows</li>
+
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Unresolved blockers</h2>
+        <ul>
+          <li>One internal-looking action opened an external Google Calendar branch.</li>
+<li>Back navigation from the external branch returned to the Android launcher.</li>
+<li>Messenger picker tap produced no visible change in this session.</li>
+
+        </ul>
+      </div>
+    </section>
+
+      <section class="section">
+    <h2>Home</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_01_launch.png" target="_blank"><img class="thumb" src="step_01_launch.png" alt="Step 1 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 1: Launch state with member detail sheet</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Launch app into last visible internal state</p>
+        <p><strong>Summary:</strong> Home dashboard is visible with a member detail bottom sheet already open. The screen shows greeting, current team card, member strip, project status cards, and a message CTA in the sheet.</p>
+        <p><strong>Design concept:</strong> Light dashboard shell with rounded cards and a modal bottom sheet for member-specific quick action.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Greeting header</li>
+<li>Current team selector card</li>
+<li>Team member avatars</li>
+<li>Project status area</li>
+<li>Bottom sheet with message CTA</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: App Shell &amp; Navigation &gt; Drawer</code></li>
+<li><code>PROJECT_MAP.md: Modules &gt; Home</code></li>
+<li><code>ARCHITECTURE.md: 1. Product Identity</code></li>
+<li><code>ARCHITECTURE.md: 4.2 Team/Group</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>App can reopen into a transient sheet state rather than a clean root screen.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_01_launch.png" target="_blank">Open PNG</a>
+          <a href="step_01_launch.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 128846 bytes | XML: 5064 bytes | Classification: Home</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_02_home_root.png" target="_blank"><img class="thumb" src="step_02_home_root.png" alt="Step 2 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 2: Stable Home root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Dismiss transient sheet and stabilize Home root</p>
+        <p><strong>Summary:</strong> Stable Home screen with greeting, current team card, member list, project status section, today task cards, floating AI shortcut, and bottom navigation.</p>
+        <p><strong>Design concept:</strong> Card-based operational dashboard. Most surfaces are light with blue accents and generous spacing.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Top app bar</li>
+<li>Greeting and profile text</li>
+<li>Current team card</li>
+<li>Member row</li>
+<li>Project status section</li>
+<li>Today task section</li>
+<li>Floating chat/AI shortcut</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Home</code></li>
+<li><code>ARCHITECTURE.md: 1. Product Identity</code></li>
+<li><code>AI_CHECKLIST.md: 6. UI REGRESSION SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Home acts as the main operational dashboard, but the number of card blocks makes first-glance scanning busy.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_02_home_root.png" target="_blank">Open PNG</a>
+          <a href="step_02_home_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 165276 bytes | XML: 16460 bytes | Classification: Home</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_03_home_drawer.png" target="_blank"><img class="thumb" src="step_03_home_drawer.png" alt="Step 3 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 3: Drawer root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Open drawer from Home</p>
+        <p><strong>Summary:</strong> Drawer exposes team management, Google Drive connection, profile management, theme settings, app reset, feedback, and logout.</p>
+        <p><strong>Design concept:</strong> Administrative side rail for context and account management. High-risk actions are mixed with ordinary settings.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Profile summary</li>
+<li>Team management</li>
+<li>Google Drive integration</li>
+<li>Profile switch</li>
+<li>Theme settings</li>
+<li>App reset</li>
+<li>Feedback</li>
+<li>Logout</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: App Shell &amp; Navigation &gt; Drawer</code></li>
+<li><code>ARCHITECTURE.md: 4.1 Auth / Profiles</code></li>
+<li><code>AI_CHECKLIST.md: 8. RELEASE SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Reset and logout sit close to ordinary options, which raises accidental-action risk.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_03_home_drawer.png" target="_blank">Open PNG</a>
+          <a href="step_03_home_drawer.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 116901 bytes | XML: 10806 bytes | Classification: Home</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>Tasks</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_06_tasks_root.png" target="_blank"><img class="thumb" src="step_06_tasks_root.png" alt="Step 6 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 6: Tasks root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Return to WorkNote and switch to Tasks</p>
+        <p><strong>Summary:</strong> Tasks root shows filter boxes, view toggles, grouped task sections, custom cards, and an add-task CTA.</p>
+        <p><strong>Design concept:</strong> Dense productivity board with compact filters and information-rich cards.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Filter controls</li>
+<li>List/grid/view toggles</li>
+<li>Grouped task sections by date</li>
+<li>Rich task cards</li>
+<li>Add task CTA</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Tasks</code></li>
+<li><code>ARCHITECTURE.md: 4.3 Tasks</code></li>
+<li><code>AI_CHECKLIST.md: 6. UI REGRESSION SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>The top control strip is visually dense and likely easy to mis-tap on small screens.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_06_tasks_root.png" target="_blank">Open PNG</a>
+          <a href="step_06_tasks_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 235442 bytes | XML: 17399 bytes | Classification: Tasks</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_07_tasks_add_form.png" target="_blank"><img class="thumb" src="step_07_tasks_add_form.png" alt="Step 7 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 7: Add-task form</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Open add-task flow from Tasks</p>
+        <p><strong>Summary:</strong> Bottom-sheet task form with title input, assignee, project, due date, priority, plan options, and save CTA.</p>
+        <p><strong>Design concept:</strong> Structured bottom-sheet composer optimized for task metadata entry.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Title field</li>
+<li>Assignee selector</li>
+<li>Project selector</li>
+<li>Due date</li>
+<li>Priority control</li>
+<li>Plan/calendar toggle</li>
+<li>Save CTA</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Providers &gt; TaskProvider</code></li>
+<li><code>PROJECT_MAP.md: Modules &gt; Tasks</code></li>
+<li><code>ARCHITECTURE.md: 4.3 Tasks</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Form is functionally rich, but the metadata stack makes the sheet cognitively dense.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_07_tasks_add_form.png" target="_blank">Open PNG</a>
+          <a href="step_07_tasks_add_form.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 189746 bytes | XML: 7332 bytes | Classification: Tasks</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>Schedule</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_08_schedule_root.png" target="_blank"><img class="thumb" src="step_08_schedule_root.png" alt="Step 8 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 8: Schedule root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Switch to Schedule</p>
+        <p><strong>Summary:</strong> Monthly calendar view with month navigation, search, mode toggles, and combined schedule/task planning content below.</p>
+        <p><strong>Design concept:</strong> Operational planning surface combining calendar navigation with grouped schedule content.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Monthly calendar</li>
+<li>Previous/next month arrows</li>
+<li>Search</li>
+<li>Mode toggles</li>
+<li>Aggregated schedule cards</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Schedule</code></li>
+<li><code>ARCHITECTURE.md: 4.4 Schedule</code></li>
+<li><code>PATCHLOG.md: v2 Patch Package</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Calendar navigation is core to this screen, so hitbox quality matters directly to usability.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_08_schedule_root.png" target="_blank">Open PNG</a>
+          <a href="step_08_schedule_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 134341 bytes | XML: 41322 bytes | Classification: Schedule</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>Journal</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_09_journal_root.png" target="_blank"><img class="thumb" src="step_09_journal_root.png" alt="Step 9 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 9: Journal root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Switch to Journal</p>
+        <p><strong>Summary:</strong> Journal feed root with filters, timeline/list content, write CTA, and feed cards.</p>
+        <p><strong>Design concept:</strong> Feed-style content surface that balances browsing and quick entry.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Journal list/feed</li>
+<li>Filters</li>
+<li>Write CTA</li>
+<li>Content cards</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Journal</code></li>
+<li><code>ARCHITECTURE.md: 4.5 Journal</code></li>
+<li><code>AI_CHECKLIST.md: 6. UI REGRESSION SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Journal sits between feed and form mental models; entry points should stay visually obvious.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_09_journal_root.png" target="_blank">Open PNG</a>
+          <a href="step_09_journal_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 148041 bytes | XML: 12133 bytes | Classification: Journal</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_10_journal_write_form.png" target="_blank"><img class="thumb" src="step_10_journal_write_form.png" alt="Step 10 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 10: Journal write form</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Open write flow from Journal</p>
+        <p><strong>Summary:</strong> Write sheet exposes title/body composition plus attachment and relation controls.</p>
+        <p><strong>Design concept:</strong> Content-composer sheet with secondary structure for linked project/task context.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Title/body inputs</li>
+<li>Attachment/photo actions</li>
+<li>Relation selectors</li>
+<li>Privacy or metadata controls</li>
+<li>Save CTA</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Journal</code></li>
+<li><code>ARCHITECTURE.md: 4.5 Journal</code></li>
+<li><code>AI_CHECKLIST.md: 5. PROVIDER LIFECYCLE SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>The sheet is feature-rich and likely needs clear hierarchy to avoid form fatigue.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_10_journal_write_form.png" target="_blank">Open PNG</a>
+          <a href="step_10_journal_write_form.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 114214 bytes | XML: 8753 bytes | Classification: Journal</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>Gallery</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_11_gallery_root.png" target="_blank"><img class="thumb" src="step_11_gallery_root.png" alt="Step 11 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 11: Gallery root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Switch to Gallery</p>
+        <p><strong>Summary:</strong> Gallery root shows date-grouped images with a floating camera/add button in the lower right.</p>
+        <p><strong>Design concept:</strong> Minimal archive view with strong whitespace and a single primary capture/import action.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Date-grouped section</li>
+<li>Image thumbnail</li>
+<li>Overflow menu</li>
+<li>Floating camera/add button</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Gallery</code></li>
+<li><code>ARCHITECTURE.md: 4.6 Gallery</code></li>
+<li><code>AI_CHECKLIST.md: 6. UI REGRESSION SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Gallery looks visually clean, but the floating action must clearly communicate whether it is active or just a placeholder.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_11_gallery_root.png" target="_blank">Open PNG</a>
+          <a href="step_11_gallery_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 234095 bytes | XML: 10901 bytes | Classification: Gallery</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>Messenger</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_12_messenger_root.png" target="_blank"><img class="thumb" src="step_12_messenger_root.png" alt="Step 12 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 12: Messenger root</h3>
+        <div class="badges"><span class="badge internal">Internal</span></div>
+        <p><strong>Action:</strong> Switch to Messenger</p>
+        <p><strong>Summary:</strong> Messenger root uses a premium dark surface, a thread selector, empty-state center, and a bottom composer with send CTA.</p>
+        <p><strong>Design concept:</strong> Messenger is the strongest premium-dark surface in the app, with a focused chat-first layout.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Thread selector</li>
+<li>Dark background</li>
+<li>Empty-state placeholder</li>
+<li>Composer input</li>
+<li>Send button</li>
+<li>Bottom navigation</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>PROJECT_MAP.md: Modules &gt; Messenger</code></li>
+<li><code>ARCHITECTURE.md: 4.7 Messenger</code></li>
+<li><code>PATCHLOG.md: v2 Patch Package</code></li>
+<li><code>AI_CHECKLIST.md: 7. MESSENGER SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Messenger is visually more coherent than the lighter tabs, which makes the app-wide design language feel split.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_12_messenger_root.png" target="_blank">Open PNG</a>
+          <a href="step_12_messenger_root.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 93840 bytes | XML: 9616 bytes | Classification: Messenger</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_13_messenger_thread_picker.png" target="_blank"><img class="thumb" src="step_13_messenger_thread_picker.png" alt="Step 13 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 13: Messenger repeated state after picker tap</h3>
+        <div class="badges"><span class="badge internal">Internal</span> <span class="badge repeated">Repeated</span></div>
+        <p><strong>Action:</strong> Tap near the thread-picker control</p>
+        <p><strong>Summary:</strong> The resulting screen is visually identical to the previous Messenger root. The attempted picker interaction did not create a meaningful state change.</p>
+        <p><strong>Design concept:</strong> Repeated state capture used to prove that the interaction did not transition to a new visible screen.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Same thread selector</li>
+<li>Same empty state</li>
+<li>Same composer</li>
+<li>No visible dropdown or sheet</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>AI_CHECKLIST.md: 14. STOP CONDITIONS</code></li>
+<li><code>ARCHITECTURE.md: 4.7 Messenger</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>The attempted thread-picker interaction appears to have no visible feedback in this capture sequence.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_13_messenger_thread_picker.png" target="_blank">Open PNG</a>
+          <a href="step_13_messenger_thread_picker.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 93840 bytes | XML: 9616 bytes | Classification: Messenger</p>
+      </div>
+    </article>
+  </section>
+  <section class="section">
+    <h2>External/Auth/Unexpected</h2>
+        <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_04_home_team_sheet.png" target="_blank"><img class="thumb" src="step_04_home_team_sheet.png" alt="Step 4 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 4: Unexpected external branch</h3>
+        <div class="badges"><span class="badge external">External</span></div>
+        <p><strong>Action:</strong> Tap a team-related control from Home area</p>
+        <p><strong>Summary:</strong> The interaction leaves WorkNote and opens a Google Calendar / Workspace screen instead of a safe internal sheet.</p>
+        <p><strong>Design concept:</strong> This is not an internal app design. It is an unintended external branch during review.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Google Calendar branding</li>
+<li>External app shell</li>
+<li>Not a WorkNote surface</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>AGENTS.md: Dangerous Actions</code></li>
+<li><code>ARCHITECTURE.md: 4.2 Team/Group</code></li>
+<li><code>AI_CHECKLIST.md: 8. RELEASE SAFETY</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>A seemingly internal team action can escape into an external Google app. This is a review blocker for automated exploration.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_04_home_team_sheet.png" target="_blank">Open PNG</a>
+          <a href="step_04_home_team_sheet.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 48982 bytes | XML: 32193 bytes | Classification: External/Auth/Unexpected</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="thumb-wrap">
+        <a href="step_05_launcher_after_external.png" target="_blank"><img class="thumb" src="step_05_launcher_after_external.png" alt="Step 5 screenshot"></a>
+      </div>
+      <div class="meta">
+        <h3>Step 5: Android launcher after external branch</h3>
+        <div class="badges"><span class="badge external">External</span></div>
+        <p><strong>Action:</strong> Press back after external app opened</p>
+        <p><strong>Summary:</strong> Back navigation exits to the Android launcher instead of returning directly to WorkNote.</p>
+        <p><strong>Design concept:</strong> Not an app design state; this captures control loss after an external branch.</p>
+        <div class="grid">
+          <div>
+            <h4>Visible features</h4>
+            <ul><li>Android home screen</li>
+<li>Third-party launcher UI</li>
+<li>No WorkNote content</li></ul>
+          </div>
+          <div>
+            <h4>Document links</h4>
+            <ul><li><code>AGENTS.md: Dangerous Actions</code></li>
+<li><code>AI_CHECKLIST.md: 14. STOP CONDITIONS</code></li></ul>
+          </div>
+        </div>
+        <div>
+          <h4>Findings</h4>
+          <ul><li>Once the external branch is opened, safe exploration loses app context and must recover manually.</li></ul>
+        </div>
+        <p class="links">
+          <a href="step_05_launcher_after_external.png" target="_blank">Open PNG</a>
+          <a href="step_05_launcher_after_external.xml" target="_blank">Open XML</a>
+        </p>
+        <p class="small">PNG: 1394091 bytes | XML: 13653 bytes | Classification: External/Auth/Unexpected</p>
+      </div>
+    </article>
+  </section>
+  </div>
+</body>
+</html>
