@@ -147,6 +147,7 @@ class _MessengerTabState extends State<MessengerTab> {
                     title: '아직 대화가 없어요',
                     description: '메시지를 보내 대화를 시작해 보세요.',
                     compact: true,
+                    dark: true,
                   )
                 : ListView.builder(
                     reverse: true,

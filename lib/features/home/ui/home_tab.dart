@@ -65,7 +65,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         .toList(growable: false);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.darkBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
@@ -83,6 +83,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
+                            color: AppColors.darkText,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -90,7 +91,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                           '${today.year}.${today.month.toString().padLeft(2, '0')}.${today.day.toString().padLeft(2, '0')}',
                           style: const TextStyle(
                             fontSize: 14,
-                            color: AppColors.text2,
+                            color: AppColors.darkHint,
                           ),
                         ),
                       ],
@@ -140,7 +141,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                                 '현재 팀',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.text2,
+                                  color: AppColors.darkHint,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -152,6 +153,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
+                                  color: AppColors.darkText,
                                 ),
                               ),
                             ],
@@ -159,7 +161,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         ),
                         const Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.text2,
+                          color: AppColors.darkHint,
                         ),
                       ],
                     ),
@@ -176,7 +178,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         child: Center(
                           child: Text(
                             '팀원이 없습니다.',
-                            style: TextStyle(color: AppColors.hint),
+                            style: TextStyle(color: AppColors.darkHint),
                           ),
                         ),
                       )
@@ -216,7 +218,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         child: Center(
                           child: Text(
                             '프로젝트가 없습니다.',
-                            style: TextStyle(color: AppColors.hint),
+                            style: TextStyle(color: AppColors.darkHint),
                           ),
                         ),
                       )
@@ -252,7 +254,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         child: Center(
                           child: Text(
                             '오늘 마감 할일이 없습니다.',
-                            style: TextStyle(color: AppColors.hint),
+                            style: TextStyle(color: AppColors.darkHint),
                           ),
                         ),
                       )
@@ -303,14 +305,14 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                                         ? TextDecoration.lineThrough
                                         : null,
                                     color: task.isDone
-                                        ? AppColors.muted
-                                        : AppColors.text,
+                                        ? AppColors.darkHint
+                                        : AppColors.darkText,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '기한: ${task.dueDate.month}/${task.dueDate.day} · 중요도: ${_priorityLabel(task.priority)}',
                                   style: const TextStyle(
-                                    color: AppColors.text2,
+                                    color: AppColors.darkHint,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -340,6 +342,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                     teamName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.darkHint),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
@@ -377,7 +380,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            gradient: AppGradients.messengerPanel,
             borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
           ),
           child: SafeArea(
@@ -391,7 +394,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: Colors.black12,
+                      color: AppColors.darkBorder,
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -402,18 +405,18 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.text,
+                    color: AppColors.darkText,
                   ),
                 ),
                 const SizedBox(height: 12),
                 if (teams.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      '참여 중인 팀이 없습니다.',
-                      style: TextStyle(color: AppColors.text2),
+                      child: Text(
+                        '참여 중인 팀이 없습니다.',
+                        style: TextStyle(color: AppColors.darkHint),
+                      ),
                     ),
-                  ),
                 if (teams.isNotEmpty)
                   ConstrainedBox(
                     constraints: BoxConstraints(
@@ -431,12 +434,12 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                             team.name,
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
-                              color: AppColors.text,
+                              color: AppColors.darkText,
                             ),
                           ),
                           subtitle: Text(
                             '${team.memberIds.length}명',
-                            style: const TextStyle(color: AppColors.text2),
+                            style: const TextStyle(color: AppColors.darkHint),
                           ),
                           trailing: isCurrent
                               ? const Icon(
@@ -474,7 +477,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            gradient: AppGradients.messengerPanel,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
@@ -485,7 +488,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                   width: 44,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.black12,
+                    color: AppColors.darkBorder,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -505,7 +508,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.text,
+                  color: AppColors.darkText,
                 ),
               ),
               const SizedBox(height: 4),
@@ -513,7 +516,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                 (role == null || role.trim().isEmpty) ? '팀원' : role,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: AppColors.text2,
+                  color: AppColors.darkHint,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -560,12 +563,13 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   static Widget _surfaceCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.darkSurface,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.darkBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
             offset: const Offset(0, 6),
           ),
         ],
@@ -590,12 +594,13 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.darkSurface,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.darkBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
             offset: const Offset(0, 6),
           ),
         ],
@@ -614,6 +619,7 @@ class _SectionCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
+                    color: AppColors.darkText,
                   ),
                 ),
               ],
@@ -646,7 +652,8 @@ class _ProjectProgressTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        color: AppColors.darkSurface2,
+        border: Border.all(color: AppColors.darkBorder),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -696,7 +703,12 @@ class _ProjectNameRow extends StatelessWidget {
         Expanded(
           child: Text(
             name,
-            style: style ?? const TextStyle(fontWeight: FontWeight.bold),
+            style:
+                style ??
+                const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
+                ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -729,7 +741,7 @@ class _ProjectProgressBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: normalized,
             minHeight: 18,
-            backgroundColor: Colors.black12,
+            backgroundColor: AppColors.darkBorder,
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
         ),
@@ -738,8 +750,8 @@ class _ProjectProgressBar extends StatelessWidget {
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF0F172A),
-            shadows: [Shadow(color: Colors.white, blurRadius: 2)],
+            color: AppColors.darkText,
+            shadows: [Shadow(color: Colors.black54, blurRadius: 2)],
           ),
         ),
       ],

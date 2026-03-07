@@ -283,7 +283,7 @@ class _EditEntrySheetState extends State<_EditEntrySheet> {
           TextField(
             controller: _titleCtrl,
             decoration: InputDecoration(
-              labelText: '제목',
+              hintText: '제목',
               filled: true,
               fillColor: AppPalette.background,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -301,7 +301,7 @@ class _EditEntrySheetState extends State<_EditEntrySheet> {
             controller: _contentCtrl,
             maxLines: 6,
             decoration: InputDecoration(
-              labelText: '내용',
+              hintText: '내용',
               filled: true,
               fillColor: AppPalette.background,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),

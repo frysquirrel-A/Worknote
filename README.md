@@ -1,14 +1,42 @@
-# 🧭 Worknote: Universal Group Sharing Platform
+# WorkNote
 
-### 🎯 프로젝트 개요
-Worknote는 관계의 성격(가족, 친구, 연인, 계모임, 회사 등)에 구애받지 않고, 사용자가 목적에 맞는 '그룹'을 생성하여 소통하고 기록하는 **범용 공유 플랫폼**입니다.
+WorkNote is a multi-context collaboration app for work, family, couples, clubs, and communities.
+Users organize each life context as a separate group while managing tasks, schedules, journals, gallery items, and messenger threads inside one app.
 
-### ✨ 주요 기능 로드맵
-- **멀티 그룹 아키텍처**: 한 사용자가 여러 성격의 그룹에 소속되어 독립적으로 활동.
-- **공유 도구 모음**: 투두 리스트, 저널(일지), 사진 갤러리, 일정 관리.
-- **하이브리드 인증**: 전통적인 이메일 가입과 편리한 소셜(Google) 로그인의 결합.
+## Core Modules
+- Home
+- Tasks
+- Schedule
+- Journal
+- Gallery
+- Messenger
+- Team / Group management
+- Drawer-based profile and settings flows
 
-### 🛠 현재 개발 상태 (2026-02-24)
-1. **인증 시스템**: Firebase Auth 기반 구글/이메일 로그인, 회원가입, 탈퇴 로직 완료.
-2. **UI/UX**: 다크 모드(Deep Navy) 테마 적용. 입력창 라벨 고정 및 시각적 피드백 최적화 완료.
-3. **인프라**: `bootstrap.dart`를 통한 파이어베이스 초기화 안정화.
+## Tech Stack
+- Flutter / Dart
+- Provider
+- Hive (local-first persistence)
+- Firebase Core / Crashlytics / Firestore
+
+## Current Product Direction
+- Local-first multi-profile auth flow
+- Optional Google linking on top of local profiles
+- Premium dark tokens added additively, not as a forced global reskin
+- Release target: TestFlight-ready build with zero analyzer errors
+
+## Important Architecture Rule
+UI → Provider → Hive / Firebase
+
+Do not refactor this architecture unless explicitly requested.
+
+## Protected UI Files
+These task card files are protected and must not be modified without explicit approval:
+- `lib/features/tasks/ui/widgets/task_card.dart`
+- `lib/features/tasks/ui/widgets/task_masonry_card.dart`
+
+## Basic Workflow
+1. Apply minimal diffs
+2. Run `flutter analyze`
+3. Run the narrowest relevant verification for the change
+4. Report remaining manual release steps separately

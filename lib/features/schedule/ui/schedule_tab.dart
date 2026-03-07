@@ -695,7 +695,7 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
                 const Spacer(),
                 Switch(
                   value: _isAllDay,
-                  activeColor: AppColors.premiumBlue,
+                  activeThumbColor: AppColors.premiumBlue,
                   onChanged: (value) => setState(() => _isAllDay = value),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/task_sort_field.dart';
@@ -48,11 +49,12 @@ class TaskFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(bottom: 2),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
           SizedBox(
-            width: 108,
+            width: 118,
             child: _twoLineBox(
               label: '프로젝트',
               value: _projectLabel(selProjectId),
@@ -68,7 +70,7 @@ class TaskFilterBar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           SizedBox(
-            width: 96,
+            width: 104,
             child: _twoLineBox(
               label: '묶음',
               value: groupValue,
@@ -84,7 +86,7 @@ class TaskFilterBar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           SizedBox(
-            width: 96,
+            width: 104,
             child: _twoLineBox(
               label: '정렬',
               value: _sortLabel(sortValue),
@@ -158,10 +160,13 @@ class TaskFilterBar extends StatelessWidget {
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -211,10 +216,13 @@ class TaskFilterBar extends StatelessWidget {
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFE8F0FF) : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -318,6 +326,7 @@ class TaskFilterBar extends StatelessWidget {
     );
 
     if (picked != null) {
+      HapticFeedback.selectionClick();
       onPicked(picked);
     }
   }

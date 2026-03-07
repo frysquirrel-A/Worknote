@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -127,7 +128,7 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
             child: TaskFilterBar(
               taskProv: taskProv,
               groupValue: _periodLabel(_period),
@@ -426,7 +427,10 @@ class _TaskAddButton extends StatelessWidget {
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed: onPressed,
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          onPressed();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppPalette.primary,
           foregroundColor: Colors.white,

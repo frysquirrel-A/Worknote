@@ -1,0 +1,41 @@
+{
+  "session_folder": "C:\\Users\\Ryzen\\Desktop\\Flutter_App_Dev\\dev\\worknote\\screenshots\\2026-03-07_094657_runtime_review",
+  "title": "WorkNote 런타임 UI 검수 보고서",
+  "timestamp": "2026-03-07_094657_runtime_review",
+  "runtime_basis": "현재 에뮬레이터 설치본",
+  "latest_repo_install_status": "install blocked: insufficient storage",
+  "included_steps": [
+    "step_01_home_root",
+    "step_02_home_ready",
+    "step_03_drawer_opened",
+    "step_05_tasks_root",
+    "step_06_tasks_add_form",
+    "step_08_schedule_root",
+    "step_09_schedule_next_month",
+    "step_10_journal_root",
+    "step_11_journal_write_form",
+    "step_12_gallery_root",
+    "step_13_messenger_root",
+    "step_14_messenger_thread_selector",
+    "step_16_feedback_page"
+  ],
+  "excluded_steps": [
+    "step_04_tasks_root",
+    "step_07_schedule_root",
+    "step_15_feedback_page"
+  ],
+  "warnings": [
+    "에뮬레이터 현재 설치본 기준 보고서다. 최신 debug APK 재설치는 저장공간 부족(INSTALL_FAILED_INSUFFICIENT_STORAGE)으로 수행하지 못했다.",
+    "따라서 일부 화면은 현재 저장소 소스와 100% 일치하지 않을 수 있다.",
+    "자동 좌표 검증 중 생성된 비의미 캡처(step_04, step_07, step_15)는 본문에서 제외했다."
+  ],
+  "unsafe_actions_avoided": [
+    "구글 로그인/계정 선택기/브라우저 인증 진입 회피",
+    "앱 초기화/로그아웃/삭제/결제/외부 업로드 흐름 미진입",
+    "업무/일지 생성 폼은 열기까지만 수행하고 저장하지 않음"
+  ],
+  "unresolved_blockers": [
+    "에뮬레이터 저장공간 부족으로 최신 APK를 재설치하지 못함",
+    "따라서 런타임 화면과 저장소 최신 코드 간 시각 차이가 남을 수 있음"
+  ]
+}

@@ -1,4 +1,4 @@
-﻿# AI_CHECKLIST.md — WorkNote Safe Patch Checklist for Codex
+# AI_CHECKLIST.md — WorkNote Safe Patch Checklist for Codex
 
 ## Purpose
 This file is a safety checklist for AI agents working on the WorkNote Flutter repository.
@@ -11,8 +11,6 @@ The priority is:
 3. Do not regress UI
 4. Do not refactor architecture unless explicitly requested
 
----
-
 ## 1. PATCH ONLY RULE
 Before modifying anything, confirm:
 - Am I applying a minimal diff?
@@ -20,37 +18,31 @@ Before modifying anything, confirm:
 - Am I keeping existing functionality?
 - Am I avoiding broad refactors?
 
-If the answer is "no" to any of these, STOP and report.
-
----
+If the answer is "no" to any of these, stop and report.
 
 ## 2. PROTECTED FILES
 These files are protected and must not be modified unless the user explicitly approves:
-- lib/features/tasks/ui/widgets/task_card.dart
-- lib/features/tasks/ui/widgets/task_masonry_card.dart
+- `lib/features/tasks/ui/widgets/task_card.dart`
+- `lib/features/tasks/ui/widgets/task_masonry_card.dart`
 
 If a requested fix seems to require editing these files:
-- STOP
+- stop
 - explain why
 - ask for explicit approval
 
----
-
 ## 3. ARCHITECTURE GUARDRAILS
-Do NOT change these unless explicitly asked:
+Do not change these unless explicitly asked:
 - Provider-based state architecture
 - Hive persistence model
 - Firebase integration structure
 - Main tab structure
 - Drawer-based major navigation
 - AuthProvider public compatibility:
-  - currentUser
-  - currentProfile
+  - `currentUser`
+  - `currentProfile`
 
 Do not replace Provider with another state management solution.
 Do not move features between layers.
-
----
 
 ## 4. HIVE / LOCAL DATA SAFETY
 Before touching persistence code, check:
@@ -71,8 +63,6 @@ Preferred patterns:
 - preserve auth/profile identity data
 - report manual migration needs instead of guessing
 
----
-
 ## 5. PROVIDER LIFECYCLE SAFETY
 When editing widget/provider interaction, always check:
 - no `notifyListeners()` during build
@@ -82,304 +72,191 @@ When editing widget/provider interaction, always check:
 - do not reset tab/provider state unexpectedly on navigation
 
 If adding async UI code, prefer:
+
 ```dart
 if (!mounted) return;
+```
 
-before:
+Apply that guard before:
+- Navigator calls
+- SnackBar
+- dialogs
+- bottom sheets
+- `context.read/watch` dependent actions
 
-Navigator calls
-
-SnackBar
-
-Dialogs
-
-bottom sheets
-
-context.read/watch dependent actions
-
-6. UI REGRESSION SAFETY
-
+## 6. UI REGRESSION SAFETY
 Before changing UI, check:
-
-Am I preserving the existing screen structure?
-
-Am I changing a visual style only, not behavior?
-
-Am I touching a screen outside the requested scope?
-
-Am I removing any visible information from cards/forms?
+- Am I preserving the existing screen structure?
+- Am I changing a visual style only, not behavior?
+- Am I touching a screen outside the requested scope?
+- Am I removing any visible information from cards/forms?
 
 Never remove core information from task cards, including:
-
-created date
-
-updated date
-
-due date
-
-plan/calendar toggle
-
-assignee
-
-priority
-
-status
+- created date
+- updated date
+- due date
+- plan/calendar toggle
+- assignee
+- priority
+- status
 
 Use:
-
-SnackBar for recoverable error
-
-hintText preferred over labelText
-
-premium dark direction if styling is being updated
+- `SnackBar` for recoverable error
+- `hintText` preferred over `labelText`
+- premium dark direction if styling is being updated
 
 Do not introduce a brand-new design system if only polish is requested.
 
-7. MESSENGER SAFETY
-
+## 7. MESSENGER SAFETY
 Messenger is a core module.
 
 Do not:
-
-remove messenger tab
-
-break DM thread behavior
-
-break group thread behavior
-
-remove AI conversation hooks if present
-
-rewrite message model without migration plan
+- remove messenger tab
+- break DM thread behavior
+- break group thread behavior
+- remove AI conversation hooks if present
+- rewrite message model without migration plan
 
 If working on messenger:
+- preserve existing thread IDs
+- preserve empty-message guard
+- avoid destructive full-box sync
+- keep keyboard dismissal and input behavior intact
 
-preserve existing thread IDs
-
-preserve empty-message guard
-
-avoid destructive full-box sync
-
-keep keyboard dismissal and input behavior intact
-
-8. RELEASE SAFETY
-
+## 8. RELEASE SAFETY
 Before changing native config, check:
 
-Android
+Android:
+- INTERNET permission present
+- do not guess final applicationId
+- do not silently keep debug signing as a production solution
+- report SHA/manual Firebase setup clearly
 
-INTERNET permission present
-
-do not guess final applicationId
-
-do not silently keep debug signing as a production solution
-
-report SHA/manual Firebase setup clearly
-
-iOS
-
-do not invent real REVERSED_CLIENT_ID values
-
-if GoogleService-Info.plist is missing, report as manual blocker
-
-add only permissions actually needed by features
+iOS:
+- do not invent real `REVERSED_CLIENT_ID` values
+- if `GoogleService-Info.plist` is missing, report as manual blocker
+- add only permissions actually needed by features
 
 If native config cannot be fully completed from repo context:
+- patch only what is safe
+- report remaining human-required steps
 
-patch only what is safe
-
-report remaining human-required steps
-
-9. DEPENDENCY SAFETY
-
-Before removing any package from pubspec.yaml:
-
-search the whole repository first
-
-confirm it is unused in actual source
-
-confirm it is not needed by generated/native/build files
-
-if uncertain, REPORT ONLY and do not remove
+## 9. DEPENDENCY SAFETY
+Before removing any package from `pubspec.yaml`:
+- search the whole repository first
+- confirm it is unused in actual source
+- confirm it is not needed by generated/native/build files
+- if uncertain, report only and do not remove
 
 Never remove dependencies just because they looked unused in an incomplete snapshot.
 
-10. PLACEHOLDER / INCOMPLETE FILE SAFETY
-
+## 10. PLACEHOLDER / INCOMPLETE FILE SAFETY
 If a file appears to be:
-
-placeholder content
-
-truncated
-
-binary/unreadable
-
-clearly different from planning docs
+- placeholder content
+- truncated
+- binary/unreadable
+- clearly different from planning docs
 
 Then:
+- inspect the real repository version first
+- do not assume old snapshot content is still current
+- apply only minimal changes after inspection
+- if uncertain, report and stop
 
-inspect the real repository version first
-
-do not assume old snapshot content is still current
-
-apply only minimal changes after inspection
-
-if uncertain, report and stop
-
-11. RESPONSIVE UI SAFETY
-
+## 11. RESPONSIVE UI SAFETY
 When adjusting layout:
 
 Prefer:
-
-SafeArea
-
-Expanded / Flexible
-
-spacing cleanup
-
-MediaQuery only when needed
+- `SafeArea`
+- `Expanded` / `Flexible`
+- spacing cleanup
+- `MediaQuery` only when needed
 
 Avoid:
-
-hardcoded fixed widths/heights unless already strongly intentional
-
-rewriting entire layouts
-
-replacing working layouts just for aesthetics
+- hardcoded fixed widths/heights unless already strongly intentional
+- rewriting entire layouts
+- replacing working layouts just for aesthetics
 
 Always check likely overflow zones:
+- app bars
+- drawer headers
+- chips
+- bottom sheets
+- composer/input rows
+- long title rows
 
-app bars
-
-drawer headers
-
-chips
-
-bottom sheets
-
-composer/input rows
-
-long title rows
-
-12. INTERACTION SAFETY
-
+## 12. INTERACTION SAFETY
 When adding haptics / animation:
 
 Allowed:
-
-lightImpact on important CTA
-
-selectionClick on tab/chip switch
-
-tiny press-scale interactions
+- `HapticFeedback.lightImpact()` on important CTAs
+- `HapticFeedback.selectionClick()` on tab/chip switches
+- tiny press-scale interactions
 
 Avoid:
-
-animation spam
-
-global behavior rewrites
-
-changing every button at once
-
-introducing inconsistent duplicate interaction systems
+- animation spam
+- global behavior rewrites
+- changing every button at once
+- introducing inconsistent duplicate interaction systems
 
 Prefer reusing existing shared interaction widgets.
 
-13. COMMAND SAFETY
-
+## 13. COMMAND SAFETY
 Recommended workflow:
-
-inspect relevant files
-
-apply small patch
-
-run flutter analyze
-
-if safe, continue
-
-report modified files and manual steps
+- inspect relevant files
+- apply a small patch
+- run `flutter analyze`
+- if safe, continue
+- report modified files and manual steps
 
 If environment allows, optional:
-
-flutter build apk --debug
-
-flutter build ios --no-codesign
+- `flutter build apk --debug`
+- `flutter build ios --no-codesign`
 
 Do not claim build success without actually running the build.
 
-14. STOP CONDITIONS
-
+## 14. STOP CONDITIONS
 Stop immediately and report if any of these occur:
+- protected files would need modification
+- Hive migration is required
+- Provider architecture would need redesign
+- analyzer errors appear and need broad refactor
+- real repository differs significantly from planning assumptions
+- requested change would delete or disable a feature
 
-protected files would need modification
-
-Hive migration is required
-
-Provider architecture would need redesign
-
-analyzer errors appear and need broad refactor
-
-real repository differs significantly from planning assumptions
-
-requested change would delete or disable a feature
-
-15. FINAL REPORT FORMAT
-
+## 15. FINAL REPORT FORMAT
 Every task should end with:
+- Modified files
+- Added files
+- Analyzer result
+- Build result (only if actually run)
+- Protected files untouched: yes/no
+- Manual human-required steps
+- Remaining blockers (P0 / P1)
 
-Modified files
-
-Added files
-
-Analyzer result
-
-Build result (only if actually run)
-
-Protected files untouched: yes/no
-
-Manual human-required steps
-
-Remaining blockers (P0 / P1)
-
-16. WORKNOTE-SPECIFIC REMINDERS
-
-This app is NOT work-only.
+## 16. WORKNOTE-SPECIFIC REMINDERS
+This app is not work-only.
 It supports:
-
-work
-
-family
-
-couples
-
-clubs
-
-communities
+- work
+- family
+- couples
+- clubs
+- communities
 
 Therefore:
-
-avoid construction-only wording
-
-avoid work-only assumptions
-
-keep language broad and inclusive across contexts
+- avoid construction-only wording
+- avoid work-only assumptions
+- keep language broad and inclusive across contexts
 
 Preferred vocabulary:
+- `plan / 계획` in task context
+- group/team concepts remain flexible
 
-plan / 계획 in task context
+Keep Home / Tasks / Schedule / Journal / Gallery / Messenger all intact.
 
-group/team concepts must remain flexible
-
-keep Home / Tasks / Schedule / Journal / Gallery / Messenger all intact
-
-17. IF UNSURE
-
+## 17. IF UNSURE
 If unsure:
-
-do not invent
-
-do not refactor
-
-do not "clean up" broadly
-
-report uncertainty clearly
+- do not invent
+- do not refactor
+- do not "clean up" broadly
+- report uncertainty clearly

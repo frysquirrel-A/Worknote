@@ -111,7 +111,7 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppPalette.shellBackground,
+      backgroundColor: AppColors.darkBg,
       appBar: AppBar(
         backgroundColor: AppColors.darkBg,
         surfaceTintColor: Colors.transparent,

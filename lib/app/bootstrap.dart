@@ -1,10 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -28,11 +28,17 @@ import 'package:worknote/domain/models.dart'
 import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/chat/state/chat_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
+import 'package:worknote/features/profile/models/profile_focus_prefs.dart';
+import 'package:worknote/features/profile/state/focus_provider.dart';
+import 'package:worknote/features/schedule/state/schedule_provider.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
-import 'package:worknote/features/schedule/state/schedule_provider.dart';
-import 'package:worknote/features/profile/state/focus_provider.dart';
-import 'package:worknote/features/profile/models/profile_focus_prefs.dart';
+
+void _logDebug(String message) {
+  if (kDebugMode) {
+    debugPrint('[bootstrap] $message');
+  }
+}
 
 void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
   if (!Hive.isAdapterRegistered(adapter.typeId)) {
@@ -40,44 +46,39 @@ void _safeRegisterAdapter<T>(TypeAdapter<T> adapter) {
   }
 }
 
-/// Hive 諛뺤뒪瑜??덉쟾?섍쾶 ?ㅽ뵂?섎뒗 ?⑥닔 (?먮윭 ??rethrow)
 Future<Box<T>> _safeOpenBox<T>(String name) async {
   try {
     return await Hive.openBox<T>(name);
-  } catch (e) {
-    DevLog.instance.addLog('Hive open failed: $name / $e');
+  } catch (error, stackTrace) {
+    DevLog.instance.addLog('Hive open failed: $name / $error\n$stackTrace');
     rethrow;
   }
 }
 
 Future<void> bootstrap() async {
-  print('[Debug] Bootstrap ?쒖옉...');
+  _logDebug('start');
 
   runZonedGuarded(
     () async {
-      bool firebaseReady = false;
-      print('[Debug] Zone 珥덇린???쒖옉...');
+      var firebaseReady = false;
       final binding = WidgetsFlutterBinding.ensureInitialized();
       final isTestBinding = binding.runtimeType.toString().toLowerCase().contains(
         'test',
       );
 
-      // Firebase 諛?Crashlytics 珥덇린??
+      _logDebug('initialize Firebase');
       try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
         firebaseReady = true;
-      } catch (e, st) {
-        DevLog.instance.addLog('Firebase init failed: $e\n$st');
-        debugPrint(
-          '[Debug] Firebase init failed, continue without Firebase services: $e',
-        );
+      } catch (error, stackTrace) {
+        DevLog.instance.addLog('Firebase init failed: $error\n$stackTrace');
+        _logDebug('Firebase unavailable, continue without it: $error');
       }
 
-      // ?뚮윭???꾨젅?꾩썙???먮윭瑜?Crashlytics 諛?DevLog濡??꾩넚
       if (!isTestBinding) {
-        FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.onError = (details) {
           DevLog.instance.addLog(
             'Flutter Error: ${details.exception}\n${details.stack}',
           );
@@ -87,25 +88,28 @@ Future<void> bootstrap() async {
           FlutterError.presentError(details);
         };
 
-        // 鍮꾨룞湲??먮윭源뚯? 紐⑤몢 ?ъ갑
-        PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-          DevLog.instance.addLog('Platform Error: $error\n$stack');
+        PlatformDispatcher.instance.onError = (error, stackTrace) {
+          DevLog.instance.addLog('Platform Error: $error\n$stackTrace');
           if (firebaseReady) {
-            FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+            FirebaseCrashlytics.instance.recordError(
+              error,
+              stackTrace,
+              fatal: true,
+            );
           }
           return true;
         };
       } else {
-        debugPrint('[Debug] Test binding detected, keep default error handlers.');
+        _logDebug('test binding detected, keep default error handlers');
       }
 
-      print('[Debug] ?좎쭨 ?щ㎎ 珥덇린??以?..');
+      _logDebug('initialize locale formatting');
       await initializeDateFormatting('ko_KR', null);
 
-      print('[Debug] Hive 珥덇린???쒖옉...');
+      _logDebug('initialize Hive');
       await Hive.initFlutter();
 
-      print('[Debug] ?대뙌???깅줉 以?..');
+      _logDebug('register Hive adapters');
       _safeRegisterAdapter(TaskPriorityAdapter());
       _safeRegisterAdapter(TaskAdapter());
       _safeRegisterAdapter(ProjectAdapter());
@@ -113,38 +117,34 @@ Future<void> bootstrap() async {
       _safeRegisterAdapter(TeamAdapter());
       _safeRegisterAdapter(AppUserAdapter());
       _safeRegisterAdapter(ChatMessageAdapter());
-      _safeRegisterAdapter(
-        ProfileFocusPrefsAdapter(),
-      ); // ??[異붽?] Focus ?ㅼ젙 ?대뙌???깅줉
+      _safeRegisterAdapter(ProfileFocusPrefsAdapter());
 
-      print('[Debug] Hive 諛뺤뒪 ?ㅽ뵂 ?쒖옉 (?덉쟾 紐⑤뱶)...');
+      _logDebug('open Hive boxes');
       await _safeOpenBox<Task>('tasks');
       await _safeOpenBox<Project>('projects');
       await _safeOpenBox<JournalEntry>('journals');
       await _safeOpenBox<Team>('teams');
       await _safeOpenBox<AppUser>('users');
       await _safeOpenBox<ChatMessage>('messages');
-
       await _safeOpenBox('settings');
       await _safeOpenBox('chat_threads');
       await _safeOpenBox('task_meta');
       await _safeOpenBox('journal_meta');
       await _safeOpenBox('schedules');
-      await _safeOpenBox<ProfileFocusPrefs>(
-        'focus_prefs',
-      ); // ??[異붽?] Focus ?ㅼ젙 諛뺤뒪 ?ㅽ뵂
+      await _safeOpenBox<ProfileFocusPrefs>('focus_prefs');
 
-      print('[Debug] ?명봽??諛?留덉씠洹몃젅?댁뀡 ?쒖옉...');
+      _logDebug('initialize crash reporter and sync outbox');
       await CrashReporter.instance.init();
       await SyncOutbox.instance.init();
 
       try {
         await HiveMigrations.run();
-      } catch (e) {
-        print('[Debug] 留덉씠洹몃젅?댁뀡 以??ㅻ쪟 (臾댁떆?섍퀬 吏꾪뻾): $e');
+      } catch (error, stackTrace) {
+        DevLog.instance.addLog('Hive migration warning: $error\n$stackTrace');
+        _logDebug('Hive migration warning ignored: $error');
       }
 
-      print('[Debug] runApp ?ㅽ뻾 吏곸쟾...');
+      _logDebug('run app');
       runApp(
         MultiProvider(
           providers: [
@@ -156,23 +156,28 @@ Future<void> bootstrap() async {
             ),
             ChangeNotifierProvider(create: (_) => ChatProvider()),
             ChangeNotifierProvider(create: (_) => ScheduleProvider()..load()),
-            ChangeNotifierProvider(
-              create: (_) => FocusProvider()..init(),
-            ), // ??[異붽?] FocusProvider ?깅줉
+            ChangeNotifierProvider(create: (_) => FocusProvider()..init()),
           ],
           child: const WorkNoteApp(),
         ),
       );
-      print('[Debug] bootstrap ?꾨즺 諛????ㅽ뻾??');
     },
-    (Object error, StackTrace stack) {
-      DevLog.instance.addLog('Guarded Error: $error\n$stack');
+    (error, stackTrace) {
+      DevLog.instance.addLog('Guarded Error: $error\n$stackTrace');
       if (Firebase.apps.isNotEmpty) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stackTrace,
+          fatal: true,
+        );
       }
-      print('[Debug] runZonedGuarded 移섎챸???먮윭: $error');
+      _logDebug('runZonedGuarded caught: $error');
       unawaited(
-        CrashReporter.instance.record(error, stack, hint: 'runZonedGuarded'),
+        CrashReporter.instance.record(
+          error,
+          stackTrace,
+          hint: 'runZonedGuarded',
+        ),
       );
     },
   );

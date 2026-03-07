@@ -1,0 +1,525 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>WorkNote 런타임 UI 검수 보고서</title>
+  <style>
+    :root { color-scheme: dark; --bg:#061121; --panel:#0d1a32; --border:#22324d; --text:#eef4ff; --muted:#9fb2d1; --accent:#5b8cff; --warn:#ffb95b; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: linear-gradient(180deg, #061121, #09172b); color: var(--text); }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 20px 64px; }
+    .hero { background: linear-gradient(180deg, #122347, #061121); border: 1px solid var(--border); border-radius: 24px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,.28); }
+    .hero h1 { margin: 0 0 8px; font-size: 30px; }
+    .hero p { margin: 4px 0; color: var(--muted); }
+    .pill { display: inline-block; margin-top: 10px; padding: 8px 12px; background: rgba(91,140,255,.16); border: 1px solid rgba(91,140,255,.35); border-radius: 999px; color: #dbe6ff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+    .panel { background: rgba(13,26,50,.92); border: 1px solid var(--border); border-radius: 20px; padding: 18px; }
+    h2 { margin: 28px 0 14px; font-size: 24px; }
+    h3 { margin: 0 0 10px; font-size: 20px; }
+    h4 { margin: 0 0 8px; font-size: 15px; color: #cfe0ff; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 4px 0; color: var(--muted); }
+    .section { margin-top: 30px; }
+    .card { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 18px; padding: 18px; border-radius: 22px; border: 1px solid var(--border); background: rgba(13,26,50,.86); margin-bottom: 18px; }
+    .empty { opacity: .75; }
+    .thumb-wrap { background: #09172b; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.05); align-self: start; }
+    .thumb-wrap img { display: block; width: 100%; height: auto; }
+    .meta .line { margin: 6px 0; color: var(--muted); }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 14px; }
+    .links { margin-top: 16px; }
+    a { color: #9cc2ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .warn li { color: #ffd6a3; }
+    @media (max-width: 900px) { .card { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>WorkNote 런타임 UI 검수 보고서</h1>
+      <p>세션: 2026-03-07_094657_runtime_review</p>
+      <p>기준: 현재 에뮬레이터 설치본 런타임 화면</p>
+      <p>포함 화면: 13개 / 포함 영역: Home, Tasks, Schedule, Journal, Gallery, Messenger, Unknown</p>
+      <div class="pill">최신 debug APK 재설치 실패: INSTALL_FAILED_INSUFFICIENT_STORAGE</div>
+      <div class="grid">
+        <div class="panel warn">
+          <h3>경고</h3>
+          <ul><li>에뮬레이터 현재 설치본 기준 보고서다. 최신 debug APK 재설치는 저장공간 부족(INSTALL_FAILED_INSUFFICIENT_STORAGE)으로 수행하지 못했다.</li><li>따라서 일부 화면은 현재 저장소 소스와 100% 일치하지 않을 수 있다.</li><li>자동 좌표 검증 중 생성된 비의미 캡처(step_04, step_07, step_15)는 본문에서 제외했다.</li></ul>
+        </div>
+        <div class="panel">
+          <h3>권장 수동 확인</h3>
+          <ul>
+            <li>최신 APK를 다시 설치한 뒤 동일 화면을 한 번 더 재검수</li>
+            <li>피드백 페이지가 실제로 다크 테마로 반영됐는지 재확인</li>
+            <li>Tasks 상단 제어부와 Home 카드 톤 차이를 실제 최신 빌드에서 다시 비교</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>회피한 위험 액션</h3>
+          <ul><li>구글 로그인/계정 선택기/브라우저 인증 진입 회피</li><li>앱 초기화/로그아웃/삭제/결제/외부 업로드 흐름 미진입</li><li>업무/일지 생성 폼은 열기까지만 수행하고 저장하지 않음</li></ul>
+        </div>
+        <div class="panel">
+          <h3>남은 블로커</h3>
+          <ul><li>에뮬레이터 저장공간 부족으로 최신 APK를 재설치하지 못함</li><li>따라서 런타임 화면과 저장소 최신 코드 간 시각 차이가 남을 수 있음</li></ul>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <h2>문서 연결</h2>
+      <div class="panel">
+        <ul>
+          <li><a href="../../AGENTS.md">AGENTS.md</a> - 협업 규칙, 보호 파일, 위험 액션, UX 기본값</li>
+          <li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - 모듈 구조와 화면 책임</li>
+          <li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 각 모듈 계약과 데이터/상태 아키텍처</li>
+          <li><a href="../../PATCHLOG.md">PATCHLOG.md</a> - v1/v2 패치 문맥</li>
+          <li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - UI/데이터 안전 수칙</li>
+          <li><a href="../../docs/ui_catalog_static_2026-03-07.md">docs/ui_catalog_static_2026-03-07.md</a> - 정적 UI 카탈로그</li>
+        </ul>
+      </div>
+    </section>
+    <section class='section'><h2>Home</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_02_home_ready.png"><img src="step_02_home_ready.png" alt="홈 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>02. 홈 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 로딩 안정화 대기</p>
+            <p class="line"><strong>화면 요약:</strong> 인사 영역, 현재 팀 카드, 팀원 목록, 프로젝트 현황, 오늘 할일 섹션이 한 화면에 모인 대시보드다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 정보 밀도를 유지하되 상단 셸은 다크, 본문 카드는 밝은 표면을 섞는 대시보드형 홈이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>현재 날짜 표시</li><li>현재 팀 전환 카드</li><li>가로 팀원 목록</li><li>프로젝트 진행률 카드</li><li>오늘 할일 섹션</li><li>하단 6탭 네비게이션</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Home</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 1. Product Identity / 4.2 Team/Group</li><li><a href="../../AGENTS.md">AGENTS.md</a> - premium dark additive direction</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/home/ui/home_tab.dart</li><li>lib/app/main_shell.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>상단은 다크, 본문은 밝은 카드가 남아 있어 메신저 대비 톤 차이가 아직 느껴진다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_02_home_ready.png">원본 PNG</a> · <a href="step_02_home_ready.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_03_drawer_opened.png"><img src="step_03_drawer_opened.png" alt="드로어 열림"></a>
+          </div>
+          <div class="meta">
+            <h3>03. 드로어 열림</h3>
+            <p class="line"><strong>직전 액션:</strong> 좌상단 햄버거 버튼 탭</p>
+            <p class="line"><strong>화면 요약:</strong> 프로필/팀 관리, 팀 목록, 의견 보내기, 위험 구역 액션을 포함한 사이드 드로어다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 관리 액션과 위험 액션을 상하로 분리하는 운영 패널 구조다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>프로필 헤더</li><li>팀 관리</li><li>구글 드라이브 연동</li><li>프로필 관리/전환</li><li>테마 설정</li><li>팀 목록</li><li>의견 보내기</li><li>앱 초기화</li><li>로그아웃</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Drawer entry point / reset tools</li><li><a href="../../AGENTS.md">AGENTS.md</a> - Dangerous Actions</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - UI Regression Safety / dangerous actions adjacency</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/app/widgets/master_drawer.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>위험 액션이 하단으로 분리돼 있지만, 현재 설치본은 아직 밝은 배경 드로어로 보인다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_03_drawer_opened.png">원본 PNG</a> · <a href="step_03_drawer_opened.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section'><h2>Tasks</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_05_tasks_root.png"><img src="step_05_tasks_root.png" alt="할일 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>05. 할일 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 탭에서 할일 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 상단 필터/정렬 제어부와 일정 기준으로 묶인 카드 목록, 하단 업무 추가 CTA가 보인다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 카드 정보 밀도를 유지하는 생산성 목록 화면이며, 상단 제어부는 구조적으로 촘촘한 편이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>프로젝트/묶음/정렬 필터</li><li>날짜 그룹 헤더</li><li>작업 카드 목록</li><li>카드 내 달력 버튼</li><li>하단 + 업무 추가 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Tasks</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.3 Tasks</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 6. UI Regression Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/tasks/ui/task_tab.dart</li><li>lib/features/tasks/ui/widgets/task_filter_bar.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>보호 카드 파일은 손대지 않았고, 카드 디자인은 기존 사용자 커스텀을 따른다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_05_tasks_root.png">원본 PNG</a> · <a href="step_05_tasks_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_06_tasks_add_form.png"><img src="step_06_tasks_add_form.png" alt="업무 등록 폼"></a>
+          </div>
+          <div class="meta">
+            <h3>06. 업무 등록 폼</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 + 업무 추가 버튼 탭</p>
+            <p class="line"><strong>화면 요약:</strong> 업무 제목, 담당자, 프로젝트, 기한, 중요도, 계획 토글, 저장 CTA로 구성된 등록 시트다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 빠른 등록 중심의 하단 시트이며, 핵심 필드를 먼저 노출하는 입력 밀도형 폼이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>제목 입력</li><li>담당자 선택</li><li>프로젝트 선택</li><li>기한 선택</li><li>중요도 선택</li><li>계획 표시 토글</li><li>저장 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../AGENTS.md">AGENTS.md</a> - Prefer hintText over labelText</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.3 Tasks</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 11. Responsive UI Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/tasks/ui/sheets/add_task_sheet.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>시트 기반이라 본문을 유지한 채 빠르게 추가하는 흐름이다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_06_tasks_add_form.png">원본 PNG</a> · <a href="step_06_tasks_add_form.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section'><h2>Schedule</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_08_schedule_root.png"><img src="step_08_schedule_root.png" alt="일정 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>08. 일정 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 탭에서 일정 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 검색, 전체 팀 일정 토글, 월간 캘린더, 우하단 계획 추가 CTA가 보이는 다크 캘린더 화면이다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 메신저와 가장 가까운 프리미엄 다크 톤으로 일정 정보를 캘린더 보드에 압축한 화면이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>계획 검색</li><li>전체 팀 일정 보기</li><li>월간 캘린더</li><li>이전/다음 달 화살표</li><li>오늘 버튼</li><li>계획 추가 CTA</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Schedule</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.4 Schedule</li><li><a href="../../docs/ui_catalog_static_2026-03-07.md">docs/ui_catalog_static_2026-03-07.md</a> - Schedule 정적 구조 메모</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/schedule/ui/schedule_tab.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>현재 설치본 기준으로 월 이동 hitbox는 실제로 누르기 편한 편이다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_08_schedule_root.png">원본 PNG</a> · <a href="step_08_schedule_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_09_schedule_next_month.png"><img src="step_09_schedule_next_month.png" alt="일정 다음 달 이동"></a>
+          </div>
+          <div class="meta">
+            <h3>09. 일정 다음 달 이동</h3>
+            <p class="line"><strong>직전 액션:</strong> 다음 달 화살표 버튼 탭</p>
+            <p class="line"><strong>화면 요약:</strong> 2026년 04월로 전환된 캘린더 상태다. 월 이동이 실제 전환으로 확인된다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 캘린더 내비게이션의 터치 편의성과 반응성을 검증하는 장면이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>월간 캘린더 전환</li><li>이전/다음 달 이동</li><li>월 제목 갱신</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.4 Schedule</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 11. Responsive UI Safety</li><li><a href="../../PATCHLOG.md">PATCHLOG.md</a> - v2 이후 일정/상태 유지 관련 문맥</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/schedule/ui/schedule_tab.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>이전 보고에서 지적된 월 이동 hitbox 문제는 현재 설치본에서는 재현되지 않았다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_09_schedule_next_month.png">원본 PNG</a> · <a href="step_09_schedule_next_month.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section'><h2>Journal</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_10_journal_root.png"><img src="step_10_journal_root.png" alt="일지 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>10. 일지 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 탭에서 일지 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 검색창, 카테고리 칩, 리스트/전체 탭, 날짜 그룹, 카드형 일지, 하단 일지작성 CTA가 보인다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 피드형 일지 아카이브에 필터와 작성 CTA를 결합한 작업 기록 허브다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>검색</li><li>카테고리 칩</li><li>일별/전체 리스트 전환</li><li>날짜 그룹</li><li>일지 카드</li><li>+ 일지작성 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Journal</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.5 Journal</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 6. UI Regression Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/journal/ui/journal_tab.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>다크 셸과 카드 톤의 대비가 아직 강하다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_10_journal_root.png">원본 PNG</a> · <a href="step_10_journal_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_11_journal_write_form.png"><img src="step_11_journal_write_form.png" alt="일지 작성 폼"></a>
+          </div>
+          <div class="meta">
+            <h3>11. 일지 작성 폼</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 + 일지작성 버튼 탭</p>
+            <p class="line"><strong>화면 요약:</strong> 유형 선택, 제목, 관련 업무/프로젝트, 비공개 토글, 사진 추가, 본문 입력, 저장 버튼을 담은 작성 시트다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 현장 기록과 보고 흐름을 하나의 시트에서 빠르게 처리하는 작성 전용 화면이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>일반/진행/보고서 유형 탭</li><li>제목 입력</li><li>관련 업무/프로젝트 선택</li><li>비공개 토글</li><li>사진 추가</li><li>본문 입력</li><li>저장하기 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../AGENTS.md">AGENTS.md</a> - Prefer hintText over labelText</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.5 Journal</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 11. Responsive UI Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/journal/ui/sheets/journal_write_sheet.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>입력 밀도가 높지만, 작성/첨부/비공개 제어가 한 곳에 모여 있다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_11_journal_write_form.png">원본 PNG</a> · <a href="step_11_journal_write_form.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section'><h2>Gallery</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_12_gallery_root.png"><img src="step_12_gallery_root.png" alt="갤러리 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>12. 갤러리 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 탭에서 갤러리 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 날짜 그룹별로 사진 썸네일을 모아 보여 주는 전체 갤러리 화면이다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 저널과 채팅에서 파생된 이미지를 가볍게 훑는 미디어 인덱스 화면이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>날짜 그룹</li><li>사진 썸네일</li><li>우하단 카메라/FAB</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Gallery</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.6 Gallery</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 6. UI Regression Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/gallery/ui/gallery_tab.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>루트 화면만 보면 밝은 본문과 다크 셸의 대비가 남아 있다. 소스상 FAB는 일지 작성 플로우로 연결되도록 패치됐다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_12_gallery_root.png">원본 PNG</a> · <a href="step_12_gallery_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section'><h2>Messenger</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_13_messenger_root.png"><img src="step_13_messenger_root.png" alt="메신저 루트"></a>
+          </div>
+          <div class="meta">
+            <h3>13. 메신저 루트</h3>
+            <p class="line"><strong>직전 액션:</strong> 하단 탭에서 채팅 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 스레드 선택 헤더, 빈 대화 empty state, 하단 메시지 입력창이 있는 메신저 기본 화면이다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 프리미엄 다크 방향이 가장 강하게 구현된 기준 화면이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>대화 상대 선택 드롭다운</li><li>빈 상태 안내</li><li>메시지 입력창</li><li>전송 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - Modules &gt; Messenger</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.7 Messenger</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 7. Messenger Safety</li><li><a href="../../PATCHLOG.md">PATCHLOG.md</a> - v2 Patch Package</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/chat/ui/messenger_tab.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>다른 탭보다 완성도가 높아 전체 디자인 기준점 역할을 한다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_13_messenger_root.png">원본 PNG</a> · <a href="step_13_messenger_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_14_messenger_thread_selector.png"><img src="step_14_messenger_thread_selector.png" alt="메신저 대화 상대 선택 시트"></a>
+          </div>
+          <div class="meta">
+            <h3>14. 메신저 대화 상대 선택 시트</h3>
+            <p class="line"><strong>직전 액션:</strong> 상단 대화 선택 바 탭</p>
+            <p class="line"><strong>화면 요약:</strong> 전체 방(팀 채팅)과 1:1 대화 상대 목록을 한 시트에서 고르는 바텀 시트다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 팀 채팅과 DM을 같은 진입점에서 전환하는 대화 스코프 선택 시트다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>팀 채팅 목록</li><li>1:1 상대 목록</li><li>바텀 시트 핸들</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../PROJECT_MAP.md">PROJECT_MAP.md</a> - ChatProvider / Threads group + DM</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - 4.7 Messenger</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 7. Messenger Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/chat/ui/messenger_tab.dart</li><li>lib/features/chat/state/chat_provider.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>외부 인증 없이 내부 스레드 범위를 안전하게 전환할 수 있다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_14_messenger_thread_selector.png">원본 PNG</a> · <a href="step_14_messenger_thread_selector.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section><section class='section empty'><h2>External/Auth</h2><p>이번 세션에서 포함한 화면이 없습니다.</p></section><section class='section empty'><h2>Error/ANR</h2><p>이번 세션에서 포함한 화면이 없습니다.</p></section><section class='section'><h2>Unknown / Settings</h2>
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_01_home_root.png"><img src="step_01_home_root.png" alt="앱 시작 스플래시"></a>
+          </div>
+          <div class="meta">
+            <h3>01. 앱 시작 스플래시</h3>
+            <p class="line"><strong>직전 액션:</strong> 앱 강제 종료 후 메인 액티비티 재실행</p>
+            <p class="line"><strong>화면 요약:</strong> 브랜드 로고와 로딩 인디케이터가 보이는 초기 스플래시 상태다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 딥 네이비 기반 프리미엄 다크 시작 화면으로 진입 무드를 통일한다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>앱 기동 직후 로딩 상태 표시</li><li>브랜드 컬러 기반 다크 배경</li><li>아직 상호작용 가능한 내부 UI는 없음</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../AGENTS.md">AGENTS.md</a> - UI / UX Defaults: premium dark direction</li><li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a> - Product Identity / release readiness 문맥</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/main.dart</li><li>lib/app/bootstrap.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>정상 로딩 장면이며, 잠시 후 홈으로 전환된다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_01_home_root.png">원본 PNG</a> · <a href="step_01_home_root.xml">원본 XML</a></p>
+          </div>
+        </article>
+        
+        <article class="card">
+          <div class="thumb-wrap">
+            <a href="step_16_feedback_page.png"><img src="step_16_feedback_page.png" alt="의견 보내기 화면"></a>
+          </div>
+          <div class="meta">
+            <h3>16. 의견 보내기 화면</h3>
+            <p class="line"><strong>직전 액션:</strong> 드로어에서 의견 보내기 선택</p>
+            <p class="line"><strong>화면 요약:</strong> 문의 유형 칩, 내용 입력 영역, 의견 보내기 CTA로 구성된 피드백 제출 화면이다.</p>
+            <p class="line"><strong>UI 분류:</strong> 내부 UI</p>
+            <p class="line"><strong>디자인 컨셉:</strong> 빠르게 피드백을 수집하는 단일 목적 폼이다.</p>
+            <div class="split">
+              <div>
+                <h4>보이는 기능</h4>
+                <ul><li>문의 유형 선택</li><li>내용 입력 영역</li><li>의견 보내기 버튼</li></ul>
+              </div>
+              <div>
+                <h4>문서 근거</h4>
+                <ul><li><a href="../../RELEASE_CHECKLIST.md">RELEASE_CHECKLIST.md</a> - Feedback submit to Firestore smoke test</li><li><a href="../../AGENTS.md">AGENTS.md</a> - SnackBar / premium dark direction</li><li><a href="../../AI_CHECKLIST.md">AI_CHECKLIST.md</a> - 6. UI Regression Safety</li></ul>
+              </div>
+            </div>
+            <div class="split">
+              <div>
+                <h4>연결 코드</h4>
+                <ul><li>lib/features/settings/ui/feedback_page.dart</li></ul>
+              </div>
+              <div>
+                <h4>검수 메모</h4>
+                <p>현재 설치본 기준으로는 아직 밝은 레거시 톤이 남아 있어, 소스 패치 결과와 시각 불일치 가능성이 있다.</p>
+              </div>
+            </div>
+            <p class="links"><a href="step_16_feedback_page.png">원본 PNG</a> · <a href="step_16_feedback_page.xml">원본 XML</a></p>
+          </div>
+        </article>
+        </section>
+  </div>
+</body>
+</html>

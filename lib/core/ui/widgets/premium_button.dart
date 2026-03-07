@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import 'package:worknote/core/ui/widgets/press_scale.dart';
 
 class PremiumButton extends StatefulWidget {
   final Widget child;
@@ -18,24 +19,16 @@ class PremiumButton extends StatefulWidget {
 }
 
 class _PremiumButtonState extends State<PremiumButton> {
-  bool _pressed = false;
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        widget.onTap();
-      },
-      child: AnimatedScale(
-        scale: _pressed ? widget.scale : 1.0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeInOut,
-        child: widget.child,
-      ),
+    return PressScale(
+      pressedScale: widget.scale,
+      downDuration: const Duration(milliseconds: 100),
+      upDuration: const Duration(milliseconds: 120),
+      upCurve: Curves.easeOutCubic,
+      onTap: widget.onTap,
+      haptic: PressScaleHaptic.light,
+      child: widget.child,
     );
   }
 }

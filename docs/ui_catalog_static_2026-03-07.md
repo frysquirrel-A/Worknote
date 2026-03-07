@@ -21,24 +21,7 @@ Basis: source code + project docs only
 
 ## 3. Critical Findings Before Any Redesign
 
-### 3.1 Encoding damage is already present
-
-Mojibake / broken strings are visible in multiple files, including:
-
-- `AGENTS.md`
-- `ios/Runner/Info.plist`
-- `lib/app/main_shell.dart`
-- `lib/app/widgets/master_drawer.dart`
-- `lib/features/tasks/ui/task_tab.dart`
-- `lib/features/tasks/ui/widgets/task_filter_bar.dart`
-- `lib/features/tasks/ui/sheets/add_task_sheet.dart`
-- `lib/features/journal/ui/sheets/journal_write_sheet.dart`
-- `lib/features/gallery/ui/gallery_tab.dart`
-- `lib/features/chat/ui/messenger_tab.dart`
-
-This should be treated as a P0 quality issue before large UI cleanup.
-
-### 3.2 Global visual split
+### 3.1 Premium-dark alignment is still partial
 
 From `lib/core/ui/app_palette.dart`:
 
@@ -53,9 +36,18 @@ From `lib/core/ui/app_palette.dart`:
 
 Interpretation:
 
-- Most tabs still read as light dashboard/productivity surfaces.
-- Messenger is the clearest premium-dark destination.
-- The app is not yet a fully unified design system.
+- Messenger defines the strongest premium-dark baseline.
+- Drawer, feedback, schedule, and gallery now follow that direction more closely.
+- Tasks and some journal flows still keep more of the light productivity look.
+
+### 3.2 Remaining repo-quality issues
+
+- Some older UI and docs still need consistency cleanup rather than large rewrites.
+- Release configuration is not production-ready from repo state alone:
+  - Android package/applicationId is still `com.example.worknote`
+  - Android OAuth client entries are empty in `google-services.json`
+  - `ios/Runner/GoogleService-Info.plist` is missing
+  - iOS URL scheme placeholder is still unresolved by design
 
 ## 4. Static UI Catalog
 
@@ -84,9 +76,8 @@ Document links:
 
 Static concerns:
 
-- drawer contains risky entries close to normal settings flows
-- top-right profile / notification actions exist but need runtime verification
-- some labels are already encoding-damaged
+- drawer danger actions are now visually separated, but still need runtime review
+- top-right profile / notification actions exist but still need runtime verification
 
 ## Tasks
 
@@ -116,8 +107,8 @@ Document links:
 Static concerns:
 
 - top control bar is dense and likely easy to mis-tap
-- forms still use `labelText` patterns in places
-- protected task cards are rich but text quality is currently degraded by encoding damage
+- filter spacing and tap rhythm improved, but real-device comfort still needs runtime confirmation
+- some creation/edit forms outside the protected task cards still need consistency polish
 
 ## Schedule
 
@@ -143,8 +134,8 @@ Document links:
 
 Static concerns:
 
-- crash/debug button is still present in the app bar
-- strings are damaged in multiple UI labels
+- debug/crash action is no longer part of the normal app bar UX
+- month navigation hit targets were expanded for easier tapping
 - runtime hitbox and navigation behavior still need later execution-based review
 
 ## Journal
@@ -172,7 +163,7 @@ Document links:
 Static concerns:
 
 - write sheet is feature-rich but visually and cognitively dense
-- forms still lean on labels and damaged strings
+- forms now lean more toward hint-first input, but density is still high
 - image picker path exists and will need safe runtime review later
 
 ## Gallery
@@ -197,8 +188,8 @@ Document links:
 Static concerns:
 
 - floating action button currently has an empty handler
-- this is effectively a dead button
-- labels and empty state text are damaged by encoding issues
+- gallery now routes safe creation intent into the existing journal photo flow
+- runtime verification is still needed to confirm the flow feels intentional
 
 ## Messenger
 
@@ -226,26 +217,23 @@ Document links:
 Static concerns:
 
 - visually the strongest and most coherent premium-dark area
-- style gap versus the rest of the app is still large
-- some text is also encoding-damaged here
+- style gap versus lighter task/journal surfaces is still noticeable
 
 ## 5. Priority Suggestions
 
 P0:
 
-- repair encoding damage across docs and user-facing UI strings
-- remove or gate the schedule crash/debug action
-- replace the dead gallery FAB with a safe action or proper implementation
+- resolve production Firebase/iOS config blockers that cannot be inferred safely from repo alone
+- confirm remaining user-facing strings under runtime, especially in older bottom sheets
 
 P1:
 
-- simplify or rebalance the Tasks top control strip
-- reorganize Home drawer risk actions
-- reduce form density in Journal and Task creation flows
+- continue reducing density in Tasks and Journal creation/edit flows
+- verify drawer, gallery, and feedback runtime polish on device
 
 P2:
 
-- define whether premium dark remains messenger-only or becomes a broader shell language
+- decide how far the premium-dark shell should extend into Tasks/Journal without fighting protected task card designs
 
 ## 6. Limits of This Report
 
