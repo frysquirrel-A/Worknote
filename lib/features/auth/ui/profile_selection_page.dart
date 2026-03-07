@@ -37,6 +37,8 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
 
   Future<void> _showRenameDialog(WorkProfile profile) async {
     final ctrl = TextEditingController(text: profile.name);
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -53,14 +55,17 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
       ),
     );
     if (ok != true) return;
-    final success = await context.read<AuthProvider>().renameProfile(profile.id, ctrl.text.trim());
+    final success = await auth.renameProfile(profile.id, ctrl.text.trim());
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text(success ? '프로필 이름이 저장되었습니다.' : '이름 저장에 실패했습니다.')),
     );
   }
 
   Future<void> _confirmDelete(WorkProfile profile) async {
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final title = profile.isGoogleProfile ? '구글 슬롯 삭제' : '로컬 프로필 삭제';
     final content = profile.isGoogleProfile
         ? '이 슬롯을 삭제하면 현재 연결된 구글 프로필 목록에서 제거됩니다.\n기존 로컬 데이터는 앱 안에 남아 있을 수 있습니다.'
@@ -82,17 +87,19 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
     );
     if (ok != true) return;
 
-    final success = await context.read<AuthProvider>().deleteProfile(profile.id);
+    final success = await auth.deleteProfile(profile.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text(success ? '프로필이 삭제되었습니다.' : '프로필 삭제에 실패했습니다.')),
     );
     if (widget.manageMode && success) {
-      Navigator.of(context).maybePop();
+      navigator.maybePop();
     }
   }
 
   Future<void> _confirmUnlink(WorkProfile profile) async {
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -106,9 +113,9 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
     );
     if (ok != true) return;
 
-    final success = await context.read<AuthProvider>().unlinkGoogleProfile(profile.id);
+    final success = await auth.unlinkGoogleProfile(profile.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text(success ? '구글 연결이 해제되었습니다.' : '구글 연결 해제에 실패했습니다.')),
     );
   }
@@ -206,9 +213,10 @@ class _ProfileSelectionPageState extends State<ProfileSelectionPage> {
                           profile: profile,
                           isCurrent: current?.id == profile.id,
                           onTap: () async {
+                            final navigator = Navigator.of(context);
                             await auth.switchProfile(profile.id);
-                            if (!mounted) return;
-                            if (widget.manageMode) Navigator.of(context).maybePop();
+                            if (!mounted || !widget.manageMode) return;
+                            navigator.maybePop();
                           },
                           onFocusTap: () => _showFocusSheet(profile),
                           onMenuSelected: (action) {

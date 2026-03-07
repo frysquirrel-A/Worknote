@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/features/auth/state/auth_provider.dart';
-import 'package:worknote/features/auth/ui/profile_selection_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -31,7 +30,11 @@ class LoginPage extends StatelessWidget {
                           color: Colors.blueAccent.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(28),
                         ),
-                        child: const Icon(Icons.architecture_rounded, size: 72, color: Colors.blueAccent),
+                        child: const Icon(
+                          Icons.architecture_rounded,
+                          size: 72,
+                          color: Colors.blueAccent,
+                        ),
                       ),
                       const SizedBox(height: 24),
                       const Text(
@@ -45,7 +48,7 @@ class LoginPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '현장의 모든 기록, 팀과 함께 공유하세요',
+                        '일상의 모든 기록을 팀과 함께 공유하세요.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white60,
@@ -59,7 +62,9 @@ class LoginPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.04),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10),
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -68,7 +73,9 @@ class LoginPage extends StatelessWidget {
                               label: '가입 없이 바로 사용하기 (개인용)',
                               icon: Icons.person_pin_circle_rounded,
                               color: Colors.blueAccent,
-                              onTap: authProv.isLoading ? null : () => _showNicknameDialog(context, authProv),
+                              onTap: authProv.isLoading
+                                  ? null
+                                  : () => _showNicknameDialog(context, authProv),
                             ),
                             const SizedBox(height: 16),
                             _buildLargeButton(
@@ -83,18 +90,30 @@ class LoginPage extends StatelessWidget {
                                   : () async {
                                       final result = await authProv.loginWithGoogle();
                                       if (!context.mounted) return;
-                                      if (result.state == AuthFlowState.failed || result.state == AuthFlowState.cancelled) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text(result.message ?? '구글 로그인에 실패했습니다.')),
+                                      if (result.state == AuthFlowState.failed ||
+                                          result.state ==
+                                              AuthFlowState.cancelled) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              result.message ??
+                                                  '구글 로그인에 실패했습니다.',
+                                            ),
+                                          ),
                                         );
                                       }
                                     },
                             ),
                             const SizedBox(height: 14),
                             const Text(
-                              '로컬 프로필은 나중에 구글 계정과 연결할 수 있고,\n구글 로그인 시 하나의 계정에서 최대 5개의 독립 프로필을 사용할 수 있어요.',
+                              '로컬 프로필로 시작한 뒤 구글 계정과 연결할 수 있고,\n구글 로그인을 사용하면 한 계정에서 최대 5개의 독립 프로필을 사용할 수 있어요.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.45),
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                                height: 1.45,
+                              ),
                             ),
                           ],
                         ),
@@ -107,7 +126,10 @@ class LoginPage extends StatelessWidget {
             if (authProv.isLoading)
               const Align(
                 alignment: Alignment.topCenter,
-                child: LinearProgressIndicator(minHeight: 3, color: Colors.blueAccent),
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                  color: Colors.blueAccent,
+                ),
               ),
           ],
         ),
@@ -129,10 +151,18 @@ class LoginPage extends StatelessWidget {
       height: 58,
       child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 22, color: isOutlined ? Colors.blueAccent : Colors.white),
+        icon: Icon(
+          icon,
+          size: 22,
+          color: isOutlined ? Colors.blueAccent : Colors.white,
+        ),
         label: Text(
           label,
-          style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: textColor,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: isOutlined ? Colors.transparent : color,
@@ -140,7 +170,9 @@ class LoginPage extends StatelessWidget {
           elevation: isOutlined ? 0 : 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: isOutlined ? const BorderSide(color: Colors.white24) : BorderSide.none,
+            side: isOutlined
+                ? const BorderSide(color: Colors.white24)
+                : BorderSide.none,
           ),
         ),
       ),
@@ -148,20 +180,23 @@ class LoginPage extends StatelessWidget {
   }
 
   void _showNicknameDialog(BuildContext context, AuthProvider authProv) {
-    final TextEditingController nameCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('프로필 시작', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          '프로필 시작',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '이름을 지금 정해도 되고,\n바로 시작한 뒤 프로필 설정 화면에서 정해도 됩니다.',
+              '이름을 정하지 않아도 시작할 수 있고,\n바로 시작한 뒤 프로필 설정 화면에서 바꿀 수 있습니다.',
               style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
             ),
             const SizedBox(height: 20),
@@ -170,7 +205,7 @@ class LoginPage extends StatelessWidget {
               autofocus: true,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: '예: 홍길동 소장',
+                hintText: '예: 지휘관, 라이언',
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.05),
@@ -196,7 +231,10 @@ class LoginPage extends StatelessWidget {
               Navigator.pop(ctx);
               await authProv.loginAsLocal();
             },
-            child: const Text('나중에 설정', style: TextStyle(color: Colors.white70)),
+            child: const Text(
+              '이름 없이 시작',
+              style: TextStyle(color: Colors.white70),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -205,9 +243,17 @@ class LoginPage extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('시작하기', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            child: const Text(
+              '시작하기',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),

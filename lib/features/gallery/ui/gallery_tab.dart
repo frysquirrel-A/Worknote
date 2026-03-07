@@ -31,7 +31,7 @@ class GalleryTab extends StatelessWidget {
 
     final groupedPhotos = <String, List<String>>{};
     final teamJournals = journalProv.journals
-        .where((j) => j.teamId == teamProv.currentTeamId)
+        .where((journal) => journal.teamId == teamProv.currentTeamId)
         .toList();
 
     for (final journal in teamJournals) {
@@ -40,8 +40,7 @@ class GalleryTab extends StatelessWidget {
       groupedPhotos.putIfAbsent(dateKey, () => <String>[]).addAll(journal.photos);
     }
 
-    final sortedKeys = groupedPhotos.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final sortedKeys = groupedPhotos.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
       backgroundColor: AppColors.darkBg,
@@ -69,9 +68,9 @@ class GalleryTab extends StatelessWidget {
       body: sortedKeys.isEmpty
           ? EmptyStatePlaceholder(
               icon: Icons.photo_library_outlined,
-              title: '아직 업로드된 사진이 없어요',
-              description: '업무 또는 일지에 사진을 추가하면 여기에 표시됩니다.',
-              ctaLabel: '+ 사진 남기기',
+              title: '아직 업로드한 사진이 없어요',
+              description: '일지나 업무에 사진을 추가하면 여기에 표시됩니다.',
+              ctaLabel: '+ 사진이 있는 일지 작성',
               onTap: () => _openJournalPhotoFlow(context),
               dark: true,
             )
@@ -136,7 +135,7 @@ class GalleryTab extends StatelessWidget {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: photos.length,
-                      itemBuilder: (context, i) {
+                      itemBuilder: (context, index) {
                         return Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
@@ -152,7 +151,7 @@ class GalleryTab extends StatelessWidget {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: _buildImage(photos[i]),
+                            child: _buildImage(photos[index]),
                           ),
                         );
                       },
@@ -164,7 +163,7 @@ class GalleryTab extends StatelessWidget {
             ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.premiumBlue,
-        tooltip: '사진이 포함된 일지 작성',
+        tooltip: '사진이 있는 일지 작성',
         onPressed: () => showJournalWriteSheet(
           context: context,
           myId: authProv.currentUser?.id ?? 'me',
@@ -199,6 +198,7 @@ class GalleryTab extends StatelessWidget {
         },
       );
     }
+
     return Image.file(
       File(path),
       fit: BoxFit.cover,

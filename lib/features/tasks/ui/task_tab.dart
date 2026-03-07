@@ -4,17 +4,16 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:worknote/core/ui/app_palette.dart';
-import 'package:worknote/domain/models.dart';
 import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
+import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/add_task_sheet.dart';
+import 'package:worknote/features/tasks/ui/task_sort_field.dart';
 import 'package:worknote/features/tasks/ui/widgets/task_card.dart';
 import 'package:worknote/features/tasks/ui/widgets/task_filter_bar.dart';
-import 'package:worknote/features/tasks/ui/task_sort_field.dart';
 import 'package:worknote/features/tasks/ui/widgets/task_masonry_card.dart';
 import 'package:worknote/features/team/state/team_provider.dart';
 
-/// v5 - Masterpiece Integration with Filter Bar Sync
 enum TaskCardLayout { classic, gallery }
 
 enum TaskGroupPeriod { day, week, month, quarter, year }
@@ -28,20 +27,18 @@ class TeamTaskTab extends StatefulWidget {
 
 class _TeamTaskTabState extends State<TeamTaskTab> {
   String? _lastTeamId;
-  // Controls
   TaskCardLayout _layout = TaskCardLayout.classic;
   TaskGroupPeriod _period = TaskGroupPeriod.day;
   TaskSortField _sortField = TaskSortField.dueDate;
   bool _isDescending = true;
-
-  // ?? ?? ?? ??? TaskFilterBar? ????.
   final bool _showGroupHeaders = true;
-
-  // Filter Local State
   String _selProjectId = 'all';
 
-  String _periodLabel(TaskGroupPeriod p) {
-    switch (p) {
+  final Set<String> _collapsedGroupIds = <String>{};
+  final ScrollController _scrollController = ScrollController();
+
+  String _periodLabel(TaskGroupPeriod period) {
+    switch (period) {
       case TaskGroupPeriod.day:
         return '일';
       case TaskGroupPeriod.week:
@@ -51,12 +48,9 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       case TaskGroupPeriod.quarter:
         return '분기';
       case TaskGroupPeriod.year:
-        return '년';
+        return '연';
     }
   }
-
-  final Set<String> _collapsedGroupIds = <String>{};
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
@@ -78,6 +72,9 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
+    final tabPalette = _TaskTabPalette.fromMode(
+      teamProv.currentThemeMode.toLowerCase(),
+    );
 
     final teamId = teamProv.currentTeamId;
     if (_lastTeamId != null && _lastTeamId != teamId) {
@@ -92,26 +89,23 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
     _lastTeamId = teamId;
 
     final baseTasks = taskProv.tasksForTeam(teamId);
-    final filteredTasks = baseTasks.where((t) {
+    final filteredTasks = baseTasks.where((task) {
       if (_selProjectId != 'all' &&
           (_selProjectId == 'none'
-              ? t.projectId != null
-              : t.projectId != _selProjectId)) {
+              ? task.projectId != null
+              : task.projectId != _selProjectId)) {
         return false;
       }
-
       return true;
     }).toList();
 
-    // Grouping
-    final Map<String, List<Task>> grouped = <String, List<Task>>{};
-    final Map<String, _GroupInfo> groupInfo = <String, _GroupInfo>{};
-
-    for (final t in filteredTasks) {
-      final base = taskProv.effectiveTimelineDate(t);
-      final g = _groupFor(base, _period);
-      grouped.putIfAbsent(g.id, () => []).add(t);
-      groupInfo[g.id] = g;
+    final grouped = <String, List<Task>>{};
+    final groupInfo = <String, _GroupInfo>{};
+    for (final task in filteredTasks) {
+      final base = taskProv.effectiveTimelineDate(task);
+      final group = _groupFor(base, _period);
+      grouped.putIfAbsent(group.id, () => []).add(task);
+      groupInfo[group.id] = group;
     }
 
     final displayKeys = grouped.keys.toList()
@@ -124,30 +118,77 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
       });
 
     return Scaffold(
-      backgroundColor: AppPalette.background,
+      backgroundColor: tabPalette.backgroundColor,
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '업무 보기',
+                      style: TextStyle(
+                        color: tabPalette.textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '프로젝트와 기간 기준으로 업무를 빠르게 훑어보세요.',
+                      style: TextStyle(
+                        color: tabPalette.subTextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tabPalette.summaryChipColor,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: tabPalette.summaryChipBorder),
+                  ),
+                  child: Text(
+                    '${filteredTasks.length}건',
+                    style: TextStyle(
+                      color: tabPalette.accent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: TaskFilterBar(
               taskProv: taskProv,
               groupValue: _periodLabel(_period),
-              groupItems: TaskGroupPeriod.values
-                  .map((p) => _periodLabel(p))
-                  .toList(),
-              onGroupChanged: (v) {
-                if (v == null) return;
+              groupItems: TaskGroupPeriod.values.map(_periodLabel).toList(),
+              onGroupChanged: (value) {
+                if (value == null) return;
                 setState(() {
                   _period = TaskGroupPeriod.values.firstWhere(
-                    (p) => _periodLabel(p) == v,
+                    (period) => _periodLabel(period) == value,
                   );
                   _collapsedGroupIds.clear();
                 });
               },
               sortValue: _sortField,
               sortItems: TaskSortField.values,
-              onSortChanged: (v) =>
-                  setState(() => _sortField = v ?? TaskSortField.dueDate),
+              onSortChanged: (value) =>
+                  setState(() => _sortField = value ?? TaskSortField.dueDate),
               newestFirst: _isDescending,
               onToggleNewestFirst: () =>
                   setState(() => _isDescending = !_isDescending),
@@ -158,19 +199,19 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
                     : TaskCardLayout.classic;
               }),
               selProjectId: _selProjectId,
-              onProjectChanged: (v) => setState(() => _selProjectId = v),
+              onProjectChanged: (value) => setState(() => _selProjectId = value),
             ),
           ),
-
           Expanded(
             child: filteredTasks.isEmpty
                 ? EmptyStatePlaceholder(
                     icon: Icons.task_alt_rounded,
                     title: '조건에 맞는 업무가 없어요',
-                    description: '필터를 조정하거나 새로운 업무를 추가해 보세요.',
+                    description: '필터를 조정하거나 새 업무를 추가해 보세요.',
                     ctaLabel: '+ 첫 업무 추가하기',
                     onTap: () => showAddTaskSheet(context: context),
                     compact: true,
+                    dark: tabPalette.isDark,
                   )
                 : _showGroupHeaders
                 ? _GroupedTaskView(
@@ -205,13 +246,6 @@ class _TeamTaskTabState extends State<TeamTaskTab> {
 }
 
 class _FlatTaskView extends StatelessWidget {
-  final List<Task> tasks;
-  final TaskSortField sortField;
-  final bool newestFirst;
-  final TaskCardLayout layout;
-  final TaskProvider taskProv;
-  final ScrollController scrollController;
-
   const _FlatTaskView({
     required this.tasks,
     required this.sortField,
@@ -220,6 +254,13 @@ class _FlatTaskView extends StatelessWidget {
     required this.taskProv,
     required this.scrollController,
   });
+
+  final List<Task> tasks;
+  final TaskSortField sortField;
+  final bool newestFirst;
+  final TaskCardLayout layout;
+  final TaskProvider taskProv;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -238,11 +279,13 @@ class _FlatTaskView extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          mainAxisExtent: 236,
+          mainAxisExtent: 252,
         ),
         itemCount: sortedTasks.length,
-        itemBuilder: (ctx, i) =>
-            TaskMasonryCard(task: sortedTasks[i], taskProv: taskProv),
+        itemBuilder: (ctx, index) => TaskMasonryCard(
+          task: sortedTasks[index],
+          taskProv: taskProv,
+        ),
       );
     }
 
@@ -250,26 +293,15 @@ class _FlatTaskView extends StatelessWidget {
       controller: scrollController,
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 132),
       itemCount: sortedTasks.length,
-      itemBuilder: (ctx, i) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: TaskCard(task: sortedTasks[i], taskProv: taskProv),
+      itemBuilder: (ctx, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TaskCard(task: sortedTasks[index], taskProv: taskProv),
       ),
     );
   }
 }
 
 class _GroupedTaskView extends StatelessWidget {
-  final List<String> groupIds;
-  final Map<String, _GroupInfo> groupInfo;
-  final Map<String, List<Task>> grouped;
-  final TaskSortField sortField;
-  final bool newestFirst;
-  final TaskCardLayout layout;
-  final bool Function(String groupId) isCollapsed;
-  final ValueChanged<String> onToggleCollapse;
-  final TaskProvider taskProv;
-  final ScrollController scrollController;
-
   const _GroupedTaskView({
     required this.groupIds,
     required this.groupInfo,
@@ -282,6 +314,17 @@ class _GroupedTaskView extends StatelessWidget {
     required this.taskProv,
     required this.scrollController,
   });
+
+  final List<String> groupIds;
+  final Map<String, _GroupInfo> groupInfo;
+  final Map<String, List<Task>> grouped;
+  final TaskSortField sortField;
+  final bool newestFirst;
+  final TaskCardLayout layout;
+  final bool Function(String groupId) isCollapsed;
+  final ValueChanged<String> onToggleCollapse;
+  final TaskProvider taskProv;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -316,16 +359,16 @@ class _GroupedTaskView extends StatelessWidget {
               if (layout == TaskCardLayout.classic)
                 Column(
                   children: [
-                    for (final t in items) ...[
-                      TaskCard(task: t, taskProv: taskProv),
-                      const SizedBox(height: 10),
+                    for (final task in items) ...[
+                      TaskCard(task: task, taskProv: taskProv),
+                      const SizedBox(height: 12),
                     ],
                   ],
                 )
               else
                 _HorizontalGalleryRow(items: items, taskProv: taskProv),
             ],
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
           ],
         );
       },
@@ -334,27 +377,32 @@ class _GroupedTaskView extends StatelessWidget {
 }
 
 class _HorizontalGalleryRow extends StatelessWidget {
+  const _HorizontalGalleryRow({
+    required this.items,
+    required this.taskProv,
+  });
+
   final List<Task> items;
   final TaskProvider taskProv;
-  const _HorizontalGalleryRow({required this.items, required this.taskProv});
 
   @override
   Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
-    final cardW = (screenW - 40 - 12) / 2;
-    final singleCardW = screenW - 40;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth - 40 - 12) / 2;
+    final singleCardWidth = screenWidth - 40;
+
     return Container(
-      height: 236,
-      margin: const EdgeInsets.only(top: 4, bottom: 8),
+      height: 252,
+      margin: const EdgeInsets.only(top: 4, bottom: 10),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final width = items.length == 1 ? singleCardW : cardW;
+        itemBuilder: (context, index) {
+          final width = items.length == 1 ? singleCardWidth : cardWidth;
           return SizedBox(
             width: width,
-            child: TaskMasonryCard(task: items[i], taskProv: taskProv),
+            child: TaskMasonryCard(task: items[index], taskProv: taskProv),
           );
         },
       ),
@@ -363,10 +411,6 @@ class _HorizontalGalleryRow extends StatelessWidget {
 }
 
 class _GroupHeader extends StatelessWidget {
-  final String label;
-  final int count;
-  final bool collapsed;
-  final VoidCallback onTap;
   const _GroupHeader({
     required this.label,
     required this.count,
@@ -374,10 +418,19 @@ class _GroupHeader extends StatelessWidget {
     required this.onTap,
   });
 
+  final String label;
+  final int count;
+  final bool collapsed;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
+    final tabPalette = _TaskTabPalette.fromMode(
+      context.watch<TeamProvider>().currentThemeMode.toLowerCase(),
+    );
+
     return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 6),
+      padding: const EdgeInsets.only(top: 10, bottom: 8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -385,9 +438,9 @@ class _GroupHeader extends StatelessWidget {
           children: [
             Container(
               width: 4,
-              height: 16,
+              height: 18,
               decoration: BoxDecoration(
-                color: AppPalette.primary,
+                color: tabPalette.accent,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -395,20 +448,26 @@ class _GroupHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: AppTextColor.primary,
+                  color: tabPalette.textColor,
                 ),
               ),
             ),
             Text(
               '$count건',
-              style: const TextStyle(
-                color: AppTextColor.secondary,
+              style: TextStyle(
+                color: tabPalette.subTextColor,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              collapsed ? Icons.expand_more_rounded : Icons.expand_less_rounded,
+              color: tabPalette.subTextColor,
+              size: 20,
             ),
           ],
         ),
@@ -418,26 +477,32 @@ class _GroupHeader extends StatelessWidget {
 }
 
 class _TaskAddButton extends StatelessWidget {
-  final VoidCallback onPressed;
   const _TaskAddButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
   @override
   Widget build(BuildContext context) {
+    final tabPalette = _TaskTabPalette.fromMode(
+      context.watch<TeamProvider>().currentThemeMode.toLowerCase(),
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       width: double.infinity,
-      height: 50,
+      height: 54,
       child: ElevatedButton.icon(
         onPressed: () {
           HapticFeedback.lightImpact();
           onPressed();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppPalette.primary,
+          backgroundColor: tabPalette.accent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          elevation: 10,
+          elevation: tabPalette.isDark ? 0 : 10,
         ),
         icon: const Icon(Icons.add_rounded, size: 24),
         label: const Text(
@@ -445,7 +510,7 @@ class _TaskAddButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w900,
-            letterSpacing: 0.6,
+            letterSpacing: 0.4,
           ),
         ),
       ),
@@ -453,18 +518,18 @@ class _TaskAddButton extends StatelessWidget {
   }
 }
 
-// Helpers
 class _GroupInfo {
-  final String id;
-  final String label;
-  final DateTime start;
-  final DateTime end;
   const _GroupInfo({
     required this.id,
     required this.label,
     required this.start,
     required this.end,
   });
+
+  final String id;
+  final String label;
+  final DateTime start;
+  final DateTime end;
 }
 
 _GroupInfo _groupFor(DateTime date, TaskGroupPeriod period) {
@@ -516,17 +581,72 @@ _GroupInfo _groupFor(DateTime date, TaskGroupPeriod period) {
   }
 }
 
-DateTime _dateForSort(TaskProvider prov, Task t, TaskSortField field) {
+DateTime _dateForSort(TaskProvider prov, Task task, TaskSortField field) {
   switch (field) {
     case TaskSortField.createdAt:
-      return t.createdAt;
+      return task.createdAt;
     case TaskSortField.updatedAt:
-      return t.updatedAt;
+      return task.updatedAt;
     case TaskSortField.dueDate:
-      return t.dueDate;
+      return task.dueDate;
     case TaskSortField.scheduleStart:
-      return (prov.effectiveScheduleRange(t)?.start) ?? t.dueDate;
+      return (prov.effectiveScheduleRange(task)?.start) ?? task.dueDate;
     case TaskSortField.completedAt:
-      return t.completedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return task.completedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+}
+
+class _TaskTabPalette {
+  const _TaskTabPalette({
+    required this.isDark,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.subTextColor,
+    required this.accent,
+    required this.summaryChipColor,
+    required this.summaryChipBorder,
+  });
+
+  final bool isDark;
+  final Color backgroundColor;
+  final Color textColor;
+  final Color subTextColor;
+  final Color accent;
+  final Color summaryChipColor;
+  final Color summaryChipBorder;
+
+  factory _TaskTabPalette.fromMode(String mode) {
+    switch (mode) {
+      case 'dark':
+        return const _TaskTabPalette(
+          isDark: true,
+          backgroundColor: AppColors.darkBg,
+          textColor: AppColors.darkText,
+          subTextColor: AppColors.darkHint,
+          accent: AppColors.premiumBlue,
+          summaryChipColor: AppColors.darkSurface2,
+          summaryChipBorder: AppColors.darkBorder,
+        );
+      case 'blue':
+        return const _TaskTabPalette(
+          isDark: false,
+          backgroundColor: Color(0xFFF0F7FF),
+          textColor: AppColors.text,
+          subTextColor: Color(0xFF527199),
+          accent: AppColors.premiumBlueStrong,
+          summaryChipColor: Color(0xFFDDEAFF),
+          summaryChipBorder: Color(0xFFB9D2FF),
+        );
+      default:
+        return const _TaskTabPalette(
+          isDark: false,
+          backgroundColor: AppColors.bg,
+          textColor: AppColors.text,
+          subTextColor: AppColors.text2,
+          accent: AppColors.primary,
+          summaryChipColor: Color(0xFFE8F0FF),
+          summaryChipBorder: Color(0xFFD8E4FF),
+        );
+    }
   }
 }

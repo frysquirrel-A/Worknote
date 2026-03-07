@@ -86,7 +86,8 @@ class _JournalDetailSheetContentState extends State<_JournalDetailSheetContent> 
                 IconButton(
                   onPressed: () async {
                     await prov.deleteJournal(current.id);
-                    if (mounted) Navigator.pop(context);
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
                   },
                   icon: const Icon(Icons.delete_outline_rounded),
                 ),
@@ -223,7 +224,8 @@ class _AddProgressDialogState extends State<_AddProgressDialog> {
               userId: widget.userId,
               userName: widget.userName,
             );
-            if (mounted) Navigator.pop(context);
+            if (!context.mounted) return;
+            Navigator.pop(context);
           },
           child: const Text('저장'),
         ),
@@ -329,7 +331,8 @@ class _EditEntrySheetState extends State<_EditEntrySheet> {
                   isPrivate: _isPrivate,
                 );
                 await context.read<JournalProvider>().updateJournal(updated);
-                if (mounted) Navigator.pop(context, updated);
+                if (!context.mounted) return;
+                Navigator.pop(context, updated);
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppPalette.primary, foregroundColor: Colors.white),
               child: const Text('저장', style: TextStyle(fontWeight: FontWeight.w900)),

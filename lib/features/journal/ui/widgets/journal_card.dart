@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/core/theme/premium_theme.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';

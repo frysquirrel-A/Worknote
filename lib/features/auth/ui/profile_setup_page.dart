@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:worknote/core/theme/app_theme.dart';
 import 'package:worknote/features/auth/state/auth_provider.dart';
 
 class ProfileSetupPage extends StatefulWidget {
-  final String? heroTag;
-
   const ProfileSetupPage({super.key, this.heroTag});
+
+  final String? heroTag;
 
   @override
   State<ProfileSetupPage> createState() => _ProfileSetupPageState();
 }
 
 class _ProfileSetupPageState extends State<ProfileSetupPage> {
-  static const List<String> _avatars = <String>['👷', '👨‍💻', '👩‍💼', '🦸', '🧠', '🚀'];
+  static const List<String> _avatars = <String>[
+    '🙂',
+    '😎',
+    '🧠',
+    '🌿',
+    '🚀',
+    '📝',
+  ];
 
   late final TextEditingController _nameCtrl;
   String? _selectedAvatar;
@@ -38,7 +44,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     final auth = context.read<AuthProvider>();
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('닉네임을 입력해 주세요.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('닉네임을 입력해 주세요')),
+      );
       return;
     }
 
@@ -48,10 +56,14 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       final okAvatar = await auth.updateProfileImage(_selectedAvatar);
       if (!mounted) return;
       if (!okName || !okAvatar) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('프로필 저장에 실패했습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('프로필 저장에 실패했습니다.')),
+        );
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -77,14 +89,20 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                     children: [
                       const Text(
                         '프로필 설정',
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         auth.isGoogleLinked
-                            ? '${auth.currentProfile?.linkedGoogleEmail ?? '구글 계정'}으로 사용할 이름을 정해주세요.'
-                            : '가입 없이 시작하는 로컬 프로필입니다.\n앱에서 사용할 이름을 정해주세요.',
-                        style: const TextStyle(color: Colors.black54, height: 1.45),
+                            ? '${auth.currentProfile?.linkedGoogleEmail ?? '구글 계정'}으로 사용할 이름을 정해 주세요.'
+                            : '가입 없이 시작한 로컬 프로필입니다.\n앱 안에서 사용할 이름을 정해 주세요.',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          height: 1.45,
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Center(
@@ -92,11 +110,15 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                           tag: heroTag,
                           child: CircleAvatar(
                             radius: 42,
-                            backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                            backgroundColor: const Color(
+                              0xFF2563EB,
+                            ).withValues(alpha: 0.12),
                             child: Text(
                               (_selectedAvatar?.trim().isNotEmpty ?? false)
                                   ? _selectedAvatar!
-                                  : ((_nameCtrl.text.trim().isNotEmpty) ? _nameCtrl.text.trim()[0] : '🙂'),
+                                  : ((_nameCtrl.text.trim().isNotEmpty)
+                                        ? _nameCtrl.text.trim()[0]
+                                        : 'W'),
                               style: const TextStyle(fontSize: 34),
                             ),
                           ),
@@ -114,13 +136,22 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: _selectedAvatar == emoji ? const Color(0xFF2563EB).withValues(alpha: 0.12) : Colors.white,
+                                    color: _selectedAvatar == emoji
+                                        ? const Color(
+                                            0xFF2563EB,
+                                          ).withValues(alpha: 0.12)
+                                        : Colors.white,
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                      color: _selectedAvatar == emoji ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+                                      color: _selectedAvatar == emoji
+                                          ? const Color(0xFF2563EB)
+                                          : const Color(0xFFE5E7EB),
                                     ),
                                   ),
-                                  child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                                  child: Text(
+                                    emoji,
+                                    style: const TextStyle(fontSize: 24),
+                                  ),
                                 ),
                               ),
                             )
@@ -145,14 +176,20 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB)),
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Color(0xFF2563EB),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 auth.isGoogleLinked
-                                    ? '이 이름은 현재 슬롯에만 적용됩니다. 같은 구글 계정에서도 슬롯별로 다른 이름을 사용할 수 있어요.'
-                                    : '로컬 프로필은 나중에 구글 계정과 연결해 클라우드 기능을 사용할 수 있어요.',
-                                style: const TextStyle(color: Color(0xFF334155), height: 1.35),
+                                    ? '이 이름은 현재 프로필에만 적용됩니다. 같은 구글 계정에서도 프로필별로 다른 이름을 사용할 수 있어요.'
+                                    : '로컬 프로필은 원할 때 구글 계정과 연결해 클라우드 기능을 사용할 수 있어요.',
+                                style: const TextStyle(
+                                  color: Color(0xFF334155),
+                                  height: 1.35,
+                                ),
                               ),
                             ),
                           ],
@@ -168,9 +205,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 )
-                              : const Text('시작하기'),
+                              : const Text('저장하기'),
                         ),
                       ),
                     ],

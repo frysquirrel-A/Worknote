@@ -59,9 +59,9 @@
   - `분석하고 코드까지 고쳐줘`
 - Use `ui-review-operator` for requests like:
   - `스크린샷 찍어줘`
-  - `에뮬레이터 화면 검토해줘`
+  - `에뮬레이터 화면 검수해줘`
   - `HTML 보고서로 정리해줘`
-  - `화면별 기능과 사용자 컨텍스트 정리해줘`
+  - `화면별 기능과 디자인 컨셉 정리해줘`
 - Use `release-audit` for requests like:
   - `배포 준비 상태 점검해줘`
   - `TestFlight 전에 뭐가 막히는지 봐줘`

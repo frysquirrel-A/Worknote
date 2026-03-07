@@ -103,7 +103,16 @@ class _JournalWriteSheetState extends State<_JournalWriteSheet> {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text('일지 작성', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.text))),
+                  const Expanded(
+                    child: Text(
+                      '일지 작성',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.text,
+                      ),
+                    ),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: _kindColor(kind).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),

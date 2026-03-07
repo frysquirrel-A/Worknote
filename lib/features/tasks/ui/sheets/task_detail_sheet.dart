@@ -115,7 +115,8 @@ class _TaskDetailSheetContentState extends State<_TaskDetailSheetContent> {
         IconButton(
           onPressed: () async {
             await prov.deleteTask(widget.task.id);
-            if (mounted) Navigator.pop(context);
+            if (!context.mounted) return;
+            Navigator.pop(context);
           },
           icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
         ),

@@ -250,7 +250,6 @@ Therefore:
 
 Preferred vocabulary:
 - `plan / 계획` in task context
-- group/team concepts remain flexible
 
 Keep Home / Tasks / Schedule / Journal / Gallery / Messenger all intact.
 

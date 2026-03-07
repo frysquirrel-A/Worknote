@@ -559,6 +559,10 @@ class MasterDrawer extends StatelessWidget {
                 ),
                 onPressed: () async {
                   final authProv = context.read<AuthProvider>();
+                  final teamProv = context.read<TeamProvider>();
+                  final taskProv = context.read<TaskProvider>();
+                  final journalProv = context.read<JournalProvider>();
+                  final chatProv = context.read<ChatProvider>();
                   final myId = authProv.currentUser?.id ?? 'me';
                   final myName = authProv.currentUser?.name ?? '관리자';
 
@@ -568,10 +572,10 @@ class MasterDrawer extends StatelessWidget {
                     myName: myName,
                   );
 
-                  await context.read<TeamProvider>().loadTeams();
-                  await context.read<TaskProvider>().loadData();
-                  await context.read<JournalProvider>().loadJournals();
-                  context.read<ChatProvider>().reloadLocal();
+                  await teamProv.loadTeams();
+                  await taskProv.loadData();
+                  await journalProv.loadJournals();
+                  chatProv.reloadLocal();
 
                   if (context.mounted) {
                     Navigator.pop(ctx);
@@ -634,7 +638,7 @@ class _ProfileHeader extends StatelessWidget {
                 userId: current?.id ?? 'me',
                 radius: 28,
                 heroPrefix: 'drawer',
-                onTap: () => MasterDrawer()._showAvatarPicker(context, authProv),
+                onTap: () => const MasterDrawer()._showAvatarPicker(context, authProv),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -656,7 +660,7 @@ class _ProfileHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         GestureDetector(
-                          onTap: () => MasterDrawer()._showEditNameDialog(
+                          onTap: () => const MasterDrawer()._showEditNameDialog(
                             context,
                             authProv,
                           ),

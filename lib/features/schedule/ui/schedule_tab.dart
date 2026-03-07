@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
@@ -209,46 +210,31 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final startDay = firstDayOfMonth.subtract(Duration(days: firstDayOfMonth.weekday % 7));
     final endDay = lastDayOfMonth.add(Duration(days: (6 - lastDayOfMonth.weekday) % 7));
 
-    final rows = <TableRow>[
-      TableRow(
-        children: _weekdayLabels.map((label) {
-          final color = label == '일'
-              ? AppColors.destructive
-              : label == '토'
-                  ? AppColors.premiumBlue
-                  : AppColors.darkHint;
-          return Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 13),
-            ),
-          );
-        }).toList(),
-      ),
-    ];
+    final weekRows = <Widget>[];
 
     var cursor = startDay;
     while (cursor.isBefore(endDay) || isSameDay(cursor, endDay)) {
-      final cells = <Widget>[];
+      final weekDays = <DateTime>[];
       for (var i = 0; i < 7; i++) {
-        final day = cursor;
-        final events = _eventsForDay(
-          day: day,
-          tasks: tasks,
-          personal: personal,
-          taskProv: taskProv,
-          scheduleProv: scheduleProv,
-        )..sort((a, b) {
-            final startCompare = a.range.start.compareTo(b.range.start);
-            if (startCompare != 0) return startCompare;
-            return b.range.duration.inDays.compareTo(a.range.duration.inDays);
-          });
-        cells.add(_calendarDayCell(day: day, events: events));
+        weekDays.add(cursor);
         cursor = cursor.add(const Duration(days: 1));
       }
-      rows.add(TableRow(children: cells));
+
+      final weekLanes = _buildWeekLanes(
+        weekStart: weekDays.first,
+        weekEnd: weekDays.last,
+        tasks: tasks,
+        personal: personal,
+        taskProv: taskProv,
+        scheduleProv: scheduleProv,
+      );
+
+      weekRows.add(
+        _calendarWeekRow(
+          weekDays: weekDays,
+          weekLanes: weekLanes,
+        ),
+      );
     }
 
     return Container(
@@ -294,18 +280,30 @@ class _ScheduleTabState extends State<ScheduleTab> {
               ],
             ),
           ),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(),
-              1: FlexColumnWidth(),
-              2: FlexColumnWidth(),
-              3: FlexColumnWidth(),
-              4: FlexColumnWidth(),
-              5: FlexColumnWidth(),
-              6: FlexColumnWidth(),
-            },
-            children: rows,
+          Row(
+            children: _weekdayLabels.map((label) {
+              final color = label == '일'
+                  ? AppColors.destructive
+                  : label == '토'
+                      ? AppColors.premiumBlue
+                      : AppColors.darkHint;
+              return Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
+          ...weekRows,
         ],
       ),
     );
@@ -324,7 +322,98 @@ class _ScheduleTabState extends State<ScheduleTab> {
     );
   }
 
-  Widget _calendarDayCell({required DateTime day, required List<_CalendarEvent> events}) {
+  Widget _calendarWeekRow({
+    required List<DateTime> weekDays,
+    required List<_WeekLaneEvent> weekLanes,
+  }) {
+    const maxVisibleLanes = 4;
+    final totalLaneCount = weekLanes.isEmpty
+        ? 0
+        : weekLanes.map((lane) => lane.lane).reduce((a, b) => a > b ? a : b) + 1;
+    final visibleLaneCount = totalLaneCount > maxVisibleLanes
+        ? maxVisibleLanes
+        : totalLaneCount;
+    final hiddenCounts = <int>[
+      for (final day in weekDays)
+        weekLanes.where((lane) {
+          return lane.lane >= visibleLaneCount &&
+              !day.isBefore(lane.start) &&
+              !day.isAfter(lane.end);
+        }).length,
+    ];
+    final hasHiddenCounts = !_isCompactCalendar && hiddenCounts.any((count) => count > 0);
+    final laneHeight = _isCompactCalendar ? 4.0 : 20.0;
+    const laneGap = 3.0;
+    const laneTop = 34.0;
+    final laneAreaHeight = visibleLaneCount == 0
+        ? 0.0
+        : (visibleLaneCount * laneHeight) + ((visibleLaneCount - 1) * laneGap);
+    final rowHeight = math.max(
+      _isCompactCalendar ? 76.0 : 108.0,
+      laneTop + laneAreaHeight + (hasHiddenCounts ? 14.0 : 0.0) + 10.0,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellWidth = constraints.maxWidth / 7;
+        return SizedBox(
+          height: rowHeight,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  for (final day in weekDays)
+                    Expanded(
+                      child: _calendarDayBackground(
+                        day: day,
+                        height: rowHeight,
+                      ),
+                    ),
+                ],
+              ),
+              IgnorePointer(
+                child: Stack(
+                  children: [
+                    for (final laneEvent in weekLanes.where((lane) => lane.lane < visibleLaneCount))
+                      _calendarWeekBar(
+                        laneEvent: laneEvent,
+                        weekDays: weekDays,
+                        cellWidth: cellWidth,
+                        laneTop: laneTop,
+                        laneHeight: laneHeight,
+                        laneGap: laneGap,
+                      ),
+                    if (hasHiddenCounts)
+                      for (var i = 0; i < weekDays.length; i++)
+                        if (hiddenCounts[i] > 0)
+                          Positioned(
+                            left: i * cellWidth,
+                            width: cellWidth,
+                            bottom: 4,
+                            child: Text(
+                              '+${hiddenCounts[i]}',
+                              style: const TextStyle(
+                                color: AppColors.darkHint,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _calendarDayBackground({
+    required DateTime day,
+    required double height,
+  }) {
     final isSelected = _selectedDay != null && isSameDay(_selectedDay, day);
     final isToday = isSameDay(DateTime.now(), day);
     final isOutsideMonth = day.month != _focusedDay.month;
@@ -333,101 +422,100 @@ class _ScheduleTabState extends State<ScheduleTab> {
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _selectedDay = day),
       child: Container(
-        constraints: BoxConstraints(minHeight: _isCompactCalendar ? 76 : 108),
+        height: height,
         decoration: BoxDecoration(
           color: isSelected ? AppColors.premiumBlue.withValues(alpha: 0.12) : Colors.transparent,
           border: Border.all(color: AppColors.darkBorder.withValues(alpha: 0.55), width: 0.6),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(6),
-              child: Container(
-                width: 24,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: isToday
-                    ? const BoxDecoration(color: AppColors.premiumBlue, shape: BoxShape.circle)
-                    : null,
-                child: Text(
-                  '${day.day}',
-                  style: TextStyle(
-                    color: isToday
-                        ? Colors.white
-                        : isOutsideMonth
-                            ? AppColors.darkHint.withValues(alpha: 0.45)
-                            : day.weekday == DateTime.sunday
-                                ? AppColors.destructive
-                                : day.weekday == DateTime.saturday
-                                    ? AppColors.premiumBlue
-                                    : AppColors.darkText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: isToday
+                  ? const BoxDecoration(color: AppColors.premiumBlue, shape: BoxShape.circle)
+                  : null,
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: isToday
+                      ? Colors.white
+                      : isOutsideMonth
+                          ? AppColors.darkHint.withValues(alpha: 0.45)
+                          : day.weekday == DateTime.sunday
+                              ? AppColors.destructive
+                              : day.weekday == DateTime.saturday
+                                  ? AppColors.premiumBlue
+                                  : AppColors.darkText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Column(
-                children: events.take(4).map((event) {
-                  final color = event.type == _EventType.task ? AppColors.premiumBlue : AppColors.warning;
-                  final isSingleDay = isSameDay(event.range.start, event.range.end);
-                  final isStart = isSameDay(event.range.start, day);
-                  final isEnd = isSameDay(event.range.end, day);
-
-                  if (_isCompactCalendar) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 3),
-                      child: Center(
-                        child: isSingleDay
-                            ? Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                              )
-                            : Container(
-                                height: 4,
-                                margin: const EdgeInsets.symmetric(horizontal: 2),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                      ),
-                    );
-                  }
-
-                  return Container(
-                    margin: EdgeInsets.only(
-                      bottom: 3,
-                      left: (isSingleDay || isStart) ? 4 : 0,
-                      right: (isSingleDay || isEnd) ? 4 : 0,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.horizontal(
-                        left: (isSingleDay || isStart) ? const Radius.circular(4) : Radius.zero,
-                        right: (isSingleDay || isEnd) ? const Radius.circular(4) : Radius.zero,
-                      ),
-                    ),
-                    child: (isSingleDay || isStart || day.weekday == DateTime.sunday)
-                        ? Text(
-                            event.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
-                          )
-                        : const SizedBox(height: 11),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _calendarWeekBar({
+    required _WeekLaneEvent laneEvent,
+    required List<DateTime> weekDays,
+    required double cellWidth,
+    required double laneTop,
+    required double laneHeight,
+    required double laneGap,
+  }) {
+    final event = laneEvent.event;
+    final color = event.type == _EventType.task ? AppColors.premiumBlue : AppColors.warning;
+    final startIndex = weekDays.indexWhere((day) => isSameDay(day, laneEvent.start));
+    final endIndex = weekDays.indexWhere((day) => isSameDay(day, laneEvent.end));
+    if (startIndex == -1 || endIndex == -1) {
+      return const SizedBox.shrink();
+    }
+
+    final isSingleDay = startIndex == endIndex;
+    final roundedLeft = isSingleDay || isSameDay(event.range.start, laneEvent.start);
+    final roundedRight = isSingleDay || isSameDay(event.range.end, laneEvent.end);
+    final leftInset = isSingleDay ? 4.0 : (roundedLeft ? 2.0 : 0.0);
+    final rightInset = isSingleDay ? 4.0 : (roundedRight ? 2.0 : 0.0);
+    final left = (startIndex * cellWidth) + leftInset;
+    final width = ((endIndex - startIndex) + 1) * cellWidth - leftInset - rightInset;
+    final top = laneTop + (laneEvent.lane * (laneHeight + laneGap));
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: laneHeight,
+      child: Container(
+        padding: _isCompactCalendar
+            ? EdgeInsets.zero
+            : const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.horizontal(
+            left: roundedLeft ? const Radius.circular(4) : Radius.zero,
+            right: roundedRight ? const Radius.circular(4) : Radius.zero,
+          ),
+        ),
+        alignment: Alignment.centerLeft,
+        child: _isCompactCalendar
+            ? null
+            : Text(
+                event.title,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.fade,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
       ),
     );
   }
@@ -568,7 +656,97 @@ class _ScheduleTabState extends State<ScheduleTab> {
         initial: initial,
       ),
     );
+}
+
+  List<_WeekLaneEvent> _buildWeekLanes({
+    required DateTime weekStart,
+    required DateTime weekEnd,
+    required List<Task> tasks,
+    required List<Map<String, dynamic>> personal,
+    required TaskProvider taskProv,
+    required ScheduleProvider scheduleProv,
+  }) {
+    final weekEvents = <_CalendarEvent>[];
+
+    for (final task in tasks) {
+      final range = taskProv.effectiveScheduleRange(task);
+      if (range == null || !_rangesOverlap(range, DateTimeRange(start: weekStart, end: weekEnd))) {
+        continue;
+      }
+      weekEvents.add(
+        _CalendarEvent.task(
+          id: task.id,
+          title: task.title,
+          subtitle: _rangeText(range),
+          emoji: task.assigneeEmoji,
+          isDone: task.isDone,
+          task: task,
+          range: range,
+        ),
+      );
+    }
+
+    for (final item in personal) {
+      final range = scheduleProv.getRange(item);
+      if (range == null || !_rangesOverlap(range, DateTimeRange(start: weekStart, end: weekEnd))) {
+        continue;
+      }
+      weekEvents.add(
+        _CalendarEvent.personal(
+          id: (item['id'] ?? '').toString(),
+          title: (item['title'] ?? '').toString(),
+          subtitle: _rangeText(range),
+          note: (item['note'] ?? '').toString(),
+          raw: item,
+          range: range,
+        ),
+      );
+    }
+
+    weekEvents.sort((a, b) {
+      final startCompare = a.range.start.compareTo(b.range.start);
+      if (startCompare != 0) return startCompare;
+      final durationCompare = b.range.duration.inDays.compareTo(a.range.duration.inDays);
+      if (durationCompare != 0) return durationCompare;
+      return a.title.compareTo(b.title);
+    });
+
+    final laneEnds = <DateTime>[];
+    final lanes = <_WeekLaneEvent>[];
+
+    for (final event in weekEvents) {
+      final clippedStart = _normalizeDay(
+        event.range.start.isBefore(weekStart) ? weekStart : event.range.start,
+      );
+      final clippedEnd = _normalizeDay(
+        event.range.end.isAfter(weekEnd) ? weekEnd : event.range.end,
+      );
+
+      var laneIndex = 0;
+      while (laneIndex < laneEnds.length &&
+          !clippedStart.isAfter(laneEnds[laneIndex])) {
+        laneIndex++;
+      }
+
+      if (laneIndex == laneEnds.length) {
+        laneEnds.add(clippedEnd);
+      } else {
+        laneEnds[laneIndex] = clippedEnd;
+      }
+
+      lanes.add(
+        _WeekLaneEvent(
+          event: event,
+          lane: laneIndex,
+          start: clippedStart,
+          end: clippedEnd,
+        ),
+      );
+    }
+
+    return lanes;
   }
+
 }
 
 class _PersonalScheduleSheetContent extends StatefulWidget {
@@ -738,7 +916,8 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
                     );
                   }
 
-                  if (mounted) Navigator.pop(context);
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.premiumBlue,
@@ -850,12 +1029,36 @@ class _CalendarEvent {
   final DateTimeRange range;
 }
 
+class _WeekLaneEvent {
+  const _WeekLaneEvent({
+    required this.event,
+    required this.lane,
+    required this.start,
+    required this.end,
+  });
+
+  final _CalendarEvent event;
+  final int lane;
+  final DateTime start;
+  final DateTime end;
+}
+
 bool _rangeContainsDay(DateTimeRange range, DateTime day) {
   final normalizedDay = DateTime(day.year, day.month, day.day);
   final start = DateTime(range.start.year, range.start.month, range.start.day);
   final end = DateTime(range.end.year, range.end.month, range.end.day);
   return !normalizedDay.isBefore(start) && !normalizedDay.isAfter(end);
 }
+
+bool _rangesOverlap(DateTimeRange a, DateTimeRange b) {
+  final startA = _normalizeDay(a.start);
+  final endA = _normalizeDay(a.end);
+  final startB = _normalizeDay(b.start);
+  final endB = _normalizeDay(b.end);
+  return !endA.isBefore(startB) && !endB.isBefore(startA);
+}
+
+DateTime _normalizeDay(DateTime value) => DateTime(value.year, value.month, value.day);
 
 bool isSameDay(DateTime? a, DateTime? b) =>
     a != null &&

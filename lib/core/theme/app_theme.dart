@@ -13,7 +13,7 @@ class AppTheme {
 
   static ThemeData light({String? setting}) {
     final bool isBlue = setting == 'blue';
-    final seed = AppColors.primary;
+    const seed = AppColors.primary;
 
     final base = ThemeData(
       useMaterial3: true,
@@ -40,18 +40,27 @@ class AppTheme {
         iconTheme: IconThemeData(color: AppColors.text2),
         elevation: 0,
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        hintStyle: const TextStyle(color: AppColors.hint, fontWeight: FontWeight.w600),
-        labelStyle: const TextStyle(color: AppColors.text2, fontWeight: FontWeight.bold),
+        hintStyle: TextStyle(color: AppColors.hint, fontWeight: FontWeight.w600),
+        labelStyle: TextStyle(color: AppColors.text2, fontWeight: FontWeight.bold),
         prefixIconColor: seed,
         suffixIconColor: seed,
-        floatingLabelStyle: const TextStyle(color: AppColors.text2),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: const BorderSide(color: AppColors.primary, width: 1.4)),
+        floatingLabelStyle: TextStyle(color: AppColors.text2),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(_radius),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(_radius),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(_radius),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.4),
+        ),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? seed : null),
@@ -62,12 +71,12 @@ class AppTheme {
         surfaceTintColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(28)),
-          side: const BorderSide(color: AppColors.border, width: 1.2),
+          borderRadius: BorderRadius.all(Radius.circular(28)),
+          side: BorderSide(color: AppColors.border, width: 1.2),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -138,7 +147,10 @@ class AppTheme {
         fillColor: Colors.white.withValues(alpha: 0.05),
         hintStyle: const TextStyle(color: Colors.white38),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(borderRadius: const BorderRadius.all(_radius), borderSide: BorderSide.none),
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(_radius),
+          borderSide: BorderSide.none,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: const BorderRadius.all(_radius),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),

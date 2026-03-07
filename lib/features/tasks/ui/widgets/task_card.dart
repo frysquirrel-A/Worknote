@@ -1,221 +1,193 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import 'package:worknote/core/theme/premium_theme.dart';
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/core/ui/widgets/premium_button.dart';
 import 'package:worknote/domain/models.dart';
 import 'package:worknote/features/tasks/state/task_provider.dart';
 import 'package:worknote/features/tasks/ui/sheets/task_detail_sheet.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
 
 class TaskCard extends StatelessWidget {
+  const TaskCard({super.key, required this.task, required this.taskProv});
+
   final Task task;
   final TaskProvider taskProv;
 
-  const TaskCard({super.key, required this.task, required this.taskProv});
-
   @override
   Widget build(BuildContext context) {
-    final hasSchedule = taskProv.isIncludedInSchedule(task.id);
-    final scheduleRange =
-        taskProv.getScheduleRange(task.id) ??
-        taskProv.effectiveScheduleRange(task);
+    final themeMode = context.select<TeamProvider, String>(
+      (prov) => prov.currentThemeMode.toLowerCase(),
+    );
+    final palette = _CardPalette.fromThemeMode(themeMode);
+    final creatorName = _displayName(task.creatorName);
+    final assigneeName = _displayName(task.assigneeName);
+    final showOnCalendar = taskProv.isIncludedInSchedule(task.id);
+    final configuredRange = taskProv.getScheduleRange(task.id);
+    final effectiveRange =
+        configuredRange ?? taskProv.effectiveScheduleRange(task);
     final projectName = _findProjectName(task.projectId, taskProv.projects);
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: palette.cardColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: palette.borderColor),
         boxShadow: premiumShadow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(22),
           onTap: () => showTaskDetailSheet(context: context, task: task),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    InkWell(
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: () =>
-                          taskProv.updateTaskStatus(task, !task.isDone),
-                      child: Padding(
-                        padding: const EdgeInsets.all(1),
-                        child: _statusCircle(task.isDone),
+                    Expanded(
+                      child: _projectChip(
+                        projectName: projectName,
+                        chipColor: palette.chipColor,
+                        accent: palette.accent,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Expanded(child: _projectChip(projectName)),
+                    _priorityBadge(
+                      priority: task.priority,
+                      palette: palette,
+                      onTap: _cyclePriority,
+                    ),
                     const SizedBox(width: 6),
                     _scheduleButton(
-                      hasSchedule: hasSchedule,
-                      onTap: () => taskProv.setScheduleOptions(
-                        taskId: task.id,
-                        includeInSchedule: !hasSchedule,
-                        range:
-                            scheduleRange ??
-                            DateTimeRange(
-                              start: task.dueDate,
-                              end: task.dueDate,
-                            ),
+                      showOnCalendar: showOnCalendar,
+                      accent: palette.accent,
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        await taskProv.setScheduleOptions(
+                          taskId: task.id,
+                          includeInSchedule: !showOnCalendar,
+                          range: effectiveRange ??
+                              DateTimeRange(
+                                start: task.dueDate,
+                                end: task.dueDate,
+                              ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () async {
+                        HapticFeedback.selectionClick();
+                        await taskProv.updateTaskStatus(task, !task.isDone);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: _statusCircle(
+                          isDone: task.isDone,
+                          accent: palette.accent,
+                          mutedColor: palette.mutedColor,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          task.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: task.isDone
+                                ? palette.mutedColor
+                                : palette.titleColor,
+                            decoration: task.isDone
+                                ? TextDecoration.lineThrough
+                                : null,
+                            height: 1.14,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  task.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: task.isDone
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF1F2937),
-                    decoration: task.isDone ? TextDecoration.lineThrough : null,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+                  padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    color: palette.metaColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: palette.borderColor),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 7,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _priorityBadge(task.priority),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '작성: ${_fmt(task.createdAt)}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          '기한: ${_fmt(task.dueDate)}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFFEF4444),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    '중요도: ${_priorityLabel(task.priority)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                  if (task.isDone && task.completedAt != null)
-                                    Text(
-                                      '완료: ${_fmt(task.completedAt!)}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  if (hasSchedule && scheduleRange != null)
-                                    Text(
-                                      '일정: ${_fmt(scheduleRange.start)}~${_fmt(scheduleRange.end)}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFFF59E0B),
-                                      ),
-                                    ),
-                                ],
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _metaText(
+                                text: _metaLineOne(),
+                                palette: palette,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              _metaText(
+                                text: _metaLineTwo(
+                                  showOnCalendar: showOnCalendar,
+                                  configuredRange: configuredRange,
+                                ),
+                                palette: palette,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 1,
-                        height: 50,
-                        color: const Color(0xFFD1D5DB),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '작성자 ${_lastWord(task.creatorName)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF374151),
-                              ),
-                            ),
-                            Text(
-                              '담당 ${_lastWord(task.assigneeName)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF6B7280),
-                              ),
-                            ),
-                            Text(
-                              task.assigneeEmoji.isEmpty
-                                  ? '👤'
-                                  : task.assigneeEmoji,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
+                        const SizedBox(width: 10),
+                        Container(
+                          width: 1,
+                          color: palette.dividerColor,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 62,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _roleBlock(
+                                label: '작성자',
+                                name: creatorName,
+                                palette: palette,
+                              ),
+                              const SizedBox(height: 8),
+                              _roleBlock(
+                                label: '담당',
+                                name: assigneeName,
+                                palette: palette,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -223,6 +195,61 @@ class TaskCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _cyclePriority() async {
+    HapticFeedback.selectionClick();
+    await taskProv.cycleTaskPriority(task);
+  }
+
+  Widget _metaText({
+    required String text,
+    required _CardPalette palette,
+  }) {
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: palette.mutedColor,
+        height: 1.12,
+      ),
+    );
+  }
+
+  Widget _roleBlock({
+    required String label,
+    required String name,
+    required _CardPalette palette,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            color: palette.mutedColor,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.end,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            color: palette.titleColor,
+          ),
+        ),
+      ],
     );
   }
 
@@ -234,22 +261,50 @@ class TaskCard extends StatelessWidget {
     return '일반 업무';
   }
 
-  Widget _projectChip(String projectName) {
+  String _metaLineOne() {
+    return '작성 ${_fmt(task.createdAt)} • 기한 ${_fmt(task.dueDate)} • 수정 ${_fmt(task.updatedAt)}';
+  }
+
+  String _metaLineTwo({
+    required bool showOnCalendar,
+    required DateTimeRange? configuredRange,
+  }) {
+    final parts = <String>[];
+    if (task.completedAt != null) {
+      parts.add('완료 ${_fmt(task.completedAt!)}');
+    }
+    if (configuredRange != null) {
+      final sameDay = _fmt(configuredRange.start) == _fmt(configuredRange.end);
+      final rangeText = sameDay
+          ? _fmt(configuredRange.start)
+          : '${_fmt(configuredRange.start)}~${_fmt(configuredRange.end)}';
+      parts.add(showOnCalendar ? '캘린더 표시 $rangeText' : '캘린더 숨김 $rangeText');
+    } else {
+      parts.add('일정 미설정');
+    }
+    return parts.join(' • ');
+  }
+
+  Widget _projectChip({
+    required String projectName,
+    required Color chipColor,
+    required Color accent,
+  }) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFE6EFFF),
+          color: chipColor,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
           '# $projectName',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 11,
+          style: TextStyle(
+            color: accent,
+            fontSize: 10.5,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -258,108 +313,167 @@ class TaskCard extends StatelessWidget {
   }
 
   Widget _scheduleButton({
-    required bool hasSchedule,
+    required bool showOnCalendar,
+    required Color accent,
     required VoidCallback onTap,
   }) {
     return PremiumButton(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(10),
+          color: accent.withValues(alpha: showOnCalendar ? 0.18 : 0.1),
+          borderRadius: BorderRadius.circular(9),
         ),
         child: Icon(
-          hasSchedule
+          showOnCalendar
               ? Icons.calendar_month_rounded
               : Icons.calendar_today_outlined,
-          size: 17,
-          color: Colors.white,
+          size: 15,
+          color: accent,
         ),
       ),
     );
   }
 
-  Widget _statusCircle(bool isDone) {
+  Widget _statusCircle({
+    required bool isDone,
+    required Color accent,
+    required Color mutedColor,
+    required double size,
+  }) {
     return Container(
-      width: 26,
-      height: 26,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: isDone ? AppColors.primary : Colors.transparent,
+        color: isDone ? accent : Colors.transparent,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isDone ? AppColors.primary : const Color(0xFF9CA3AF),
-          width: 1.9,
+          color: isDone ? accent : mutedColor,
+          width: 1.7,
         ),
       ),
       child: isDone
-          ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+          ? Icon(
+              Icons.check_rounded,
+              size: size * 0.58,
+              color: Colors.white,
+            )
           : null,
     );
   }
 
-  Widget _priorityBadge(TaskPriority priority) {
-    if (priority == TaskPriority.none) {
-      return Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
-        ),
-      );
-    }
-
+  Widget _priorityBadge({
+    required TaskPriority priority,
+    required _CardPalette palette,
+    required Future<void> Function() onTap,
+  }) {
     final color = switch (priority) {
-      TaskPriority.high => const Color(0xFFEF4444),
-      TaskPriority.medium => const Color(0xFFF59E0B),
-      TaskPriority.low => AppColors.primary,
-      TaskPriority.none => AppColors.primary,
+      TaskPriority.high => AppColors.destructive,
+      TaskPriority.medium => AppColors.warning,
+      TaskPriority.low => palette.accent,
+      TaskPriority.none => palette.mutedColor,
     };
-    final text = switch (priority) {
+    final label = switch (priority) {
       TaskPriority.high => '상',
       TaskPriority.medium => '중',
       TaskPriority.low => '하',
       TaskPriority.none => '-',
     };
 
-    return Container(
-      width: 26,
-      height: 26,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        shape: BoxShape.circle,
-        border: Border.all(color: color, width: 1.6),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+    return PremiumButton(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: priority == TaskPriority.none ? 0.08 : 0.14),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: priority == TaskPriority.none ? palette.borderColor : color,
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
   }
 
-  String _priorityLabel(TaskPriority priority) {
-    return switch (priority) {
-      TaskPriority.high => '상',
-      TaskPriority.medium => '중',
-      TaskPriority.low => '하',
-      TaskPriority.none => '없음',
-    };
-  }
-
   String _fmt(DateTime date) => DateFormat('yy.MM.dd').format(date);
 
-  String _lastWord(String raw) {
+  String _displayName(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return '-';
     return trimmed.split(RegExp(r'\s+')).last;
+  }
+}
+
+class _CardPalette {
+  const _CardPalette({
+    required this.cardColor,
+    required this.metaColor,
+    required this.chipColor,
+    required this.borderColor,
+    required this.dividerColor,
+    required this.titleColor,
+    required this.mutedColor,
+    required this.accent,
+  });
+
+  final Color cardColor;
+  final Color metaColor;
+  final Color chipColor;
+  final Color borderColor;
+  final Color dividerColor;
+  final Color titleColor;
+  final Color mutedColor;
+  final Color accent;
+
+  factory _CardPalette.fromThemeMode(String mode) {
+    switch (mode) {
+      case 'dark':
+        return const _CardPalette(
+          cardColor: AppColors.darkSurface,
+          metaColor: AppColors.darkSurface2,
+          chipColor: AppColors.darkSurface2,
+          borderColor: AppColors.darkBorder,
+          dividerColor: AppColors.darkBorder,
+          titleColor: AppColors.darkText,
+          mutedColor: Color(0xFF9FB2D1),
+          accent: AppColors.premiumBlue,
+        );
+      case 'blue':
+        return const _CardPalette(
+          cardColor: Color(0xFFEAF3FF),
+          metaColor: Color(0xFFDCEAFF),
+          chipColor: Color(0xFFD5E5FF),
+          borderColor: Color(0xFFB9D2FF),
+          dividerColor: Color(0xFFAEC7F6),
+          titleColor: AppColors.text,
+          mutedColor: Color(0xFF527199),
+          accent: AppColors.premiumBlueStrong,
+        );
+      default:
+        return const _CardPalette(
+          cardColor: Colors.white,
+          metaColor: Color(0xFFF3F4F6),
+          chipColor: Color(0xFFE6EFFF),
+          borderColor: Color(0xFFE5E7EB),
+          dividerColor: Color(0xFFD1D5DB),
+          titleColor: AppColors.text,
+          mutedColor: Color(0xFF6B7280),
+          accent: AppColors.primary,
+        );
+    }
   }
 }

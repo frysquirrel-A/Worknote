@@ -325,7 +325,10 @@ class AuthProvider extends ChangeNotifier {
       );
     } catch (e, st) {
       debugPrint('[Auth] 구글 로그인 실패: $e\n$st');
-      return AuthFlowResult(AuthFlowState.failed, message: '구글 로그인 중 오류가 발생했습니다.');
+      return const AuthFlowResult(
+        AuthFlowState.failed,
+        message: '구글 로그인 중 오류가 발생했습니다.',
+      );
     } finally {
       _setLoading(false);
     }

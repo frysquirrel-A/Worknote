@@ -48,6 +48,164 @@ It records what was already complete, what was completed in the latest continuat
   - `review_data.json`
   - `session_manifest.json`
 
+## 2026-03-07 Continuation Batch 1
+- Repaired real stored corruption in instruction-critical docs:
+  - `AGENTS.md`
+  - `AI_CHECKLIST.md`
+  - `README.md`
+- Rebuilt `ios/Runner/Info.plist` with clean UTF-8 Korean permission descriptions while preserving the placeholder URL scheme.
+- Re-ran `flutter analyze` after the docs/native cleanup batch.
+- Current analyzer state remains:
+  - `error 0`
+  - warnings/info unchanged from prior baseline
+
+## 2026-03-07 Continuation Batch 2
+- Repaired real stored corruption in user-facing Tasks strings by rebuilding:
+  - `lib/features/tasks/ui/widgets/task_filter_bar.dart`
+  - `lib/features/tasks/ui/task_tab.dart`
+  - `lib/features/tasks/ui/sheets/add_task_sheet.dart`
+- Repaired real stored corruption in user-facing Gallery strings while preserving the existing Journal photo entry flow:
+  - `lib/features/gallery/ui/gallery_tab.dart`
+- Verified that `lib/features/chat/ui/messenger_tab.dart` only looked broken in console output and is already stored as valid UTF-8 on disk.
+- Preserved all previously applied premium-dark and control-density behavior rather than re-implementing it.
+- Reduced analyzer issue count by removing one existing warning from `add_task_sheet.dart` while keeping analyzer errors at zero.
+
+### Batch 2 Analyzer Status
+- `error 0`
+- `warning 3`
+- `info 29`
+- total `32 issues`
+
+## 2026-03-07 Continuation Batch 3
+- Re-verified native/release blockers from real source instead of stale docs:
+  - `android/app/build.gradle.kts` still uses `com.example.worknote`
+  - `android/app/google-services.json` still has an empty `oauth_client` array
+  - `ios/Runner/GoogleService-Info.plist` is still missing
+  - `ios/Runner/Info.plist` still uses the placeholder URL scheme
+  - `lib/firebase_options.dart` still targets `com.example.worknote`
+- Re-ran Android debug build successfully after the user-facing string repair batch.
+- Verified that the current Flutter toolchain in this Windows environment does not support `flutter build ios` or the previous `--no-codesign` flag, so iOS build verification remains a manual/macOS-side step.
+
+### Batch 3 Build Status
+- `flutter build apk --debug`: success
+- output: `build/app/outputs/flutter-apk/app-debug.apk`
+- `flutter build ios --no-codesign`: unsupported option on current SDK
+- `flutter build ios`: unsupported subcommand on current Windows Flutter toolchain
+
+## 2026-03-07 Continuation Batch 4
+- Reduced remaining low-risk analyzer issues without widening scope:
+  - cached providers before async reset follow-up work in `lib/app/widgets/master_drawer.dart`
+  - normalized `context.mounted` / `mounted` handling in async UI callbacks
+  - applied safe `const` cleanups in:
+    - `lib/core/theme/app_theme.dart`
+    - `lib/features/journal/ui/sheets/journal_write_sheet.dart`
+    - `lib/features/profile/ui/sheets/profile_focus_sheet.dart`
+    - `lib/features/auth/state/auth_provider.dart`
+  - removed remaining async-gap analyzer findings from:
+    - `lib/features/auth/ui/profile_selection_page.dart`
+    - `lib/features/journal/ui/sheets/journal_detail_sheet.dart`
+    - `lib/features/schedule/ui/schedule_tab.dart`
+    - `lib/features/tasks/ui/sheets/add_task_sheet.dart`
+    - `lib/features/tasks/ui/sheets/task_detail_sheet.dart`
+- Re-ran `flutter analyze` after the low-risk cleanup batch.
+- Re-ran `flutter build apk --debug` after the analyzer cleanup batch.
+
+### Batch 4 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+### Batch 4 Build Status
+- `flutter build apk --debug`: success
+- output: `build/app/outputs/flutter-apk/app-debug.apk`
+
+## 2026-03-07 Continuation Batch 5
+- Improved the monthly schedule grid so multi-day events keep the same weekly lane instead of breaking into visually disconnected per-day chips.
+- Week rows now compute shared event lanes first, then render each day cell against those lanes.
+- This keeps the same schedule visually connected across adjacent dates within the same week while preserving the current calendar/table structure.
+- Compact mode also uses the same weekly lane continuity instead of per-cell independent stacking.
+
+### Batch 5 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+## 2026-03-08 Continuation Batch 6
+- Reworked the monthly schedule grid event layout again because the previous per-day rendering still looked visually disconnected.
+- Events now use week-level lane assignment for rendering, so the same multi-day plan is kept on the same row across the full week span.
+- This specifically targets the visual breakage where a single 3-day or 4-day plan appeared as separate day chips instead of one continued strip.
+- Verified compile/analyze state after the schedule rendering patch.
+
+### Batch 6 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+### Batch 6 Build Status
+- `flutter build apk --debug`: success
+- output: `build/app/outputs/flutter-apk/app-debug.apk`
+
+## 2026-03-08 Continuation Batch 7
+- Fixed the remaining visual issue where continued multi-day schedule segments collapsed into narrow vertical pills on non-start days.
+- The schedule lane column now stretches event segments across the full available cell width.
+- Continuation days without labels now keep full-width placeholder height, so the bar stays visually connected instead of shrinking to content width.
+
+### Batch 7 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+## 2026-03-08 Continuation Batch 8
+- The schedule strip still looked visually broken at day boundaries because the dark calendar cell dividers remained visible between continuation segments.
+- Kept the week-lane layout from the previous batches, but added a controlled same-color spread shadow to multi-day event segments so the bar visually bridges over the cell separator.
+- This change only affects multi-day lane rendering and leaves single-day chips unchanged.
+
+### Batch 8 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+## 2026-03-08 Continuation Batch 9
+- Replaced the remaining per-cell multi-day segment rendering with week-row overlay bars.
+- Multi-day plans are now painted once per week span on top of the day grid, so the vertical day divider no longer cuts through the visual bar.
+- Event titles now use the full span width of the week overlay bar instead of being constrained to only the starting day cell, and the text no longer uses ellipsis.
+
+### Batch 9 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+## 2026-03-08 Continuation Batch 10
+- Rebuilt the Tasks control strip into grouped premium-dark segments so project / grouping / sorting controls read as one structured toolbar instead of scattered pills.
+- Repaired corrupted Korean labels in the Tasks tab, sort labels, empty state copy, group headers, and the primary add-task CTA.
+- Refactored the protected task cards under explicit user approval so the scanning order is clearer: project chip, priority/schedule controls, leading completion toggle, dense two-line meta block, and a separated right-side role column.
+- Kept the existing TaskProvider / sheet wiring intact while improving dark/white/blue tone consistency for the task list and masonry cards.
+
+### Batch 10 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+## 2026-03-08 Continuation Batch 11
+- Reduced the Tasks top control strip so it fits on-screen without horizontal sliding by switching it to a two-row grouped layout.
+- Made both task cards more compact by tightening paddings and shrinking the right-side role column.
+- Removed assignee emoji from the compact role block to free space for task metadata.
+- Restored visible text priority markers (`상`, `중`, `하`, `-`) instead of icon-only priority badges.
+- Clarified the calendar toggle meaning in task metadata: configured task plans now render as `캘린더 표시`, `캘린더 숨김`, or `일정 미설정` depending on state.
+
+### Batch 11 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
 ## Runtime Review Artifact
 - Session folder:
   - `screenshots/2026-03-07_094657_runtime_review`
@@ -69,11 +227,10 @@ Important note:
   - `C:\Users\Ryzen\flutter_sdk\bin\flutter.bat analyze`
 - Result:
   - `error 0`
-  - `warning 4`
-  - `info 29`
-  - total `33 issues`
-- Note:
-  - The command exits non-zero because warnings/info remain, but there are no analyzer errors.
+  - `warning 0`
+  - `info 0`
+  - total `0 issues`
+  - exit code `0`
 
 ## Build Status
 - Command:
@@ -100,5 +257,4 @@ Important note:
 - Emulator storage prevented reinstall of the latest debug APK
 
 ### P1
-- Remaining `flutter analyze` warnings/info are still open
 - Latest runtime visuals should be re-verified after a clean reinstall on the emulator
