@@ -105,40 +105,43 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final modePalette = AppModePalette.fromMode(
+      context.watch<TeamProvider>().currentThemeMode,
+    );
     final currentName = context.select<AuthProvider, String>(
       (p) => p.currentUser?.name ?? 'WORKNOTE Master',
     );
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: modePalette.background,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: modePalette.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.menu_open_rounded,
             size: 28,
-            color: AppColors.darkText,
           ),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          color: modePalette.text,
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'WORKNOTE Master',
               style: TextStyle(
-                color: AppColors.darkText,
+                color: modePalette.text,
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
               ),
             ),
             Text(
               currentName,
-              style: const TextStyle(
-                color: AppColors.darkHint,
+              style: TextStyle(
+                color: modePalette.hint,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -148,16 +151,16 @@ class _MainShellState extends State<MainShell> {
         actions: [
           IconButton(
             tooltip: '프로필 전환',
-            icon: const Icon(
+            icon: Icon(
               Icons.switch_account_rounded,
-              color: AppColors.darkText,
+              color: modePalette.text,
             ),
             onPressed: _openProfileManager,
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.notifications_active_outlined,
-              color: AppColors.darkText,
+              color: modePalette.text,
             ),
             onPressed: () {},
           ),
@@ -169,10 +172,10 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.only(top: 4, bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.darkBg,
+          color: modePalette.background,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.16),
+              color: modePalette.shadow,
               blurRadius: 15,
               offset: const Offset(0, -2),
             ),
@@ -183,23 +186,23 @@ class _MainShellState extends State<MainShell> {
             data: NavigationBarThemeData(
               labelTextStyle: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const TextStyle(
-                    color: AppColors.premiumBlue,
+                  return TextStyle(
+                    color: modePalette.accent,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   );
                 }
-                return const TextStyle(
-                  color: AppColors.darkHint,
+                return TextStyle(
+                  color: modePalette.hint,
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
                 );
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const IconThemeData(color: AppColors.premiumBlue);
+                  return IconThemeData(color: modePalette.accent);
                 }
-                return const IconThemeData(color: AppColors.darkHint);
+                return IconThemeData(color: modePalette.hint);
               }),
             ),
             child: NavigationBar(
@@ -212,7 +215,7 @@ class _MainShellState extends State<MainShell> {
                 HapticFeedback.selectionClick();
                 setState(() => _selectedIndex = idx);
               },
-              indicatorColor: AppColors.premiumBlue.withValues(alpha: 0.18),
+              indicatorColor: modePalette.accent.withValues(alpha: 0.18),
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               destinations: const [
                 NavigationDestination(

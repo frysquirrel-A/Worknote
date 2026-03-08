@@ -58,3 +58,79 @@ class AppTextColor {
   static const warning = AppColors.warning;
   static const danger = AppColors.danger;
 }
+
+class AppModePalette {
+  const AppModePalette({
+    required this.mode,
+    required this.isDark,
+    required this.background,
+    required this.backgroundAlt,
+    required this.surface,
+    required this.surfaceAlt,
+    required this.border,
+    required this.text,
+    required this.hint,
+    required this.accent,
+    required this.shadow,
+  });
+
+  final String mode;
+  final bool isDark;
+  final Color background;
+  final Color backgroundAlt;
+  final Color surface;
+  final Color surfaceAlt;
+  final Color border;
+  final Color text;
+  final Color hint;
+  final Color accent;
+  final Color shadow;
+
+  static AppModePalette fromMode(String? rawMode) {
+    final mode = (rawMode ?? 'light').toLowerCase();
+    switch (mode) {
+      case 'dark':
+        return const AppModePalette(
+          mode: 'dark',
+          isDark: true,
+          background: AppColors.darkBg,
+          backgroundAlt: Color(0xFF08111F),
+          surface: AppColors.darkSurface,
+          surfaceAlt: AppColors.darkSurface2,
+          border: AppColors.darkBorder,
+          text: AppColors.darkText,
+          hint: AppColors.darkHint,
+          accent: AppColors.premiumBlue,
+          shadow: Color(0x47000000),
+        );
+      case 'blue':
+        return const AppModePalette(
+          mode: 'blue',
+          isDark: false,
+          background: Color(0xFFF0F7FF),
+          backgroundAlt: Color(0xFFE8F0FF),
+          surface: Color(0xFFFFFFFF),
+          surfaceAlt: Color(0xFFE4EEFF),
+          border: Color(0xFFC9D9F4),
+          text: AppColors.text,
+          hint: Color(0xFF527199),
+          accent: AppColors.premiumBlueStrong,
+          shadow: Color(0x143F74F2),
+        );
+      default:
+        return const AppModePalette(
+          mode: 'light',
+          isDark: false,
+          background: AppColors.bg,
+          backgroundAlt: Color(0xFFEDEFF3),
+          surface: AppColors.surface,
+          surfaceAlt: Color(0xFFF8FAFC),
+          border: AppColors.border,
+          text: AppColors.text,
+          hint: AppColors.text2,
+          accent: AppColors.primary,
+          shadow: Color(0x110F172A),
+        );
+    }
+  }
+}

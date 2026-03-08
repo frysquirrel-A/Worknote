@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -19,10 +20,12 @@ class WorkNoteApp extends StatelessWidget {
     final themeMode = AppTheme.resolveThemeMode(themeSetting);
     final authProv = context.watch<AuthProvider>();
 
-    debugPrint(
-      '[WorkNoteApp] profile=${authProv.currentProfile?.name ?? 'null'} '
-      'loading=${authProv.isLoading} pendingGoogle=${authProv.hasPendingGoogleSelection}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[WorkNoteApp] profile=${authProv.currentProfile?.name ?? 'null'} '
+        'loading=${authProv.isLoading} pendingGoogle=${authProv.hasPendingGoogleSelection}',
+      );
+    }
 
     Widget rootChild;
     if (authProv.isLoading) {

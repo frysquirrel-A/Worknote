@@ -1,0 +1,31 @@
+WorkNote 런타임 UI 검수 메모
+세션 폴더: C:\Users\Ryzen\Desktop\Flutter_App_Dev\dev\worknote\screenshots\2026-03-08_145744_run오i57e_review
+
+핵심 관찰:
+- 로컬 우선 진입 흐름은 정상 동작한다.
+- Home는 팀/프로젝트/오늘 할 일/팀 대화방을 요약하는 허브 역할을 한다.
+- Tasks는 빈 상태에서도 필터 구조와 새 업무 작성 CTA가 명확하다.
+- Schedule은 검색/팀 일정 보기/월간 캘린더/계획 추가를 한 화면에 제공한다.
+- Gallery는 독립 업로드가 아니라 기존 Journal 작성 흐름과 연결된다.
+- Messenger는 premium-dark 기준 화면으로 empty state와 composer가 정돈돼 있다.
+- Feedback에서 뒤로 가기 시 런처로 이탈하는 예외 분기가 있었다.
+
+제외한 산출물:
+- step_09_tasks_root.png
+- step_09_tasks_root.xml
+- step_11_schedule_root.png
+- step_11_schedule_root.xml
+- step_13_journal_root.png
+- step_13_journal_root.xml
+- step_15_gallery_root.png
+- step_15_gallery_root.xml
+- step_17_chat_root.png
+- step_17_chat_root.xml
+
+문서 근거:
+- AGENTS.md
+- PROJECT_MAP.md
+- ARCHITECTURE.md
+- PATCHLOG.md
+- AI_CHECKLIST.md
+- docs/codex_patch_report_latest.md

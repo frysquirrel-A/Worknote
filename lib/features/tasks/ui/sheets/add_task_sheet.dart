@@ -57,6 +57,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
     final teamProv = context.watch<TeamProvider>();
     final taskProv = context.watch<TaskProvider>();
     final authProv = context.watch<AuthProvider>();
+    final palette = AppModePalette.fromMode(teamProv.currentThemeMode);
 
     final myId = authProv.currentUser?.id ?? 'me';
     final myName = authProv.currentUser?.name ?? '관리자';
@@ -70,41 +71,50 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: palette.border),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '새 업무 등록',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: AppColors.text,
+                color: palette.text,
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _titleCtrl,
               autofocus: true,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: AppColors.text,
+                color: palette.text,
               ),
               decoration: InputDecoration(
                 hintText: '업무 제목을 입력해 주세요',
-                hintStyle: const TextStyle(
-                  color: AppColors.hint,
+                hintStyle: TextStyle(
+                  color: palette.hint,
                   fontWeight: FontWeight.normal,
                 ),
                 filled: true,
-                fillColor: AppColors.bg,
+                fillColor: palette.surfaceAlt,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(color: palette.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: palette.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: palette.accent, width: 1.4),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -118,14 +128,14 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: assigneeId,
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w800,
                     ),
-                    iconEnabledColor: AppColors.text2,
-                    dropdownColor: AppColors.surface,
-                    decoration: _dropdownDecoration(),
-                    hint: const Text('담당자'),
+                    iconEnabledColor: palette.hint,
+                    dropdownColor: palette.surface,
+                    decoration: _dropdownDecoration(palette),
+                    hint: Text('담당자', style: TextStyle(color: palette.hint)),
                     items: members
                         .map(
                           (member) => DropdownMenuItem(
@@ -134,7 +144,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                               member.id == myId
                                   ? '나 (${member.name})'
                                   : member.name,
-                              style: const TextStyle(color: AppColors.text),
+                              style: TextStyle(color: palette.text),
                             ),
                           ),
                         )
@@ -146,20 +156,20 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     initialValue: projectId,
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w800,
                     ),
-                    iconEnabledColor: AppColors.text2,
-                    dropdownColor: AppColors.surface,
-                    decoration: _dropdownDecoration(),
-                    hint: const Text('프로젝트'),
+                    iconEnabledColor: palette.hint,
+                    dropdownColor: palette.surface,
+                    decoration: _dropdownDecoration(palette),
+                    hint: Text('프로젝트', style: TextStyle(color: palette.hint)),
                     items: [
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: null,
                         child: Text(
                           '일반 업무',
-                          style: TextStyle(color: AppColors.text),
+                          style: TextStyle(color: palette.text),
                         ),
                       ),
                       ...taskProv.projects
@@ -169,7 +179,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                               value: project.id,
                               child: Text(
                                 project.name,
-                                style: const TextStyle(color: AppColors.text),
+                                style: TextStyle(color: palette.text),
                               ),
                             ),
                           ),
@@ -201,7 +211,8 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                         vertical: 16,
                       ),
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.border),
+                        color: palette.surfaceAlt,
+                        border: Border.all(color: palette.border),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -210,26 +221,26 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 '기한',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: AppColors.hint,
+                                  color: palette.hint,
                                 ),
                               ),
                               Text(
                                 DateFormat('yyyy.MM.dd').format(dueDate),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.text,
+                                  color: palette.text,
                                 ),
                               ),
                             ],
                           ),
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_rounded,
                             size: 18,
-                            color: AppColors.primary,
+                            color: palette.accent,
                           ),
                         ],
                       ),
@@ -240,30 +251,30 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 Expanded(
                   child: DropdownButtonFormField<TaskPriority>(
                     initialValue: priority,
-                    style: const TextStyle(
-                      color: AppColors.text,
+                    style: TextStyle(
+                      color: palette.text,
                       fontWeight: FontWeight.w800,
                     ),
-                    iconEnabledColor: AppColors.text2,
-                    dropdownColor: AppColors.surface,
-                    decoration: _dropdownDecoration(),
-                    hint: const Text('중요도'),
-                    items: const [
+                    iconEnabledColor: palette.hint,
+                    dropdownColor: palette.surface,
+                    decoration: _dropdownDecoration(palette),
+                    hint: Text('중요도', style: TextStyle(color: palette.hint)),
+                    items: [
                       DropdownMenuItem(
                         value: TaskPriority.none,
-                        child: Text('없음', style: TextStyle(color: AppColors.text)),
+                        child: Text('없음', style: TextStyle(color: palette.text)),
                       ),
                       DropdownMenuItem(
                         value: TaskPriority.low,
-                        child: Text('하', style: TextStyle(color: AppColors.text)),
+                        child: Text('하', style: TextStyle(color: palette.text)),
                       ),
                       DropdownMenuItem(
                         value: TaskPriority.medium,
-                        child: Text('중', style: TextStyle(color: AppColors.text)),
+                        child: Text('중', style: TextStyle(color: palette.text)),
                       ),
-                      DropdownMenuItem(
+                      const DropdownMenuItem(
                         value: TaskPriority.high,
-                        child: Text('상', style: TextStyle(color: AppColors.danger)),
+                        child: Text('상', style: TextStyle(color: AppColors.destructive)),
                       ),
                     ],
                     onChanged: (value) => setState(() => priority = value!),
@@ -275,23 +286,24 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.bg,
+                color: palette.surfaceAlt,
+                border: Border.all(color: palette.border),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '일정(계획)에 표시하기',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.text,
+                      color: palette.text,
                     ),
                   ),
                   Switch(
                     value: includeInSchedule,
-                    activeThumbColor: AppColors.primary,
-                    activeTrackColor: AppColors.primary.withValues(alpha: 0.25),
+                    activeThumbColor: palette.accent,
+                    activeTrackColor: palette.accent.withValues(alpha: 0.25),
                     onChanged: (value) => setState(() => includeInSchedule = value),
                   ),
                 ],
@@ -316,24 +328,24 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: palette.accent.withValues(alpha: 0.3),
                     ),
                     borderRadius: BorderRadius.circular(12),
-                    color: AppColors.primary.withValues(alpha: 0.05),
+                    color: palette.accent.withValues(alpha: 0.08),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.date_range_rounded,
                         size: 18,
-                        color: AppColors.primary,
+                        color: palette.accent,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         '${DateFormat('yy.MM.dd').format(scheduleRange.start)} ~ ${DateFormat('yy.MM.dd').format(scheduleRange.end)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
+                          color: palette.accent,
                         ),
                       ),
                     ],
@@ -386,7 +398,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppPalette.primary,
+                  backgroundColor: palette.accent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -405,13 +417,21 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
     );
   }
 
-  InputDecoration _dropdownDecoration() {
+  InputDecoration _dropdownDecoration(AppModePalette palette) {
     return InputDecoration(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: palette.surfaceAlt,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: palette.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: palette.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: palette.accent, width: 1.4),
       ),
     );
   }

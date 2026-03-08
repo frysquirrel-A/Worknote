@@ -28,6 +28,7 @@ class GalleryTab extends StatelessWidget {
     final teamProv = context.watch<TeamProvider>();
     final journalProv = context.watch<JournalProvider>();
     final authProv = context.watch<AuthProvider>();
+    final palette = AppModePalette.fromMode(teamProv.currentThemeMode);
 
     final groupedPhotos = <String, List<String>>{};
     final teamJournals = journalProv.journals
@@ -43,24 +44,24 @@ class GalleryTab extends StatelessWidget {
     final sortedKeys = groupedPhotos.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        foregroundColor: AppColors.darkText,
-        title: const Text(
+        foregroundColor: palette.text,
+        title: Text(
           '팀 갤러리',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w900,
-            color: AppColors.darkText,
+            color: palette.text,
           ),
         ),
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
             tooltip: '일지 작성',
-            icon: const Icon(Icons.edit_note_rounded, color: AppColors.darkText),
+            icon: Icon(Icons.edit_note_rounded, color: palette.text),
             onPressed: () => _openJournalPhotoFlow(context),
           ),
         ],
@@ -68,11 +69,11 @@ class GalleryTab extends StatelessWidget {
       body: sortedKeys.isEmpty
           ? EmptyStatePlaceholder(
               icon: Icons.photo_library_outlined,
-              title: '아직 업로드한 사진이 없어요',
-              description: '일지나 업무에 사진을 추가하면 여기에 표시됩니다.',
-              ctaLabel: '+ 사진이 있는 일지 작성',
+              title: '아직 사진이 없어요',
+              description: '일지에 사진을 추가하면 날짜별로 이곳에 모아 보여줍니다.',
+              ctaLabel: '+ 사진이 담긴 일지 작성',
               onTap: () => _openJournalPhotoFlow(context),
-              dark: true,
+              dark: palette.isDark,
             )
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
@@ -91,17 +92,17 @@ class GalleryTab extends StatelessWidget {
                             width: 4,
                             height: 16,
                             decoration: BoxDecoration(
-                              color: AppColors.premiumBlue,
+                              color: palette.accent,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             dateKey,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.darkText,
+                              color: palette.text,
                             ),
                           ),
                           const Spacer(),
@@ -112,14 +113,14 @@ class GalleryTab extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.darkSurface,
+                                color: palette.surface,
                                 borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: AppColors.darkBorder),
+                                border: Border.all(color: palette.border),
                               ),
                               child: Text(
                                 '${photos.length}장',
-                                style: const TextStyle(
-                                  color: AppColors.darkHint,
+                                style: TextStyle(
+                                  color: palette.hint,
                                   fontWeight: FontWeight.w800,
                                   fontSize: 12,
                                 ),
@@ -139,11 +140,11 @@ class GalleryTab extends StatelessWidget {
                         return Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            color: AppColors.darkSurface,
-                            border: Border.all(color: AppColors.darkBorder),
+                            color: palette.surface,
+                            border: Border.all(color: palette.border),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.18),
+                                color: palette.shadow,
                                 blurRadius: 18,
                                 offset: const Offset(0, 8),
                               ),
@@ -151,7 +152,7 @@ class GalleryTab extends StatelessWidget {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: _buildImage(photos[index]),
+                            child: _buildImage(photos[index], palette),
                           ),
                         );
                       },
@@ -162,8 +163,8 @@ class GalleryTab extends StatelessWidget {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.premiumBlue,
-        tooltip: '사진이 있는 일지 작성',
+        backgroundColor: palette.accent,
+        tooltip: '사진이 담긴 일지 작성',
         onPressed: () => showJournalWriteSheet(
           context: context,
           myId: authProv.currentUser?.id ?? 'me',
@@ -174,25 +175,25 @@ class GalleryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildImage(String path) {
+  Widget _buildImage(String path, AppModePalette palette) {
     if (path.startsWith('http')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColors.premiumBlue,
+              color: palette.accent,
             ),
           );
         },
         errorBuilder: (context, error, stackTrace) {
-          return const Center(
+          return Center(
             child: Icon(
               Icons.broken_image_outlined,
-              color: AppColors.darkHint,
+              color: palette.hint,
             ),
           );
         },
@@ -203,10 +204,10 @@ class GalleryTab extends StatelessWidget {
       File(path),
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
-        return const Center(
+        return Center(
           child: Icon(
             Icons.image_not_supported_outlined,
-            color: AppColors.darkHint,
+            color: palette.hint,
           ),
         );
       },

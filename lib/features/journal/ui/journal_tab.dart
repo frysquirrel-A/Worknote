@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:worknote/core/ui/app_palette.dart';
 import 'package:worknote/core/ui/widgets/empty_state_placeholder.dart';
@@ -9,8 +9,8 @@ import 'package:worknote/features/auth/state/auth_provider.dart';
 import 'package:worknote/features/journal/state/journal_provider.dart';
 import 'package:worknote/features/journal/ui/sheets/journal_write_sheet.dart';
 import 'package:worknote/features/journal/ui/widgets/journal_card.dart';
-import 'package:worknote/features/team/state/team_provider.dart';
 import 'package:worknote/features/journal/ui/widgets/journal_view_mode_toggle.dart';
+import 'package:worknote/features/team/state/team_provider.dart';
 
 class JournalTab extends StatefulWidget {
   const JournalTab({super.key});
@@ -22,8 +22,7 @@ class JournalTab extends StatefulWidget {
 class _JournalTabState extends State<JournalTab> {
   String _searchQuery = '';
   JournalKind? _kindFilter;
-
-  String _viewMode = '일별'; // 세그먼트 컨트롤용 뷰 모드 ('일별' 또는 '전체 리스트')
+  String _viewMode = '일자별';
   bool _newestFirst = true;
 
   final ScrollController _scrollController = ScrollController();
@@ -39,53 +38,53 @@ class _JournalTabState extends State<JournalTab> {
     final teamProv = context.watch<TeamProvider>();
     final journalProv = context.watch<JournalProvider>();
     final authProv = context.watch<AuthProvider>();
+    final palette = AppModePalette.fromMode(teamProv.currentThemeMode);
     final myId = authProv.currentUser?.id ?? 'me';
     final myName = authProv.currentUser?.name ?? '관리자';
 
-    final allJournals = journalProv.journals.where((j) {
-      final matchesTeam = j.teamId == teamProv.currentTeamId;
-      final q = _searchQuery.trim().toLowerCase();
+    final allJournals = journalProv.journals.where((entry) {
+      final matchesTeam = entry.teamId == teamProv.currentTeamId;
+      final query = _searchQuery.trim().toLowerCase();
       final matchesSearch =
-          q.isEmpty ||
-          j.title.toLowerCase().contains(q) ||
-          j.content.toLowerCase().contains(q);
+          query.isEmpty ||
+          entry.title.toLowerCase().contains(query) ||
+          entry.content.toLowerCase().contains(query);
       if (!matchesTeam || !matchesSearch) return false;
-      if (_kindFilter != null && journalProv.getKind(j.id) != _kindFilter) {
+      if (_kindFilter != null && journalProv.getKind(entry.id) != _kindFilter) {
         return false;
       }
       return true;
     }).toList();
 
-    // 일별 그룹핑 로직
-    final Map<String, List<JournalEntry>> grouped = {};
-    for (final j in allJournals) {
-      final k = DateFormat(
-        'yyyy-MM-dd',
-      ).format(DateTime(j.date.year, j.date.month, j.date.day));
-      grouped.putIfAbsent(k, () => []).add(j);
+    final grouped = <String, List<JournalEntry>>{};
+    for (final journal in allJournals) {
+      final key = DateFormat('yyyy-MM-dd').format(
+        DateTime(journal.date.year, journal.date.month, journal.date.day),
+      );
+      grouped.putIfAbsent(key, () => []).add(journal);
     }
 
     final displayKeys = grouped.keys.toList()
       ..sort((a, b) => _newestFirst ? b.compareTo(a) : a.compareTo(b));
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: palette.background,
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              style: const TextStyle(
-                color: AppColors.text,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              style: TextStyle(
+                color: palette.text,
                 fontWeight: FontWeight.bold,
               ),
               decoration: InputDecoration(
                 hintText: '일지 내용을 검색하세요...',
-                hintStyle: const TextStyle(color: AppColors.hint),
-                prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                hintStyle: TextStyle(color: palette.hint),
+                prefixIcon: Icon(Icons.search, color: palette.accent),
                 filled: true,
-                fillColor: AppColors.surface,
+                fillColor: palette.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -97,11 +96,10 @@ class _JournalTabState extends State<JournalTab> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _JournalKindFilterRow(
               current: _kindFilter,
-              onChanged: (k) => setState(() => _kindFilter = k),
+              onChanged: (kind) => setState(() => _kindFilter = kind),
+              palette: palette,
             ),
           ),
-
-          // 새로 추가된 세그먼트 컨트롤 + 정렬 버튼 라인
           if (allJournals.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
@@ -111,6 +109,7 @@ class _JournalTabState extends State<JournalTab> {
                     child: JournalViewModeToggle(
                       viewMode: _viewMode,
                       onChanged: (mode) => setState(() => _viewMode = mode),
+                      palette: palette,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -120,15 +119,15 @@ class _JournalTabState extends State<JournalTab> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: palette.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Icon(
                         _newestFirst
                             ? Icons.arrow_downward_rounded
                             : Icons.arrow_upward_rounded,
-                        color: AppColors.primary,
+                        color: palette.accent,
                         size: 20,
                       ),
                     ),
@@ -136,7 +135,6 @@ class _JournalTabState extends State<JournalTab> {
                 ],
               ),
             ),
-
           const SizedBox(height: 8),
           Expanded(
             child: allJournals.isEmpty
@@ -151,25 +149,31 @@ class _JournalTabState extends State<JournalTab> {
                       myName: myName,
                     ),
                     compact: true,
+                    dark: palette.isDark,
                   )
-                : _viewMode == '일별'
-                ? _DateGroupedJournalView(
-                    dateKeys: displayKeys,
-                    grouped: grouped,
-                    scrollController: _scrollController,
-                  )
-                : _FlatJournalView(
-                    items: allJournals,
-                    scrollController: _scrollController,
-                    newestFirst: _newestFirst,
-                  ),
+                : _viewMode == '일자별'
+                    ? _DateGroupedJournalView(
+                        dateKeys: displayKeys,
+                        grouped: grouped,
+                        scrollController: _scrollController,
+                        palette: palette,
+                      )
+                    : _FlatJournalView(
+                        items: allJournals,
+                        scrollController: _scrollController,
+                        newestFirst: _newestFirst,
+                      ),
           ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _JournalWriteButton(
-        onPressed: () =>
-            showJournalWriteSheet(context: context, myId: myId, myName: myName),
+        onPressed: () => showJournalWriteSheet(
+          context: context,
+          myId: myId,
+          myName: myName,
+        ),
+        palette: palette,
       ),
     );
   }
@@ -177,7 +181,13 @@ class _JournalTabState extends State<JournalTab> {
 
 class _JournalWriteButton extends StatelessWidget {
   final VoidCallback onPressed;
-  const _JournalWriteButton({required this.onPressed});
+  final AppModePalette palette;
+
+  const _JournalWriteButton({
+    required this.onPressed,
+    required this.palette,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -187,7 +197,7 @@ class _JournalWriteButton extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: palette.accent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -196,7 +206,7 @@ class _JournalWriteButton extends StatelessWidget {
         ),
         icon: const Icon(Icons.add_rounded, size: 24),
         label: const Text(
-          '일지작성',
+          '일지 작성',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w900,
@@ -208,16 +218,19 @@ class _JournalWriteButton extends StatelessWidget {
   }
 }
 
-// 뷰 모드 1: 일별 보기 (그룹핑)
 class _DateGroupedJournalView extends StatelessWidget {
   final List<String> dateKeys;
   final Map<String, List<JournalEntry>> grouped;
   final ScrollController scrollController;
+  final AppModePalette palette;
+
   const _DateGroupedJournalView({
     required this.dateKeys,
     required this.grouped,
     required this.scrollController,
+    required this.palette,
   });
+
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -239,23 +252,23 @@ class _DateGroupedJournalView extends StatelessWidget {
                     width: 4,
                     height: 14,
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: palette.accent,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     key,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: AppColors.text,
+                      color: palette.text,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     '${items.length}건',
-                    style: const TextStyle(
-                      color: AppColors.hint,
+                    style: TextStyle(
+                      color: palette.hint,
                       fontWeight: FontWeight.w800,
                       fontSize: 12,
                     ),
@@ -264,9 +277,9 @@ class _DateGroupedJournalView extends StatelessWidget {
               ),
             ),
             ...items.map(
-              (j) => Padding(
+              (journal) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: JournalCard(entry: j),
+                child: JournalCard(entry: journal),
               ),
             ),
             const SizedBox(height: 6),
@@ -277,11 +290,11 @@ class _DateGroupedJournalView extends StatelessWidget {
   }
 }
 
-// 뷰 모드 2: 전체 리스트 보기 (플랫)
 class _FlatJournalView extends StatelessWidget {
   final List<JournalEntry> items;
   final ScrollController scrollController;
   final bool newestFirst;
+
   const _FlatJournalView({
     required this.items,
     required this.scrollController,
@@ -314,7 +327,14 @@ class _FlatJournalView extends StatelessWidget {
 class _JournalKindFilterRow extends StatelessWidget {
   final JournalKind? current;
   final ValueChanged<JournalKind?> onChanged;
-  const _JournalKindFilterRow({required this.current, required this.onChanged});
+  final AppModePalette palette;
+
+  const _JournalKindFilterRow({
+    required this.current,
+    required this.onChanged,
+    required this.palette,
+  });
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -355,21 +375,22 @@ class _JournalKindFilterRow extends StatelessWidget {
     required String label,
     required bool selected,
     required VoidCallback onTap,
-    Color color = AppColors.primary,
+    Color? color,
   }) {
+    final baseColor = color ?? palette.accent;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? color : AppColors.surface,
+          color: selected ? baseColor : palette.surface,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? color : AppColors.border),
+          border: Border.all(color: selected ? baseColor : palette.border),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : AppColors.text,
+            color: selected ? Colors.white : palette.text,
             fontWeight: FontWeight.w900,
             fontSize: 12,
           ),

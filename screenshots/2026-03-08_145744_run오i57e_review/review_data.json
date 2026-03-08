@@ -1,0 +1,518 @@
+{
+  "title": "WorkNote 런타임 UI 검수 세션",
+  "timestamp": "2026-03-08 14:57:44 Asia/Seoul",
+  "summary": {
+    "includedSteps": 17,
+    "internalScreens": 16,
+    "unexpectedScreens": 1,
+    "externalAuthScreens": 0,
+    "warnings": [
+      "step_07에서는 피드백 화면에서 뒤로 가기 후 앱 내부 홈이 아니라 Android 런처로 이탈하는 예외 동작이 관찰됐다.",
+      "step_09~17의 일부 병렬 캡처 파일은 동일 시점 경쟁으로 신뢰할 수 없어 보고서 본문에서 제외했다.",
+      "이번 세션은 최신 debug APK를 재빌드·재설치한 뒤 수집했으므로, 이전 stale runtime report보다 현재 소스와 더 가깝다."
+    ]
+  },
+  "entries": [
+    {
+      "step": 1,
+      "slug": "launch",
+      "png": "step_01_launch.png",
+      "xml": "step_01_launch.xml",
+      "section": "진입",
+      "classification": "내부 진입",
+      "action": "앱 첫 실행 후 초기 진입 화면 캡처",
+      "summary": "로컬 시작과 구글 시작을 동시에 보여주는 초기 진입 화면.",
+      "features": [
+        "로컬 프로필 기반 시작 경로 제공",
+        "구글 계정 시작 버튼 존재",
+        "외부 인증으로 이어질 수 있는 분기 존재"
+      ],
+      "intent": [
+        "로컬 우선 멀티프로필 철학을 먼저 노출",
+        "구글 연동은 선택 기능으로 후순위 배치",
+        "초기 진입에서 사용자가 빠르게 경로를 고르게 함"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.1 Auth / Profiles",
+        "PROJECT_MAP.md - Providers > AuthProvider",
+        "AGENTS.md - Dangerous Actions"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 104669,
+      "xml_size": 5343
+    },
+    {
+      "step": 2,
+      "slug": "local_entry",
+      "png": "step_02_local_entry.png",
+      "xml": "step_02_local_entry.xml",
+      "section": "진입",
+      "classification": "내부 진입",
+      "action": "가입 없이 바로 사용하기 선택 후 로컬 시작 시트 캡처",
+      "summary": "로컬 프로필 시작 설명과 시작 옵션을 담은 중간 시트.",
+      "features": [
+        "이름 없이 시작",
+        "시작하기",
+        "취소"
+      ],
+      "intent": [
+        "계정 생성 부담 없이 빠른 체험을 허용",
+        "로컬 우선 사용성을 강조",
+        "외부 인증 없이 앱 내부 진입 가능성을 명확히 설명"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - local-first multi-profile",
+        "README.md - local-first auth context"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 150273,
+      "xml_size": 6627
+    },
+    {
+      "step": 3,
+      "slug": "profile_setup",
+      "png": "step_03_home_root.png",
+      "xml": "step_03_home_root.xml",
+      "section": "프로필 설정",
+      "classification": "내부 설정",
+      "action": "로컬 프로필 닉네임/아바타 설정 화면 캡처",
+      "summary": "로컬 프로필의 표정과 이름을 정하는 첫 사용자 설정 화면.",
+      "features": [
+        "이모지형 아바타 선택",
+        "닉네임 입력란",
+        "로컬 프로필 생성 완료 동작"
+      ],
+      "intent": [
+        "로컬 프로필을 개인화하면서 진입 장벽은 낮게 유지",
+        "다중 프로필 구조를 암시하는 최소 설정 단계",
+        "앱 전체 협업 맥락에 쓰일 사용자 정체성을 확보"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.1 Auth / Profiles",
+        "PROJECT_MAP.md - AuthProvider"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 181287,
+      "xml_size": 6383
+    },
+    {
+      "step": 4,
+      "slug": "home_ready",
+      "png": "step_04_home_ready.png",
+      "xml": "step_04_home_ready.xml",
+      "section": "Home",
+      "classification": "내부 UI",
+      "action": "프로필 생성 완료 후 홈 대시보드 캡처",
+      "summary": "날짜, 인사, 현재 팀, 팀원, 프로젝트 현황, 오늘 할 일, 팀 대화방 진입을 담은 홈 루트.",
+      "features": [
+        "현재 날짜와 인사 헤더",
+        "현재 팀 카드",
+        "팀원 영역",
+        "프로젝트 현황 카드",
+        "오늘 할 일 요약",
+        "팀 대화방 진입 카드"
+      ],
+      "intent": [
+        "다중 컨텍스트 협업 앱의 요약 대시보드 역할",
+        "팀 상태와 오늘의 액션을 한 화면에 집약",
+        "메신저와 태스크로 빠르게 연결되는 허브 제공"
+      ],
+      "refs": [
+        "PROJECT_MAP.md - Modules > Home",
+        "ARCHITECTURE.md - Product Identity",
+        "AGENTS.md - Core modules"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 133834,
+      "xml_size": 12837
+    },
+    {
+      "step": 5,
+      "slug": "drawer_opened",
+      "png": "step_05_drawer_opened.png",
+      "xml": "step_05_drawer_opened.xml",
+      "section": "Drawer",
+      "classification": "내부 UI",
+      "action": "좌측 햄버거 메뉴 열기",
+      "summary": "프로필 요약, 팀 관리, 드라이브 연동, 프로필 전환, 테마 설정, 피드백 진입을 담은 메인 드로어.",
+      "features": [
+        "프로필 요약 헤더",
+        "팀 관리",
+        "구글 드라이브 연동",
+        "프로필 관리/전환",
+        "테마 설정",
+        "의견 보내기"
+      ],
+      "intent": [
+        "상위 관리 기능을 홈 본문과 분리",
+        "네비게이션과 설정을 한 곳에 집약",
+        "위험한 액션과 일반 액션을 구분하는 구조의 기반"
+      ],
+      "refs": [
+        "PROJECT_MAP.md - App Shell & Navigation > Drawer",
+        "ARCHITECTURE.md - 4.2 Team/Group",
+        "AGENTS.md - Dangerous Actions"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 147082,
+      "xml_size": 13462
+    },
+    {
+      "step": 6,
+      "slug": "feedback_page",
+      "png": "step_06_feedback_page.png",
+      "xml": "step_06_feedback_page.xml",
+      "section": "설정/피드백",
+      "classification": "내부 UI",
+      "action": "드로어에서 의견 보내기 진입",
+      "summary": "사용자 피드백을 앱 내에서 수집하는 전용 입력 화면.",
+      "features": [
+        "피드백 입력 폼",
+        "의견 전송 CTA",
+        "앱 내부 수집 흐름"
+      ],
+      "intent": [
+        "실사용 피드백을 수집해 반복 개선에 연결",
+        "외부 브라우저나 메일로 나가지 않는 내부 피드백 채널 제공",
+        "Firestore write 경로와 맞물리는 제품 피드백 허브"
+      ],
+      "refs": [
+        "PROJECT_MAP.md - Firebase > Firestore (feedback write path)",
+        "RELEASE_CHECKLIST.md - Feedback submit to Firestore"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 98436,
+      "xml_size": 8123
+    },
+    {
+      "step": 7,
+      "slug": "unexpected_launcher",
+      "png": "step_07_after_feedback_back.png",
+      "xml": "step_07_after_feedback_back.xml",
+      "section": "예상 밖 분기",
+      "classification": "Unexpected",
+      "action": "피드백 페이지에서 Android back 1회",
+      "summary": "앱 내부 홈이 아니라 런처로 복귀한 예외 분기.",
+      "features": [
+        "런처 홈 화면 노출",
+        "앱 내 백스택이 예상보다 얕은 상태 확인"
+      ],
+      "intent": [
+        "사용자 기준으로는 앱 이탈처럼 느껴질 수 있는 백스택 동작",
+        "런타임 UX 점검 포인트로 기록할 가치가 있음"
+      ],
+      "refs": [
+        "AI_CHECKLIST.md - Interaction safety",
+        "PATCHLOG.md - runtime review follow-up"
+      ],
+      "warning": true,
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 1381285,
+      "xml_size": 14420
+    },
+    {
+      "step": 8,
+      "slug": "relaunch_home",
+      "png": "step_08_relaunch_home.png",
+      "xml": "step_08_relaunch_home.xml",
+      "section": "Home",
+      "classification": "내부 UI",
+      "action": "런처에서 앱 재실행 후 홈 복귀",
+      "summary": "재실행 후 최신 설치본 홈이 정상적으로 다시 노출됨을 확인.",
+      "features": [
+        "하단 탭바 정상 복귀",
+        "홈 콘텐츠와 앱바 정상 재표시"
+      ],
+      "intent": [
+        "리뷰 세션을 이어가기 위한 기준 화면 확보",
+        "예상 밖 런처 이탈 이후에도 앱 진입이 안정적인지 확인"
+      ],
+      "refs": [
+        "docs/codex_patch_report_latest.md - latest debug build/install context"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 39251,
+      "xml_size": 12838
+    },
+    {
+      "step": 9,
+      "slug": "tasks_root",
+      "png": "step_09_tasks_root_live.png",
+      "xml": "step_09_tasks_root_live.xml",
+      "section": "Tasks",
+      "classification": "내부 UI",
+      "action": "하단 탭에서 할일 탭 선택",
+      "summary": "업무 보기 헤더, 프로젝트/분류/정렬 제어 스트립, 빈 상태 CTA, 업무 추가 버튼을 포함한 Tasks 루트.",
+      "features": [
+        "프로젝트/분류/정렬 그룹형 제어 바",
+        "빈 상태 문구와 설명",
+        "+ 첫 업무 추가하기 CTA",
+        "하단 업무 추가 버튼"
+      ],
+      "intent": [
+        "정보 밀도를 높이되 필터와 뷰 전환을 상단에 구조화",
+        "빈 상태에서도 다음 행동이 명확하도록 CTA 제공",
+        "premium-dark 톤을 유지하면서 업무 스캔 효율을 높이려는 방향"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.3 Tasks",
+        "PROJECT_MAP.md - Tasks",
+        "AGENTS.md - UI/UX Defaults"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 128941,
+      "xml_size": 11789
+    },
+    {
+      "step": 10,
+      "slug": "task_add_sheet",
+      "png": "step_10_task_add_sheet.png",
+      "xml": "step_10_task_add_sheet.xml",
+      "section": "Tasks",
+      "classification": "내부 UI",
+      "action": "업무 추가 버튼으로 새 업무 등록 시트 열기",
+      "summary": "제목, 담당자, 분류, 기한, 중요도, 일정(계획) 표시 여부, 기간, 저장까지 포함한 업무 등록 시트.",
+      "features": [
+        "업무 제목 입력",
+        "담당자 선택",
+        "분류 선택",
+        "기한 설정",
+        "중요도 선택",
+        "일정(계획)에 표시하기 스위치",
+        "기간 설정",
+        "저장 버튼"
+      ],
+      "intent": [
+        "Task와 Schedule의 연결을 생성 단계에서 함께 다룸",
+        "계획 표시 스위치로 일정 반영 여부를 분리",
+        "핵심 필드만 빠르게 채울 수 있는 compact form 지향"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.3 Tasks",
+        "PROJECT_MAP.md - TaskProvider",
+        "AI_CHECKLIST.md - UI regression safety"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 158760,
+      "xml_size": 7269
+    },
+    {
+      "step": 11,
+      "slug": "schedule_root",
+      "png": "step_11_schedule_root_live2.png",
+      "xml": "step_11_schedule_root_live2.xml",
+      "section": "Schedule",
+      "classification": "내부 UI",
+      "action": "할일 시트 닫은 뒤 일정 탭 선택",
+      "summary": "검색, 모든 팀 일정 보기, 월간 캘린더, 계획 추가 CTA를 갖춘 일정 루트.",
+      "features": [
+        "계획 검색 입력",
+        "모든 팀 일정 보기 토글 버튼",
+        "월간 캘린더 헤더",
+        "오늘 버튼",
+        "월간 날짜 그리드",
+        "계획 추가 버튼"
+      ],
+      "intent": [
+        "개인 일정과 업무 계획을 한 달 단위로 훑게 함",
+        "검색과 팀 단위 집계를 상단에 배치해 일정 탐색 속도 개선",
+        "Tasks에서 설정한 계획 정보를 시각 일정으로 이어주는 허브"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.4 Schedule",
+        "PROJECT_MAP.md - ScheduleProvider",
+        "PATCHLOG.md - v2 Patch Package"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 115596,
+      "xml_size": 23480
+    },
+    {
+      "step": 12,
+      "slug": "schedule_next_month",
+      "png": "step_12_schedule_next_month.png",
+      "xml": "step_12_schedule_next_month.xml",
+      "section": "Schedule",
+      "classification": "내부 UI",
+      "action": "일정 탭에서 다음 달 이동 버튼 1회",
+      "summary": "월 이동 히트박스와 캘린더 전환 반응을 확인하기 위한 안전한 한 번의 이동.",
+      "features": [
+        "월 이동 내비게이션",
+        "캘린더 재렌더링",
+        "월간 일정 탐색"
+      ],
+      "intent": [
+        "달력 화살표 hit target 개선 결과를 런타임에서 확인",
+        "장기 계획 탐색 UX의 기본 동작 검증"
+      ],
+      "refs": [
+        "docs/codex_patch_report_latest.md - schedule month navigation hitbox",
+        "ARCHITECTURE.md - 4.4 Schedule"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 114865,
+      "xml_size": 23480
+    },
+    {
+      "step": 13,
+      "slug": "journal_root",
+      "png": "step_13_journal_root_live.png",
+      "xml": "step_13_journal_root_live.xml",
+      "section": "Journal",
+      "classification": "내부 UI",
+      "action": "하단 탭에서 일지 탭 선택",
+      "summary": "검색, 분류 칩, 빈 상태 설명, 첫 일지 작성 CTA, 일지작성 버튼이 있는 Journal 루트.",
+      "features": [
+        "검색 입력",
+        "전체/일반/진행/보고서 분류 칩",
+        "빈 상태 문구",
+        "+ 첫 일지 작성하기 CTA",
+        "일지작성 버튼"
+      ],
+      "intent": [
+        "작업 일지와 회고를 피드형으로 확장하기 위한 입구",
+        "검색과 분류를 상단에 모아 정보 찾기 부담을 줄임",
+        "빈 상태에서도 즉시 작성으로 이어지게 설계"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.5 Journal",
+        "PROJECT_MAP.md - Journal"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 121431,
+      "xml_size": 11022
+    },
+    {
+      "step": 14,
+      "slug": "journal_write_sheet",
+      "png": "step_14_journal_write_sheet.png",
+      "xml": "step_14_journal_write_sheet.xml",
+      "section": "Journal",
+      "classification": "내부 UI",
+      "action": "일지작성 버튼으로 작성 시트 열기",
+      "summary": "일지 작성용 입력 시트. hint-first 입력 구조와 연결 필드를 확인할 수 있음.",
+      "features": [
+        "내용 입력",
+        "유형/연결 필드",
+        "사진 첨부를 위한 기반 흐름",
+        "저장 CTA"
+      ],
+      "intent": [
+        "짧은 기록부터 구조적 보고까지 수용하는 작성 표면",
+        "hint-first 폼 원칙을 통해 시각적 군더더기 감소",
+        "Task/Project와의 연결을 수용하는 저널 허브"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.5 Journal",
+        "AGENTS.md - hintText over labelText",
+        "PROJECT_MAP.md - Journal"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 106235,
+      "xml_size": 8702
+    },
+    {
+      "step": 15,
+      "slug": "gallery_root",
+      "png": "step_15_gallery_root_live.png",
+      "xml": "step_15_gallery_root_live.xml",
+      "section": "Gallery",
+      "classification": "내부 UI",
+      "action": "하단 탭에서 갤러리 탭 선택",
+      "summary": "팀 갤러리 루트. 사진이 없을 때의 empty state와 일지 작성 연결 CTA를 제공.",
+      "features": [
+        "팀 갤러리 헤더",
+        "상단 일지 작성 버튼",
+        "빈 상태 문구",
+        "+ 사진이 있는 일지 작성 CTA",
+        "하단 우측 사진이 있는 일지 작성 버튼"
+      ],
+      "intent": [
+        "새 업로드 구조를 만들지 않고 기존 일지 작성 흐름과 연결",
+        "이미지 생성 지점을 Journal로 집중시켜 데이터 구조를 단순화",
+        "empty state에서도 실질적 행동 경로를 제공"
+      ],
+      "refs": [
+        "PROJECT_MAP.md - Gallery",
+        "ARCHITECTURE.md - 4.6 Gallery",
+        "docs/codex_patch_report_latest.md - Gallery FAB safe flow"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 102172,
+      "xml_size": 9978
+    },
+    {
+      "step": 16,
+      "slug": "chat_root",
+      "png": "step_16_chat_root_live.png",
+      "xml": "step_16_chat_root_live.xml",
+      "section": "Messenger",
+      "classification": "내부 UI",
+      "action": "하단 탭에서 채팅 탭 선택",
+      "summary": "팀 전체 방 선택 헤더, empty state, 메시지 입력창을 가진 메신저 루트.",
+      "features": [
+        "현재 방 헤더",
+        "방 전환 버튼",
+        "빈 대화 placeholder",
+        "메시지 입력창",
+        "전송 버튼"
+      ],
+      "intent": [
+        "메신저를 앱의 가장 강한 premium-dark 기준 화면으로 유지",
+        "대화가 없어도 바로 메시지 입력과 방 전환이 가능하도록 설계",
+        "팀 채팅과 DM 확장 구조의 출발점 제공"
+      ],
+      "refs": [
+        "ARCHITECTURE.md - 4.7 Messenger",
+        "PROJECT_MAP.md - ChatProvider",
+        "AGENTS.md - premium dark direction"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 97523,
+      "xml_size": 9601
+    },
+    {
+      "step": 17,
+      "slug": "chat_room_selector",
+      "png": "step_17_chat_room_selector.png",
+      "xml": "step_17_chat_room_selector.xml",
+      "section": "Messenger",
+      "classification": "내부 UI",
+      "action": "채팅 상단 방 전환 버튼 열기",
+      "summary": "메신저에서 채팅방/스레드 선택을 위한 내부 선택 UI.",
+      "features": [
+        "현재 팀 방 목록 또는 선택 UI",
+        "스레드 전환 진입점",
+        "팀 기반 채팅 구조 확인"
+      ],
+      "intent": [
+        "그룹 스레드와 대화 전환을 상단에서 빠르게 제어",
+        "메신저 모듈이 단일 방이 아니라 스레드 구조를 가진다는 점을 시각화"
+      ],
+      "refs": [
+        "PROJECT_MAP.md - ChatProvider threads",
+        "ARCHITECTURE.md - 4.7 Messenger"
+      ],
+      "png_exists": true,
+      "xml_exists": true,
+      "png_size": 88727,
+      "xml_size": 11281
+    }
+  ]
+}

@@ -75,9 +75,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _platformLabel() {
@@ -100,13 +98,17 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppModePalette.fromMode(
+      context.watch<TeamProvider>().currentThemeMode,
+    );
+
     if (_isSubmitted) {
       return Scaffold(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: palette.background,
         appBar: AppBar(
-          backgroundColor: AppColors.darkBg,
+          backgroundColor: palette.background,
           surfaceTintColor: Colors.transparent,
-          iconTheme: const IconThemeData(color: AppColors.darkText),
+          iconTheme: IconThemeData(color: palette.text),
         ),
         body: Center(
           child: Padding(
@@ -115,12 +117,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: AppGradients.messengerPanel,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.darkBorder),
+                border: Border.all(color: palette.border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.24),
+                    color: palette.shadow,
                     blurRadius: 22,
                     offset: const Offset(0, 12),
                   ),
@@ -143,21 +145,21 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    '접수가 완료되었습니다',
+                  Text(
+                    '접수가 완료되었습니다.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.darkText,
+                      color: palette.text,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    '소중한 의견이 정상적으로 접수되었습니다.\n더 나은 WorkNote로 반영하겠습니다.',
+                  Text(
+                    '소중한 의견이 정상적으로 접수되었습니다.\n검토 후 WorkNote 개선에 반영하겠습니다.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.darkHint,
+                      color: palette.hint,
                       height: 1.6,
                     ),
                   ),
@@ -168,7 +170,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.premiumBlue,
+                        backgroundColor: palette.accent,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -192,18 +194,18 @@ class _FeedbackPageState extends State<FeedbackPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           '의견 보내기',
           style: TextStyle(
-            color: AppColors.darkText,
+            color: palette.text,
             fontWeight: FontWeight.w900,
           ),
         ),
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: AppColors.darkText),
+        iconTheme: IconThemeData(color: palette.text),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -214,26 +216,26 @@ class _FeedbackPageState extends State<FeedbackPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppColors.darkSurface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.darkBorder),
+                border: Border.all(color: palette.border),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '서비스 개선 의견',
                     style: TextStyle(
-                      color: AppColors.darkText,
+                      color: palette.text,
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    '버그, 개선점, UI 의견을 남겨 주세요. 현재 팀과 프로필 정보가 함께 기록되어 문제 재현과 대응에 도움이 됩니다.',
+                    '버그, 개선점, UI 의견을 자세히 남겨 주세요. 현재 팀과 프로필 정보가 함께 기록되어 문제 재현과 대응에 도움이 됩니다.',
                     style: TextStyle(
-                      color: AppColors.darkHint,
+                      color: palette.hint,
                       height: 1.5,
                     ),
                   ),
@@ -241,12 +243,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               '문의 유형',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: AppColors.darkText,
+                color: palette.text,
               ),
             ),
             const SizedBox(height: 12),
@@ -264,59 +266,50 @@ class _FeedbackPageState extends State<FeedbackPage> {
                       setState(() => _selectedType = type);
                     }
                   },
-                  backgroundColor: AppColors.darkSurface,
-                  selectedColor: AppColors.premiumBlue.withValues(alpha: 0.18),
+                  backgroundColor: palette.surface,
+                  selectedColor: palette.accent.withValues(alpha: 0.18),
                   side: BorderSide(
-                    color: selected
-                        ? AppColors.premiumBlue
-                        : AppColors.darkBorder,
+                    color: selected ? palette.accent : palette.border,
                   ),
-                  checkmarkColor: AppColors.premiumBlue,
+                  checkmarkColor: palette.accent,
                   labelStyle: TextStyle(
-                    color: selected
-                        ? AppColors.darkText
-                        : AppColors.darkHint,
-                    fontWeight: selected
-                        ? FontWeight.w900
-                        : FontWeight.w700,
+                    color: selected ? palette.text : palette.hint,
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                   ),
                 );
               }).toList(),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               '내용',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 15,
-                color: AppColors.darkText,
+                color: palette.text,
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _feedbackCtrl,
               maxLines: 8,
-              cursorColor: AppColors.premiumBlue,
-              style: const TextStyle(color: AppColors.darkText),
+              cursorColor: palette.accent,
+              style: TextStyle(color: palette.text),
               decoration: InputDecoration(
-                hintText: '앱 사용 중 불편했던 점이나 개선 아이디어를 편하게 적어 주세요.',
-                hintStyle: const TextStyle(color: AppColors.darkHint),
+                hintText: '사용 중 불편했던 점이나 개선 아이디어를 자세히 적어 주세요.',
+                hintStyle: TextStyle(color: palette.hint),
                 filled: true,
-                fillColor: AppColors.darkSurface,
+                fillColor: palette.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                  borderSide: BorderSide(color: palette.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: AppColors.darkBorder),
+                  borderSide: BorderSide(color: palette.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(
-                    color: AppColors.premiumBlue,
-                    width: 1.8,
-                  ),
+                  borderSide: BorderSide(color: palette.accent, width: 1.8),
                 ),
               ),
             ),
@@ -327,8 +320,8 @@ class _FeedbackPageState extends State<FeedbackPage> {
               child: ElevatedButton(
                 onPressed: _isSending ? null : _sendFeedback,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.premiumBlue,
-                  disabledBackgroundColor: AppColors.darkSurface2,
+                  backgroundColor: palette.accent,
+                  disabledBackgroundColor: palette.surfaceAlt,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

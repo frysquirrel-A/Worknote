@@ -19,6 +19,7 @@ class MasterDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final teamProv = context.watch<TeamProvider>();
+    final palette = AppModePalette.fromMode(teamProv.currentThemeMode);
     final authProv = context.watch<AuthProvider>();
     final current = authProv.currentUser;
     final myId = current?.id ?? 'me';
@@ -28,7 +29,7 @@ class MasterDrawer extends StatelessWidget {
     final initial = myName.isNotEmpty ? myName[0] : 'U';
 
     return Drawer(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(32),
@@ -42,6 +43,7 @@ class MasterDrawer extends StatelessWidget {
             _ProfileHeader(
               authProv: authProv,
               teamProv: teamProv,
+              palette: palette,
               myId: myId,
               myName: myName,
               avatar: avatar,
@@ -51,11 +53,13 @@ class MasterDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 children: [
-                  _sectionTitle('관리'),
+                  _sectionTitle('관리', palette),
                   const SizedBox(height: 8),
                   _drawerCard(
+                    palette: palette,
                     children: [
                       _drawerItem(
+                        palette: palette,
                         icon: Icons.groups_rounded,
                         title: '팀 관리',
                         subtitle: '그룹 멤버와 기본 설정을 관리합니다.',
@@ -70,6 +74,7 @@ class MasterDrawer extends StatelessWidget {
                         },
                       ),
                       _drawerItem(
+                        palette: palette,
                         icon: Icons.cloud_sync_rounded,
                         title: authProv.isDriveConnected
                             ? '구글 드라이브 재연결'
@@ -100,6 +105,7 @@ class MasterDrawer extends StatelessWidget {
                         },
                       ),
                       _drawerItem(
+                        palette: palette,
                         icon: Icons.switch_account_rounded,
                         title: '프로필 관리 / 전환',
                         subtitle: '로컬·구글 프로필을 선택하거나 관리합니다.',
@@ -127,6 +133,7 @@ class MasterDrawer extends StatelessWidget {
                         },
                       ),
                       _drawerItem(
+                        palette: palette,
                         icon: Icons.palette_outlined,
                         title: '테마 설정',
                         subtitle: '앱의 기본 색상 방향을 선택합니다.',
@@ -135,17 +142,18 @@ class MasterDrawer extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _sectionTitle('내 팀 목록'),
+                  _sectionTitle('내 팀 목록', palette),
                   const SizedBox(height: 8),
                   _drawerCard(
+                    palette: palette,
                     padding: EdgeInsets.zero,
                     children: teamProv.teams.isEmpty
-                        ? const [
+                        ? [
                             Padding(
-                              padding: EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(16),
                               child: Text(
                                 '참여 중인 팀이 없습니다.',
-                                style: TextStyle(color: AppColors.darkHint),
+                                style: TextStyle(color: palette.hint),
                               ),
                             ),
                           ]
@@ -159,14 +167,14 @@ class MasterDrawer extends StatelessWidget {
                               leading: Icon(
                                 Icons.hub_rounded,
                                 color: isCurrent
-                                    ? AppColors.premiumBlue
-                                    : AppColors.darkHint,
+                                    ? palette.accent
+                                    : palette.hint,
                                 size: 20,
                               ),
                               title: Text(
                                 t.name,
                                 style: TextStyle(
-                                  color: AppColors.darkText,
+                                  color: palette.text,
                                   fontWeight: isCurrent
                                       ? FontWeight.w800
                                       : FontWeight.w600,
@@ -174,15 +182,15 @@ class MasterDrawer extends StatelessWidget {
                               ),
                               subtitle: Text(
                                 '${t.memberIds.length}명',
-                                style: const TextStyle(
-                                  color: AppColors.darkHint,
+                                style: TextStyle(
+                                  color: palette.hint,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               trailing: isCurrent
-                                  ? const Icon(
+                                  ? Icon(
                                       Icons.check_circle_rounded,
-                                      color: AppColors.premiumBlue,
+                                      color: palette.accent,
                                     )
                                   : null,
                               onTap: () {
@@ -193,11 +201,13 @@ class MasterDrawer extends StatelessWidget {
                           }).toList(),
                   ),
                   const SizedBox(height: 18),
-                  _sectionTitle('지원'),
+                  _sectionTitle('지원', palette),
                   const SizedBox(height: 8),
                   _drawerCard(
+                    palette: palette,
                     children: [
                       _drawerItem(
+                        palette: palette,
                         icon: Icons.feedback_rounded,
                         title: '의견 보내기',
                         subtitle: '개선 의견이나 버그를 기록합니다.',
@@ -214,7 +224,7 @@ class MasterDrawer extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _sectionTitle('위험 구역'),
+                  _sectionTitle('위험 구역', palette),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -227,6 +237,7 @@ class MasterDrawer extends StatelessWidget {
                     child: Column(
                       children: [
                         _drawerItem(
+                          palette: palette,
                           icon: Icons.restart_alt_rounded,
                           title: '앱 초기화',
                           subtitle: '로컬 데이터만 삭제하고 프로필은 유지합니다.',
@@ -237,9 +248,10 @@ class MasterDrawer extends StatelessWidget {
                           height: 1,
                           indent: 16,
                           endIndent: 16,
-                          color: AppColors.darkBorder,
+                          color: Color(0x44FF5B65),
                         ),
                         _drawerItem(
+                          palette: palette,
                           icon: Icons.logout_rounded,
                           title: '로그아웃',
                           subtitle: '현재 프로필 세션에서 나갑니다.',
@@ -258,13 +270,13 @@ class MasterDrawer extends StatelessWidget {
     );
   }
 
-  Widget _sectionTitle(String text) {
+  Widget _sectionTitle(String text, AppModePalette palette) {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppColors.darkHint,
+        style: TextStyle(
+          color: palette.hint,
           fontWeight: FontWeight.w800,
           fontSize: 12,
         ),
@@ -273,29 +285,31 @@ class MasterDrawer extends StatelessWidget {
   }
 
   Widget _drawerCard({
+    required AppModePalette palette,
     EdgeInsetsGeometry padding = const EdgeInsets.all(6),
     required List<Widget> children,
   }) {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.darkSurface2,
+        color: palette.surfaceAlt,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.darkBorder),
+        border: Border.all(color: palette.border),
       ),
       child: Column(children: children),
     );
   }
 
   Widget _drawerItem({
+    required AppModePalette palette,
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     Color? color,
   }) {
-    final iconColor = color ?? AppColors.darkText;
-    final textColor = color ?? AppColors.darkText;
+    final iconColor = color ?? palette.text;
+    final textColor = color ?? palette.text;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -309,8 +323,8 @@ class MasterDrawer extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          color: AppColors.darkHint,
+        style: TextStyle(
+          color: palette.hint,
           fontWeight: FontWeight.w500,
           height: 1.35,
         ),
@@ -326,13 +340,16 @@ class MasterDrawer extends StatelessWidget {
     if (authProv.isDriveConnected) return true;
 
     final profile = authProv.currentUser;
+    final palette = AppModePalette.fromMode(
+      context.read<TeamProvider>().currentThemeMode,
+    );
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
-        title: const Text(
+        backgroundColor: palette.surface,
+        title: Text(
           '구글 연동 필요',
-          style: TextStyle(color: AppColors.darkText),
+          style: TextStyle(color: palette.text),
         ),
         content: Text(
           profile == null
@@ -340,7 +357,7 @@ class MasterDrawer extends StatelessWidget {
               : profile.isLocal
               ? '현재 프로필은 로컬 전용입니다.\n구글 계정을 연결하면 팀 초대, 공유, Drive 동기화를 사용할 수 있습니다.'
               : '현재 프로필(${profile.linkedGoogleEmail ?? '구글 계정'})의 Drive 연결을 복구합니다.',
-          style: const TextStyle(color: AppColors.darkHint, height: 1.5),
+          style: TextStyle(color: palette.hint, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -350,7 +367,7 @@ class MasterDrawer extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.premiumBlue,
+              backgroundColor: palette.accent,
               foregroundColor: Colors.white,
             ),
             child: const Text('연결하기'),
@@ -372,17 +389,24 @@ class MasterDrawer extends StatelessWidget {
 
   void _showEditNameDialog(BuildContext context, AuthProvider prov) {
     final ctrl = TextEditingController(text: prov.currentUser?.name);
+    final palette = AppModePalette.fromMode(
+      context.read<TeamProvider>().currentThemeMode,
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
-        title: const Text(
+        backgroundColor: palette.surface,
+        title: Text(
           '이름 변경',
-          style: TextStyle(color: AppColors.darkText),
+          style: TextStyle(color: palette.text),
         ),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(hintText: '새 이름 입력'),
+          style: TextStyle(color: palette.text),
+          decoration: InputDecoration(
+            hintText: '새 이름 입력',
+            hintStyle: TextStyle(color: palette.hint),
+          ),
         ),
         actions: [
           TextButton(
@@ -406,7 +430,7 @@ class MasterDrawer extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.premiumBlue,
+              backgroundColor: palette.accent,
               foregroundColor: Colors.white,
             ),
             child: const Text('저장'),
@@ -418,24 +442,28 @@ class MasterDrawer extends StatelessWidget {
 
   void _showAvatarPicker(BuildContext context, AuthProvider authProv) {
     final avatars = ['👷', '👨‍🔧', '👩‍🔬', '👨‍💻', '👩‍💼', '🦸'];
+    final palette = AppModePalette.fromMode(
+      context.read<TeamProvider>().currentThemeMode,
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          gradient: AppGradients.messengerPanel,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: palette.border),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               '캐릭터 선택',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.darkText,
+                color: palette.text,
               ),
             ),
             const SizedBox(height: 24),
@@ -454,7 +482,7 @@ class MasterDrawer extends StatelessWidget {
                 },
                 child: CircleAvatar(
                   radius: 40,
-                  backgroundColor: AppColors.darkSurface,
+                  backgroundColor: palette.surfaceAlt,
                   child: Text(avatars[i], style: const TextStyle(fontSize: 32)),
                 ),
               ),
@@ -466,21 +494,22 @@ class MasterDrawer extends StatelessWidget {
   }
 
   void _showThemeDialog(BuildContext context, TeamProvider prov) {
+    final palette = AppModePalette.fromMode(prov.currentThemeMode);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
-        title: const Text(
+        backgroundColor: palette.surface,
+        title: Text(
           '테마 선택',
-          style: TextStyle(color: AppColors.darkText),
+          style: TextStyle(color: palette.text),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text(
+              title: Text(
                 '다크 모드',
-                style: TextStyle(color: AppColors.darkText),
+                style: TextStyle(color: palette.text),
               ),
               onTap: () {
                 prov.changeTheme('dark');
@@ -488,9 +517,9 @@ class MasterDrawer extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text(
+              title: Text(
                 '화이트 모드',
-                style: TextStyle(color: AppColors.darkText),
+                style: TextStyle(color: palette.text),
               ),
               onTap: () {
                 prov.changeTheme('light');
@@ -498,9 +527,9 @@ class MasterDrawer extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text(
+              title: Text(
                 '블루 모드',
-                style: TextStyle(color: AppColors.darkText),
+                style: TextStyle(color: palette.text),
               ),
               onTap: () {
                 prov.changeTheme('blue');
@@ -515,23 +544,26 @@ class MasterDrawer extends StatelessWidget {
 
   void _showResetDialog(BuildContext context) {
     bool withSample = true;
+    final palette = AppModePalette.fromMode(
+      context.read<TeamProvider>().currentThemeMode,
+    );
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
           return AlertDialog(
-            backgroundColor: AppColors.darkSurface,
-            title: const Text(
+            backgroundColor: palette.surface,
+            title: Text(
               '앱 초기화',
-              style: TextStyle(color: AppColors.darkText),
+              style: TextStyle(color: palette.text),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '로컬 데이터를 모두 삭제합니다.\n(사용자 프로필은 유지됩니다.)',
-                  style: TextStyle(color: AppColors.darkHint, height: 1.5),
+                  style: TextStyle(color: palette.hint, height: 1.5),
                 ),
                 const SizedBox(height: 10),
                 CheckboxListTile(
@@ -539,10 +571,10 @@ class MasterDrawer extends StatelessWidget {
                   value: withSample,
                   onChanged: (v) => setState(() => withSample = v ?? true),
                   checkColor: Colors.white,
-                  activeColor: AppColors.premiumBlue,
-                  title: const Text(
+                  activeColor: palette.accent,
+                  title: Text(
                     '초기화 후 샘플 데이터 넣기',
-                    style: TextStyle(color: AppColors.darkText),
+                    style: TextStyle(color: palette.text),
                   ),
                 ),
               ],
@@ -597,6 +629,7 @@ class MasterDrawer extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   final AuthProvider authProv;
   final TeamProvider teamProv;
+  final AppModePalette palette;
   final String myId;
   final String myName;
   final String? avatar;
@@ -605,6 +638,7 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.authProv,
     required this.teamProv,
+    required this.palette,
     required this.myId,
     required this.myName,
     required this.avatar,
@@ -650,8 +684,8 @@ class _ProfileHeader extends StatelessWidget {
                         Flexible(
                           child: Text(
                             myName,
-                            style: const TextStyle(
-                              color: AppColors.darkText,
+                            style: TextStyle(
+                              color: palette.text,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -664,10 +698,10 @@ class _ProfileHeader extends StatelessWidget {
                             context,
                             authProv,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.edit_rounded,
                             size: 16,
-                            color: AppColors.premiumBlue,
+                            color: palette.accent,
                           ),
                         ),
                       ],
@@ -675,7 +709,7 @@ class _ProfileHeader extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subText,
-                      style: const TextStyle(color: AppColors.darkHint),
+                      style: TextStyle(color: palette.hint),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -687,13 +721,13 @@ class _ProfileHeader extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.premiumBlue.withValues(alpha: 0.16),
+                  color: palette.accent.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   typeLabel,
-                  style: const TextStyle(
-                    color: AppColors.premiumBlue,
+                  style: TextStyle(
+                    color: palette.accent,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
                   ),
@@ -724,13 +758,13 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.premiumBlue
-                          : AppColors.darkSurface,
+                          ? palette.accent
+                          : palette.surface,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
                         color: selected
-                            ? AppColors.premiumBlue
-                            : AppColors.darkBorder,
+                            ? palette.accent
+                            : palette.border,
                       ),
                     ),
                     child: Row(
@@ -740,7 +774,7 @@ class _ProfileHeader extends StatelessWidget {
                           radius: 14,
                           backgroundColor: selected
                               ? Colors.white.withValues(alpha: 0.18)
-                              : AppColors.darkSurface2,
+                              : palette.surfaceAlt,
                           child: Text(
                             (profile.profileImage?.trim().isNotEmpty ?? false)
                                 ? profile.profileImage!
@@ -756,7 +790,7 @@ class _ProfileHeader extends StatelessWidget {
                           style: TextStyle(
                             color: selected
                                 ? Colors.white
-                                : AppColors.darkText,
+                                : palette.text,
                             fontWeight: FontWeight.w800,
                           ),
                         ),

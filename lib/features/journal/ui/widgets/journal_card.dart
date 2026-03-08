@@ -30,13 +30,15 @@ class JournalCard extends StatelessWidget {
             colors: [Color(0xFF1A2336), Color(0xFF121A2B)],
           ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.10)),
+          border: Border.all(
+            color: const Color(0xFFA78BFA).withValues(alpha: 0.10),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.24),
               blurRadius: 22,
               offset: const Offset(0, 10),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -54,28 +56,44 @@ class JournalCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 _kindBadge(kind),
-                if (hasPhotos) ...[const SizedBox(width: 8), _smallStat(Icons.photo_rounded, '${entry.photos.length}')],
-                if (updates.isNotEmpty) ...[const SizedBox(width: 8), _smallStat(Icons.timeline_rounded, '${updates.length}')],
+                if (hasPhotos) ...[
+                  const SizedBox(width: 8),
+                  _smallStat(Icons.photo_rounded, '${entry.photos.length}'),
+                ],
+                if (updates.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  _smallStat(Icons.timeline_rounded, '${updates.length}'),
+                ],
               ],
             ),
             const SizedBox(height: 12),
             Text(
               entry.title,
-              style: WorkNoteType.subHeading.copyWith(color: WorkNotePremium.textMain),
+              style: WorkNoteType.subHeading.copyWith(
+                color: WorkNotePremium.textMain,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
             Text(
               entry.content,
-              style: const TextStyle(color: WorkNotePremium.textMuted, height: 1.5, fontSize: 14),
+              style: const TextStyle(
+                color: WorkNotePremium.textMuted,
+                height: 1.5,
+                fontSize: 14,
+              ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.person_outline_rounded, size: 14, color: WorkNotePremium.textMuted),
+                const Icon(
+                  Icons.person_outline_rounded,
+                  size: 14,
+                  color: WorkNotePremium.textMuted,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -89,13 +107,21 @@ class JournalCard extends StatelessWidget {
                   ),
                 ),
                 if (entry.isPrivate) ...[
-                  const Icon(Icons.lock_outline_rounded, size: 14, color: Color(0xFFFBBF24)),
+                  const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 14,
+                    color: Color(0xFFFBBF24),
+                  ),
                   const SizedBox(width: 4),
                   const Text(
                     '비공개',
-                    style: TextStyle(color: Color(0xFFFBBF24), fontWeight: FontWeight.w700, fontSize: 12),
+                    style: TextStyle(
+                      color: Color(0xFFFBBF24),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
                   ),
-                ]
+                ],
               ],
             ),
           ],

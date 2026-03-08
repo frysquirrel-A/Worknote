@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang='ko'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>WorkNote 런타임 UI 검수 보고서</title>
+<style>
+body { background:#061121; color:#eef4ff; font-family:'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',sans-serif; margin:0; }
+a { color:#8bb4ff; }
+.wrap { max-width:1400px; margin:0 auto; padding:28px; }
+.hero { background:linear-gradient(180deg,#0d1a32,#08111f); border:1px solid rgba(255,255,255,.08); border-radius:24px; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,.28); }
+.meta { color:#9fb2d1; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:20px; }
+.card { background:#0d1a32; border:1px solid rgba(255,255,255,.08); border-radius:20px; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,.22); }
+.thumb { width:100%; height:auto; display:block; background:#122347; }
+.pad { padding:16px; }
+.badge { display:inline-block; padding:4px 10px; border-radius:999px; background:#122347; color:#eef4ff; font-size:12px; margin-right:8px; }
+.warn { background:rgba(255,91,101,.12); border:1px solid rgba(255,91,101,.35); color:#ffd7db; padding:14px 16px; border-radius:16px; margin-top:16px; }
+.info { background:rgba(91,140,255,.12); border:1px solid rgba(91,140,255,.35); color:#dbe7ff; padding:14px 16px; border-radius:16px; margin-top:16px; }
+.section-title { margin:36px 0 12px; font-size:24px; font-weight:700; }
+ul { padding-left:18px; }
+li { margin:4px 0; }
+.small { font-size:13px; }
+code { background:#122347; padding:2px 6px; border-radius:6px; }
+</style></head><body><div class='wrap'>
+<div class='hero'>
+<h1>WorkNote 런타임 UI 검수 보고서</h1>
+<p class='meta'>세션 시각: 2026-03-08 14:57:44 Asia/Seoul<br>세션 폴더: <code>C:\Users\Ryzen\Desktop\Flutter_App_Dev\dev\worknote\screenshots\2026-03-08_145744_run오i57e_review</code></p>
+<div class='info'><strong>검수 기준</strong><br>이번 보고서는 최신 debug APK를 재빌드·재설치한 뒤 수집한 실제 런타임 PNG/XML 기반이다. 이전 stale report보다 현재 소스에 더 가깝다.</div>
+<div class='warn'><strong>주의 / 예외</strong><ul>
+<li>step_07에서는 피드백 화면에서 뒤로 가기 후 앱 내부 홈이 아니라 Android 런처로 이탈하는 예외 동작이 관찰됐다.</li>
+<li>step_09~17의 일부 병렬 캡처 파일은 동일 시점 경쟁으로 신뢰할 수 없어 보고서 본문에서 제외했다.</li>
+<li>이번 세션은 최신 debug APK를 재빌드·재설치한 뒤 수집했으므로, 이전 stale runtime report보다 현재 소스와 더 가깝다.</li>
+</ul></div>
+<div class='grid'>
+<div class='card'><div class='pad'><div class='meta'>포함 스텝</div><div style='font-size:28px;font-weight:800;margin-top:8px'>17</div></div></div>
+<div class='card'><div class='pad'><div class='meta'>내부 화면</div><div style='font-size:28px;font-weight:800;margin-top:8px'>16</div></div></div>
+<div class='card'><div class='pad'><div class='meta'>예상 밖 분기</div><div style='font-size:28px;font-weight:800;margin-top:8px'>1</div></div></div>
+<div class='card'><div class='pad'><div class='meta'>외부 인증 화면</div><div style='font-size:28px;font-weight:800;margin-top:8px'>0</div></div></div>
+</div>
+<div class='info'><strong>기능/디자인 의도 근거 문서</strong><ul>
+<li>AGENTS.md</li>
+<li>PROJECT_MAP.md</li>
+<li>ARCHITECTURE.md</li>
+<li>PATCHLOG.md</li>
+<li>AI_CHECKLIST.md</li>
+<li>docs/codex_patch_report_latest.md</li>
+</ul></div>
+</div>
+<div class='section-title'>진입</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_01_launch.png' alt='launch'>
+<div class='pad'>
+<div><span class='badge'>step 1</span><span class='badge'>내부 진입</span></div>
+<h3 style='margin:12px 0 8px'>로컬 시작과 구글 시작을 동시에 보여주는 초기 진입 화면.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 앱 첫 실행 후 초기 진입 화면 캡처</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_01_launch.png'>PNG</a> · <a href='step_01_launch.xml'>XML</a> · PNG 104669 bytes · XML 5343 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>로컬 프로필 기반 시작 경로 제공</li>
+<li>구글 계정 시작 버튼 존재</li>
+<li>외부 인증으로 이어질 수 있는 분기 존재</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>로컬 우선 멀티프로필 철학을 먼저 노출</li>
+<li>구글 연동은 선택 기능으로 후순위 배치</li>
+<li>초기 진입에서 사용자가 빠르게 경로를 고르게 함</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.1 Auth / Profiles</li>
+<li>PROJECT_MAP.md - Providers &gt; AuthProvider</li>
+<li>AGENTS.md - Dangerous Actions</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_02_local_entry.png' alt='local_entry'>
+<div class='pad'>
+<div><span class='badge'>step 2</span><span class='badge'>내부 진입</span></div>
+<h3 style='margin:12px 0 8px'>로컬 프로필 시작 설명과 시작 옵션을 담은 중간 시트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 가입 없이 바로 사용하기 선택 후 로컬 시작 시트 캡처</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_02_local_entry.png'>PNG</a> · <a href='step_02_local_entry.xml'>XML</a> · PNG 150273 bytes · XML 6627 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>이름 없이 시작</li>
+<li>시작하기</li>
+<li>취소</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>계정 생성 부담 없이 빠른 체험을 허용</li>
+<li>로컬 우선 사용성을 강조</li>
+<li>외부 인증 없이 앱 내부 진입 가능성을 명확히 설명</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - local-first multi-profile</li>
+<li>README.md - local-first auth context</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>프로필 설정</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_03_home_root.png' alt='profile_setup'>
+<div class='pad'>
+<div><span class='badge'>step 3</span><span class='badge'>내부 설정</span></div>
+<h3 style='margin:12px 0 8px'>로컬 프로필의 표정과 이름을 정하는 첫 사용자 설정 화면.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 로컬 프로필 닉네임/아바타 설정 화면 캡처</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_03_home_root.png'>PNG</a> · <a href='step_03_home_root.xml'>XML</a> · PNG 181287 bytes · XML 6383 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>이모지형 아바타 선택</li>
+<li>닉네임 입력란</li>
+<li>로컬 프로필 생성 완료 동작</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>로컬 프로필을 개인화하면서 진입 장벽은 낮게 유지</li>
+<li>다중 프로필 구조를 암시하는 최소 설정 단계</li>
+<li>앱 전체 협업 맥락에 쓰일 사용자 정체성을 확보</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.1 Auth / Profiles</li>
+<li>PROJECT_MAP.md - AuthProvider</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Home</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_04_home_ready.png' alt='home_ready'>
+<div class='pad'>
+<div><span class='badge'>step 4</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>날짜, 인사, 현재 팀, 팀원, 프로젝트 현황, 오늘 할 일, 팀 대화방 진입을 담은 홈 루트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 프로필 생성 완료 후 홈 대시보드 캡처</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_04_home_ready.png'>PNG</a> · <a href='step_04_home_ready.xml'>XML</a> · PNG 133834 bytes · XML 12837 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>현재 날짜와 인사 헤더</li>
+<li>현재 팀 카드</li>
+<li>팀원 영역</li>
+<li>프로젝트 현황 카드</li>
+<li>오늘 할 일 요약</li>
+<li>팀 대화방 진입 카드</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>다중 컨텍스트 협업 앱의 요약 대시보드 역할</li>
+<li>팀 상태와 오늘의 액션을 한 화면에 집약</li>
+<li>메신저와 태스크로 빠르게 연결되는 허브 제공</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>PROJECT_MAP.md - Modules &gt; Home</li>
+<li>ARCHITECTURE.md - Product Identity</li>
+<li>AGENTS.md - Core modules</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_08_relaunch_home.png' alt='relaunch_home'>
+<div class='pad'>
+<div><span class='badge'>step 8</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>재실행 후 최신 설치본 홈이 정상적으로 다시 노출됨을 확인.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 런처에서 앱 재실행 후 홈 복귀</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_08_relaunch_home.png'>PNG</a> · <a href='step_08_relaunch_home.xml'>XML</a> · PNG 39251 bytes · XML 12838 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>하단 탭바 정상 복귀</li>
+<li>홈 콘텐츠와 앱바 정상 재표시</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>리뷰 세션을 이어가기 위한 기준 화면 확보</li>
+<li>예상 밖 런처 이탈 이후에도 앱 진입이 안정적인지 확인</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>docs/codex_patch_report_latest.md - latest debug build/install context</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Drawer</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_05_drawer_opened.png' alt='drawer_opened'>
+<div class='pad'>
+<div><span class='badge'>step 5</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>프로필 요약, 팀 관리, 드라이브 연동, 프로필 전환, 테마 설정, 피드백 진입을 담은 메인 드로어.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 좌측 햄버거 메뉴 열기</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_05_drawer_opened.png'>PNG</a> · <a href='step_05_drawer_opened.xml'>XML</a> · PNG 147082 bytes · XML 13462 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>프로필 요약 헤더</li>
+<li>팀 관리</li>
+<li>구글 드라이브 연동</li>
+<li>프로필 관리/전환</li>
+<li>테마 설정</li>
+<li>의견 보내기</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>상위 관리 기능을 홈 본문과 분리</li>
+<li>네비게이션과 설정을 한 곳에 집약</li>
+<li>위험한 액션과 일반 액션을 구분하는 구조의 기반</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>PROJECT_MAP.md - App Shell &amp; Navigation &gt; Drawer</li>
+<li>ARCHITECTURE.md - 4.2 Team/Group</li>
+<li>AGENTS.md - Dangerous Actions</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>설정/피드백</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_06_feedback_page.png' alt='feedback_page'>
+<div class='pad'>
+<div><span class='badge'>step 6</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>사용자 피드백을 앱 내에서 수집하는 전용 입력 화면.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 드로어에서 의견 보내기 진입</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_06_feedback_page.png'>PNG</a> · <a href='step_06_feedback_page.xml'>XML</a> · PNG 98436 bytes · XML 8123 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>피드백 입력 폼</li>
+<li>의견 전송 CTA</li>
+<li>앱 내부 수집 흐름</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>실사용 피드백을 수집해 반복 개선에 연결</li>
+<li>외부 브라우저나 메일로 나가지 않는 내부 피드백 채널 제공</li>
+<li>Firestore write 경로와 맞물리는 제품 피드백 허브</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>PROJECT_MAP.md - Firebase &gt; Firestore (feedback write path)</li>
+<li>RELEASE_CHECKLIST.md - Feedback submit to Firestore</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>예상 밖 분기</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_07_after_feedback_back.png' alt='unexpected_launcher'>
+<div class='pad'>
+<div><span class='badge'>step 7</span><span class='badge'>Unexpected</span></div>
+<h3 style='margin:12px 0 8px'>앱 내부 홈이 아니라 런처로 복귀한 예외 분기.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 피드백 페이지에서 Android back 1회</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_07_after_feedback_back.png'>PNG</a> · <a href='step_07_after_feedback_back.xml'>XML</a> · PNG 1381285 bytes · XML 14420 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>런처 홈 화면 노출</li>
+<li>앱 내 백스택이 예상보다 얕은 상태 확인</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>사용자 기준으로는 앱 이탈처럼 느껴질 수 있는 백스택 동작</li>
+<li>런타임 UX 점검 포인트로 기록할 가치가 있음</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>AI_CHECKLIST.md - Interaction safety</li>
+<li>PATCHLOG.md - runtime review follow-up</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Tasks</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_09_tasks_root_live.png' alt='tasks_root'>
+<div class='pad'>
+<div><span class='badge'>step 9</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>업무 보기 헤더, 프로젝트/분류/정렬 제어 스트립, 빈 상태 CTA, 업무 추가 버튼을 포함한 Tasks 루트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 하단 탭에서 할일 탭 선택</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_09_tasks_root_live.png'>PNG</a> · <a href='step_09_tasks_root_live.xml'>XML</a> · PNG 128941 bytes · XML 11789 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>프로젝트/분류/정렬 그룹형 제어 바</li>
+<li>빈 상태 문구와 설명</li>
+<li>+ 첫 업무 추가하기 CTA</li>
+<li>하단 업무 추가 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>정보 밀도를 높이되 필터와 뷰 전환을 상단에 구조화</li>
+<li>빈 상태에서도 다음 행동이 명확하도록 CTA 제공</li>
+<li>premium-dark 톤을 유지하면서 업무 스캔 효율을 높이려는 방향</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.3 Tasks</li>
+<li>PROJECT_MAP.md - Tasks</li>
+<li>AGENTS.md - UI/UX Defaults</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_10_task_add_sheet.png' alt='task_add_sheet'>
+<div class='pad'>
+<div><span class='badge'>step 10</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>제목, 담당자, 분류, 기한, 중요도, 일정(계획) 표시 여부, 기간, 저장까지 포함한 업무 등록 시트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 업무 추가 버튼으로 새 업무 등록 시트 열기</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_10_task_add_sheet.png'>PNG</a> · <a href='step_10_task_add_sheet.xml'>XML</a> · PNG 158760 bytes · XML 7269 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>업무 제목 입력</li>
+<li>담당자 선택</li>
+<li>분류 선택</li>
+<li>기한 설정</li>
+<li>중요도 선택</li>
+<li>일정(계획)에 표시하기 스위치</li>
+<li>기간 설정</li>
+<li>저장 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>Task와 Schedule의 연결을 생성 단계에서 함께 다룸</li>
+<li>계획 표시 스위치로 일정 반영 여부를 분리</li>
+<li>핵심 필드만 빠르게 채울 수 있는 compact form 지향</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.3 Tasks</li>
+<li>PROJECT_MAP.md - TaskProvider</li>
+<li>AI_CHECKLIST.md - UI regression safety</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Schedule</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_11_schedule_root_live2.png' alt='schedule_root'>
+<div class='pad'>
+<div><span class='badge'>step 11</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>검색, 모든 팀 일정 보기, 월간 캘린더, 계획 추가 CTA를 갖춘 일정 루트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 할일 시트 닫은 뒤 일정 탭 선택</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_11_schedule_root_live2.png'>PNG</a> · <a href='step_11_schedule_root_live2.xml'>XML</a> · PNG 115596 bytes · XML 23480 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>계획 검색 입력</li>
+<li>모든 팀 일정 보기 토글 버튼</li>
+<li>월간 캘린더 헤더</li>
+<li>오늘 버튼</li>
+<li>월간 날짜 그리드</li>
+<li>계획 추가 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>개인 일정과 업무 계획을 한 달 단위로 훑게 함</li>
+<li>검색과 팀 단위 집계를 상단에 배치해 일정 탐색 속도 개선</li>
+<li>Tasks에서 설정한 계획 정보를 시각 일정으로 이어주는 허브</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.4 Schedule</li>
+<li>PROJECT_MAP.md - ScheduleProvider</li>
+<li>PATCHLOG.md - v2 Patch Package</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_12_schedule_next_month.png' alt='schedule_next_month'>
+<div class='pad'>
+<div><span class='badge'>step 12</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>월 이동 히트박스와 캘린더 전환 반응을 확인하기 위한 안전한 한 번의 이동.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 일정 탭에서 다음 달 이동 버튼 1회</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_12_schedule_next_month.png'>PNG</a> · <a href='step_12_schedule_next_month.xml'>XML</a> · PNG 114865 bytes · XML 23480 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>월 이동 내비게이션</li>
+<li>캘린더 재렌더링</li>
+<li>월간 일정 탐색</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>달력 화살표 hit target 개선 결과를 런타임에서 확인</li>
+<li>장기 계획 탐색 UX의 기본 동작 검증</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>docs/codex_patch_report_latest.md - schedule month navigation hitbox</li>
+<li>ARCHITECTURE.md - 4.4 Schedule</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Journal</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_13_journal_root_live.png' alt='journal_root'>
+<div class='pad'>
+<div><span class='badge'>step 13</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>검색, 분류 칩, 빈 상태 설명, 첫 일지 작성 CTA, 일지작성 버튼이 있는 Journal 루트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 하단 탭에서 일지 탭 선택</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_13_journal_root_live.png'>PNG</a> · <a href='step_13_journal_root_live.xml'>XML</a> · PNG 121431 bytes · XML 11022 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>검색 입력</li>
+<li>전체/일반/진행/보고서 분류 칩</li>
+<li>빈 상태 문구</li>
+<li>+ 첫 일지 작성하기 CTA</li>
+<li>일지작성 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>작업 일지와 회고를 피드형으로 확장하기 위한 입구</li>
+<li>검색과 분류를 상단에 모아 정보 찾기 부담을 줄임</li>
+<li>빈 상태에서도 즉시 작성으로 이어지게 설계</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.5 Journal</li>
+<li>PROJECT_MAP.md - Journal</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_14_journal_write_sheet.png' alt='journal_write_sheet'>
+<div class='pad'>
+<div><span class='badge'>step 14</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>일지 작성용 입력 시트. hint-first 입력 구조와 연결 필드를 확인할 수 있음.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 일지작성 버튼으로 작성 시트 열기</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_14_journal_write_sheet.png'>PNG</a> · <a href='step_14_journal_write_sheet.xml'>XML</a> · PNG 106235 bytes · XML 8702 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>내용 입력</li>
+<li>유형/연결 필드</li>
+<li>사진 첨부를 위한 기반 흐름</li>
+<li>저장 CTA</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>짧은 기록부터 구조적 보고까지 수용하는 작성 표면</li>
+<li>hint-first 폼 원칙을 통해 시각적 군더더기 감소</li>
+<li>Task/Project와의 연결을 수용하는 저널 허브</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.5 Journal</li>
+<li>AGENTS.md - hintText over labelText</li>
+<li>PROJECT_MAP.md - Journal</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Gallery</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_15_gallery_root_live.png' alt='gallery_root'>
+<div class='pad'>
+<div><span class='badge'>step 15</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>팀 갤러리 루트. 사진이 없을 때의 empty state와 일지 작성 연결 CTA를 제공.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 하단 탭에서 갤러리 탭 선택</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_15_gallery_root_live.png'>PNG</a> · <a href='step_15_gallery_root_live.xml'>XML</a> · PNG 102172 bytes · XML 9978 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>팀 갤러리 헤더</li>
+<li>상단 일지 작성 버튼</li>
+<li>빈 상태 문구</li>
+<li>+ 사진이 있는 일지 작성 CTA</li>
+<li>하단 우측 사진이 있는 일지 작성 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>새 업로드 구조를 만들지 않고 기존 일지 작성 흐름과 연결</li>
+<li>이미지 생성 지점을 Journal로 집중시켜 데이터 구조를 단순화</li>
+<li>empty state에서도 실질적 행동 경로를 제공</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>PROJECT_MAP.md - Gallery</li>
+<li>ARCHITECTURE.md - 4.6 Gallery</li>
+<li>docs/codex_patch_report_latest.md - Gallery FAB safe flow</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>Messenger</div>
+<div class='grid'>
+<div class='card'>
+<img class='thumb' src='step_16_chat_root_live.png' alt='chat_root'>
+<div class='pad'>
+<div><span class='badge'>step 16</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>팀 전체 방 선택 헤더, empty state, 메시지 입력창을 가진 메신저 루트.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 하단 탭에서 채팅 탭 선택</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_16_chat_root_live.png'>PNG</a> · <a href='step_16_chat_root_live.xml'>XML</a> · PNG 97523 bytes · XML 9601 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>현재 방 헤더</li>
+<li>방 전환 버튼</li>
+<li>빈 대화 placeholder</li>
+<li>메시지 입력창</li>
+<li>전송 버튼</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>메신저를 앱의 가장 강한 premium-dark 기준 화면으로 유지</li>
+<li>대화가 없어도 바로 메시지 입력과 방 전환이 가능하도록 설계</li>
+<li>팀 채팅과 DM 확장 구조의 출발점 제공</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>ARCHITECTURE.md - 4.7 Messenger</li>
+<li>PROJECT_MAP.md - ChatProvider</li>
+<li>AGENTS.md - premium dark direction</li>
+</ul>
+</div></div>
+<div class='card'>
+<img class='thumb' src='step_17_chat_room_selector.png' alt='chat_room_selector'>
+<div class='pad'>
+<div><span class='badge'>step 17</span><span class='badge'>내부 UI</span></div>
+<h3 style='margin:12px 0 8px'>메신저에서 채팅방/스레드 선택을 위한 내부 선택 UI.</h3>
+<p class='small meta'><strong>직전 액션:</strong> 채팅 상단 방 전환 버튼 열기</p>
+<p class='small meta'><strong>원본:</strong> <a href='step_17_chat_room_selector.png'>PNG</a> · <a href='step_17_chat_room_selector.xml'>XML</a> · PNG 88727 bytes · XML 11281 bytes</p>
+<p><strong>주요 기능</strong></p><ul>
+<li>현재 팀 방 목록 또는 선택 UI</li>
+<li>스레드 전환 진입점</li>
+<li>팀 기반 채팅 구조 확인</li>
+</ul>
+<p><strong>디자인/구조 의도</strong></p><ul>
+<li>그룹 스레드와 대화 전환을 상단에서 빠르게 제어</li>
+<li>메신저 모듈이 단일 방이 아니라 스레드 구조를 가진다는 점을 시각화</li>
+</ul>
+<p><strong>근거 문서</strong></p><ul>
+<li>PROJECT_MAP.md - ChatProvider threads</li>
+<li>ARCHITECTURE.md - 4.7 Messenger</li>
+</ul>
+</div></div>
+</div>
+<div class='section-title'>종합 결론</div>
+<div class='card'><div class='pad'>
+<ul>
+<li>Home는 팀/프로젝트/오늘 할 일/팀 채팅을 묶는 허브형 대시보드 역할이 분명하다.</li>
+<li>Tasks는 제어 스트립과 CTA 구조가 명확하며, Task와 Schedule 연결이 작성 시트 단계에서 드러난다.</li>
+<li>Schedule은 월간 캘린더 + 계획 탐색 구조가 중심이고, 작업 계획이 일정으로 이어지는 구조가 확인된다.</li>
+<li>Journal과 Gallery는 독립 생성 구조를 만들기보다 기록 작성 흐름을 공유하도록 설계돼 있다.</li>
+<li>Messenger는 가장 강한 premium-dark 기준 화면이며, empty state와 composer 밀도가 가장 안정적이다.</li>
+<li>피드백 화면에서 back 시 런처로 이탈한 동작은 추후 네비게이션 스택 점검 포인트다.</li>
+</ul>
+</div></div>
+</div></body></html>

@@ -1,6 +1,6 @@
 # Codex Patch Report (Latest)
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 Repository root: `C:\Users\Ryzen\Desktop\Flutter_App_Dev\dev\worknote`
 
 ## Scope
@@ -25,7 +25,8 @@ It records what was already complete, what was completed in the latest continuat
 - Tasks top-control density polish had already been applied to:
   - `lib/features/tasks/ui/task_tab.dart`
   - `lib/features/tasks/ui/widgets/task_filter_bar.dart`
-- Protected task card files remained untouched.
+- Protected task card files remained untouched at that point in history.
+- They were modified later under explicit task-scoped approval and are protected again by default for future runs.
 
 ## What Was Confirmed In This Run
 - Current repository docs were re-checked from disk and confirmed readable as UTF-8.
@@ -257,4 +258,49 @@ Important note:
 - Emulator storage prevented reinstall of the latest debug APK
 
 ### P1
+
+## 2026-03-08 Continuation Batch 12
+- Re-verified the current repository from source after a new report that white mode and blue mode were not visibly propagating.
+- Confirmed that the Flutter issue was not a compile error; remaining friction came from theme propagation and a few hardcoded modal/sheet colors.
+- Rebuilt `lib/core/theme/app_theme.dart` so light-mode surfaces now derive from `AppModePalette`, which makes `light` and `blue` diverge across scaffold, app bar, inputs, cards, dialogs, FABs, and button accents.
+- Updated `lib/features/tasks/ui/sheets/add_task_sheet.dart` so the add-task bottom sheet now follows the selected mode for background, field fill, borders, dropdowns, date controls, schedule controls, and CTA colors.
+- Removed the last visible hardcoded dark-text leak in `lib/features/schedule/ui/schedule_tab.dart`.
+- Replaced the danger divider in `lib/app/widgets/master_drawer.dart` so it no longer depends on the dark border token in every mode.
+- Cleaned the remaining low-risk `const` analyzer infos in `lib/features/home/ui/home_tab.dart`.
+
+### Batch 12 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
 - Latest runtime visuals should be re-verified after a clean reinstall on the emulator
+
+## 2026-03-08 Continuation Batch 12
+- Re-verified current source files directly instead of trusting stale console output or runtime artifacts.
+- Confirmed that these files are stored as valid UTF-8 on disk and should not be churned for console-only mojibake:
+  - `lib/app/main_shell.dart`
+  - `lib/app/widgets/master_drawer.dart`
+  - `lib/features/gallery/ui/gallery_tab.dart`
+  - `lib/features/chat/ui/messenger_tab.dart`
+  - `lib/features/journal/ui/sheets/journal_detail_sheet.dart`
+- Confirmed that `lib/features/gallery/ui/gallery_tab.dart` still routes to the existing journal/photo creation flow and does not currently expose a fake dead action.
+- Confirmed that `lib/features/schedule/ui/schedule_tab.dart` no longer leaks debug/dev/crash UI into the normal user surface.
+- Gated the root auth-state debug log in `lib/app/worknote_app.dart` behind `kDebugMode` so it does not leak into non-debug runs.
+- Corrected this report so the protected task-card note is historically accurate and no longer implies they are currently untouched.
+
+### Batch 12 Analyzer Status
+- `error 0`
+- `warning 0`
+- `info 0`
+- total `0 issues`
+
+### Batch 12 Build Status
+- `flutter build apk --debug`: success
+- output: `build/app/outputs/flutter-apk/app-debug.apk`
+
+## 2026-03-09 Continuation Batch 13
+- Updated the protected task cards again under fresh task-scoped user approval.
+- Moved the creator display into the upper card area beside the project / priority / calendar controls.
+- Moved the assignee display into the lower right role column so the top section stays focused on immediate scan information.
+- Simplified the second metadata line so it always reads as `완료` + `일정`, and removed the old `캘린더 표시/숨김` wording.
+- Preserved the visual calendar toggle state through the active/inactive calendar badge only.

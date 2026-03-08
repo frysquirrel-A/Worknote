@@ -1,0 +1,35 @@
+{
+  "sessionFolder": "C:\\Users\\Ryzen\\Desktop\\Flutter_App_Dev\\dev\\worknote\\screenshots\\2026-03-08_145744_run오i57e_review",
+  "sessionTitle": "WorkNote 런타임 UI 검수 세션",
+  "timestamp": "2026-03-08 14:57:44 Asia/Seoul",
+  "includedSteps": 17,
+  "excludedArtifacts": [
+    "step_09_tasks_root.png",
+    "step_09_tasks_root.xml",
+    "step_11_schedule_root.png",
+    "step_11_schedule_root.xml",
+    "step_13_journal_root.png",
+    "step_13_journal_root.xml",
+    "step_15_gallery_root.png",
+    "step_15_gallery_root.xml",
+    "step_17_chat_root.png",
+    "step_17_chat_root.xml"
+  ],
+  "warnings": [
+    "step_07에서는 피드백 화면에서 뒤로 가기 후 앱 내부 홈이 아니라 Android 런처로 이탈하는 예외 동작이 관찰됐다.",
+    "step_09~17의 일부 병렬 캡처 파일은 동일 시점 경쟁으로 신뢰할 수 없어 보고서 본문에서 제외했다.",
+    "이번 세션은 최신 debug APK를 재빌드·재설치한 뒤 수집했으므로, 이전 stale runtime report보다 현재 소스와 더 가깝다."
+  ],
+  "containsExternalAuth": false,
+  "runtimeBase": "latest debug APK freshly rebuilt and reinstalled before capture",
+  "areas": [
+    "Home",
+    "Drawer",
+    "Tasks",
+    "Schedule",
+    "Journal",
+    "Gallery",
+    "Messenger",
+    "Feedback"
+  ]
+}

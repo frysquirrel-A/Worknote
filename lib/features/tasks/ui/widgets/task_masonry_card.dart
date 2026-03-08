@@ -54,36 +54,56 @@ class TaskMasonryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _projectChip(
-                        projectName: projectName,
-                        chipColor: palette.chipColor,
-                        accent: palette.accent,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _projectChip(
+                            projectName: projectName,
+                            chipColor: palette.chipColor,
+                            accent: palette.accent,
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _priorityBadge(
+                                priority: task.priority,
+                                palette: palette,
+                                onTap: _cyclePriority,
+                              ),
+                              const SizedBox(width: 5),
+                              _scheduleButton(
+                                showOnCalendar: showOnCalendar,
+                                accent: palette.accent,
+                                onTap: () async {
+                                  HapticFeedback.selectionClick();
+                                  await taskProv.setScheduleOptions(
+                                    taskId: task.id,
+                                    includeInSchedule: !showOnCalendar,
+                                    range: effectiveRange ??
+                                        DateTimeRange(
+                                          start: task.dueDate,
+                                          end: task.dueDate,
+                                        ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 5),
-                    _priorityBadge(
-                      priority: task.priority,
-                      palette: palette,
-                      onTap: _cyclePriority,
-                    ),
-                    const SizedBox(width: 5),
-                    _scheduleButton(
-                      showOnCalendar: showOnCalendar,
-                      accent: palette.accent,
-                      onTap: () async {
-                        HapticFeedback.selectionClick();
-                        await taskProv.setScheduleOptions(
-                          taskId: task.id,
-                          includeInSchedule: !showOnCalendar,
-                          range: effectiveRange ??
-                              DateTimeRange(
-                                start: task.dueDate,
-                                end: task.dueDate,
-                              ),
-                        );
-                      },
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 56,
+                      child: _roleBlock(
+                        label: '작성자',
+                        name: creatorName,
+                        palette: palette,
+                      ),
                     ),
                   ],
                 ),
@@ -153,7 +173,6 @@ class TaskMasonryCard extends StatelessWidget {
                               const SizedBox(height: 3),
                               _metaText(
                                 text: _metaLineTwo(
-                                  showOnCalendar: showOnCalendar,
                                   configuredRange: configuredRange,
                                 ),
                                 palette: palette,
@@ -169,22 +188,13 @@ class TaskMasonryCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         SizedBox(
                           width: 54,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _roleBlock(
-                                label: '작성자',
-                                name: creatorName,
-                                palette: palette,
-                              ),
-                              const SizedBox(height: 7),
-                              _roleBlock(
-                                label: '담당',
-                                name: assigneeName,
-                                palette: palette,
-                              ),
-                            ],
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: _roleBlock(
+                              label: '담당',
+                              name: assigneeName,
+                              palette: palette,
+                            ),
                           ),
                         ),
                       ],
@@ -267,23 +277,20 @@ class TaskMasonryCard extends StatelessWidget {
   }
 
   String _metaLineTwo({
-    required bool showOnCalendar,
     required DateTimeRange? configuredRange,
   }) {
-    final parts = <String>[];
-    if (task.completedAt != null) {
-      parts.add('완료 ${_fmt(task.completedAt!)}');
-    }
-    if (configuredRange != null) {
-      final sameDay = _fmt(configuredRange.start) == _fmt(configuredRange.end);
-      final rangeText = sameDay
-          ? _fmt(configuredRange.start)
-          : '${_fmt(configuredRange.start)}~${_fmt(configuredRange.end)}';
-      parts.add(showOnCalendar ? '캘린더 표시 $rangeText' : '캘린더 숨김 $rangeText');
-    } else {
-      parts.add('일정 미설정');
-    }
-    return parts.join(' • ');
+    final completedText =
+        task.completedAt != null ? _fmt(task.completedAt!) : '-';
+    final scheduleText = configuredRange != null
+        ? _formatRange(configuredRange)
+        : '-';
+    return '완료 $completedText • 일정 $scheduleText';
+  }
+
+  String _formatRange(DateTimeRange range) {
+    final start = _fmt(range.start);
+    final end = _fmt(range.end);
+    return start == end ? start : '$start~$end';
   }
 
   Widget _projectChip({

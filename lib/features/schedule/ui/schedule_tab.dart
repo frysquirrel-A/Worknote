@@ -34,6 +34,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     final teamProv = context.watch<TeamProvider>();
     final authProv = context.watch<AuthProvider>();
     final scheduleProv = context.watch<ScheduleProvider>();
+    final palette = AppModePalette.fromMode(teamProv.currentThemeMode);
 
     final myId = authProv.currentUser?.id ?? 'me';
     final myName = authProv.currentUser?.name ?? '관리자';
@@ -66,13 +67,13 @@ class _ScheduleTabState extends State<ScheduleTab> {
           );
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           '일정',
-          style: TextStyle(color: AppColors.darkText, fontWeight: FontWeight.w900),
+          style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -82,7 +83,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
           myId: myId,
           myName: myName,
         ),
-        backgroundColor: AppColors.premiumBlue,
+        backgroundColor: palette.accent,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text('계획 추가', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -100,25 +101,25 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       Expanded(
                         child: TextField(
                           onChanged: (value) => setState(() => _searchQuery = value),
-                          cursorColor: AppColors.premiumBlue,
-                          style: const TextStyle(color: AppColors.darkText, fontWeight: FontWeight.w800),
+                          cursorColor: palette.accent,
+                          style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
                           decoration: InputDecoration(
                             hintText: '계획을 검색하세요...',
-                            hintStyle: const TextStyle(color: AppColors.darkHint, fontWeight: FontWeight.w700),
-                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.premiumBlue),
+                            hintStyle: TextStyle(color: palette.hint, fontWeight: FontWeight.w700),
+                            prefixIcon: Icon(Icons.search_rounded, color: palette.accent),
                             filled: true,
-                            fillColor: AppColors.darkSurface,
+                            fillColor: palette.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(color: AppColors.darkBorder),
+                              borderSide: BorderSide(color: palette.border),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(color: AppColors.darkBorder),
+                              borderSide: BorderSide(color: palette.border),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(color: AppColors.premiumBlue, width: 1.8),
+                              borderSide: BorderSide(color: palette.accent, width: 1.8),
                             ),
                           ),
                         ),
@@ -134,12 +135,12 @@ class _ScheduleTabState extends State<ScheduleTab> {
                       label: const Text('모든 팀 일정 보기', style: TextStyle(fontWeight: FontWeight.w700)),
                       selected: _showAllTeams,
                       onSelected: (value) => setState(() => _showAllTeams = value),
-                      selectedColor: AppColors.premiumBlue.withValues(alpha: 0.16),
-                      checkmarkColor: AppColors.premiumBlue,
-                      backgroundColor: AppColors.darkSurface,
-                      side: const BorderSide(color: AppColors.darkBorder),
+                      selectedColor: palette.accent.withValues(alpha: 0.16),
+                      checkmarkColor: palette.accent,
+                      backgroundColor: palette.surface,
+                      side: BorderSide(color: palette.border),
                       labelStyle: TextStyle(
-                        color: _showAllTeams ? AppColors.darkText : AppColors.darkHint,
+                        color: _showAllTeams ? palette.text : palette.hint,
                       ),
                     ),
                   ),
@@ -180,6 +181,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   Widget _modeToggleButton() {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () => setState(() => _isCompactCalendar = !_isCompactCalendar),
@@ -187,13 +189,13 @@ class _ScheduleTabState extends State<ScheduleTab> {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.darkSurface,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.darkBorder),
+          border: Border.all(color: palette.border),
         ),
         child: Icon(
           _isCompactCalendar ? Icons.view_headline_rounded : Icons.calendar_view_month_rounded,
-          color: AppColors.premiumBlue,
+          color: palette.accent,
         ),
       ),
     );
@@ -205,6 +207,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     required TaskProvider taskProv,
     required ScheduleProvider scheduleProv,
   }) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     final firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
     final lastDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
     final startDay = firstDayOfMonth.subtract(Duration(days: firstDayOfMonth.weekday % 7));
@@ -240,12 +243,18 @@ class _ScheduleTabState extends State<ScheduleTab> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 18, 16, 12),
       decoration: BoxDecoration(
-        gradient: AppGradients.messengerPanel,
+        gradient: palette.isDark
+            ? AppGradients.messengerPanel
+            : LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [palette.surfaceAlt, palette.surface],
+              ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.darkBorder),
+        border: Border.all(color: palette.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.24),
+            color: palette.shadow,
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -259,7 +268,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
               children: [
                 Text(
                   DateFormat('yyyy년 MM월').format(_focusedDay),
-                  style: const TextStyle(color: AppColors.darkText, fontSize: 20, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: palette.text, fontSize: 20, fontWeight: FontWeight.w900),
                 ),
                 const Spacer(),
                 _calendarArrowButton(
@@ -275,7 +284,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
                     _focusedDay = DateTime.now();
                     _selectedDay = DateTime.now();
                   }),
-                  child: const Text('오늘', style: TextStyle(color: AppColors.premiumBlue, fontWeight: FontWeight.w900)),
+                  child: Text('오늘', style: TextStyle(color: palette.accent, fontWeight: FontWeight.w900)),
                 ),
               ],
             ),
@@ -285,8 +294,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
               final color = label == '일'
                   ? AppColors.destructive
                   : label == '토'
-                      ? AppColors.premiumBlue
-                      : AppColors.darkHint;
+                      ? palette.accent
+                      : palette.hint;
               return Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -310,6 +319,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   Widget _calendarArrowButton({required IconData icon, required VoidCallback onPressed}) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     return SizedBox(
       width: 52,
       height: 52,
@@ -317,7 +327,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
         padding: const EdgeInsets.all(16),
         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         onPressed: onPressed,
-        icon: Icon(icon, color: AppColors.premiumBlue),
+        icon: Icon(icon, color: palette.accent),
       ),
     );
   }
@@ -326,6 +336,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     required List<DateTime> weekDays,
     required List<_WeekLaneEvent> weekLanes,
   }) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     const maxVisibleLanes = 4;
     final totalLaneCount = weekLanes.isEmpty
         ? 0
@@ -392,8 +403,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
                             bottom: 4,
                             child: Text(
                               '+${hiddenCounts[i]}',
-                              style: const TextStyle(
-                                color: AppColors.darkHint,
+                              style: TextStyle(
+                                color: palette.hint,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -414,6 +425,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     required DateTime day,
     required double height,
   }) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     final isSelected = _selectedDay != null && isSameDay(_selectedDay, day);
     final isToday = isSameDay(DateTime.now(), day);
     final isOutsideMonth = day.month != _focusedDay.month;
@@ -424,8 +436,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.premiumBlue.withValues(alpha: 0.12) : Colors.transparent,
-          border: Border.all(color: AppColors.darkBorder.withValues(alpha: 0.55), width: 0.6),
+          color: isSelected ? palette.accent.withValues(alpha: 0.12) : Colors.transparent,
+          border: Border.all(color: palette.border.withValues(alpha: 0.55), width: 0.6),
         ),
         child: Padding(
           padding: const EdgeInsets.all(6),
@@ -436,7 +448,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
               height: 24,
               alignment: Alignment.center,
               decoration: isToday
-                  ? const BoxDecoration(color: AppColors.premiumBlue, shape: BoxShape.circle)
+                  ? BoxDecoration(color: palette.accent, shape: BoxShape.circle)
                   : null,
               child: Text(
                 '${day.day}',
@@ -444,12 +456,12 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   color: isToday
                       ? Colors.white
                       : isOutsideMonth
-                          ? AppColors.darkHint.withValues(alpha: 0.45)
+                          ? palette.hint.withValues(alpha: 0.45)
                           : day.weekday == DateTime.sunday
                               ? AppColors.destructive
                               : day.weekday == DateTime.saturday
-                                  ? AppColors.premiumBlue
-                                  : AppColors.darkText,
+                                  ? palette.accent
+                                  : palette.text,
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
@@ -469,8 +481,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
     required double laneHeight,
     required double laneGap,
   }) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     final event = laneEvent.event;
-    final color = event.type == _EventType.task ? AppColors.premiumBlue : AppColors.warning;
+    final color = event.type == _EventType.task ? palette.accent : AppColors.warning;
     final startIndex = weekDays.indexWhere((day) => isSameDay(day, laneEvent.start));
     final endIndex = weekDays.indexWhere((day) => isSameDay(day, laneEvent.end));
     if (startIndex == -1 || endIndex == -1) {
@@ -565,11 +578,12 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   Widget _eventTile({required BuildContext context, required _CalendarEvent event}) {
+    final palette = AppModePalette.fromMode(context.read<TeamProvider>().currentThemeMode);
     final icon = event.type == _EventType.task
         ? Icons.check_circle_outline_rounded
         : Icons.event_note_rounded;
     final accentColor = event.type == _EventType.task
-        ? AppColors.premiumBlue
+        ? palette.accent
         : AppColors.warning;
 
     return GestureDetector(
@@ -593,9 +607,9 @@ class _ScheduleTabState extends State<ScheduleTab> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.darkSurface,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.darkBorder),
+          border: Border.all(color: palette.border),
         ),
         child: Row(
           children: [
@@ -609,8 +623,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
                     event.title,
                     style: TextStyle(
                       color: event.type == _EventType.task && event.isDone
-                          ? AppColors.darkHint
-                          : AppColors.darkText,
+                          ? palette.hint
+                          : palette.text,
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
                       decoration: event.type == _EventType.task && event.isDone
@@ -621,8 +635,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
                   const SizedBox(height: 4),
                   Text(
                     event.subtitle,
-                    style: const TextStyle(
-                      color: AppColors.darkHint,
+                    style: TextStyle(
+                      color: palette.hint,
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
@@ -794,6 +808,9 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initial != null;
+    final palette = AppModePalette.fromMode(
+      context.watch<TeamProvider>().currentThemeMode,
+    );
 
     return Container(
       padding: EdgeInsets.only(
@@ -802,9 +819,10 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
         top: 18,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        gradient: AppGradients.messengerPanel,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(color: palette.border),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -812,8 +830,8 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
           children: [
             Text(
               isEditing ? '계획 수정' : '계획 추가',
-              style: const TextStyle(
-                color: AppColors.darkText,
+              style: TextStyle(
+                color: palette.text,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
@@ -821,8 +839,8 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
             const SizedBox(height: 16),
             TextField(
               controller: _titleCtrl,
-              cursorColor: AppColors.premiumBlue,
-              style: const TextStyle(color: AppColors.darkText, fontWeight: FontWeight.w900),
+              cursorColor: palette.accent,
+              style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
               decoration: _darkInputDecoration('계획 제목'),
             ),
             const SizedBox(height: 12),
@@ -842,22 +860,22 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.darkSurface,
+                  color: palette.surfaceAlt,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.darkBorder),
+                  border: Border.all(color: palette.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.date_range_rounded, size: 18, color: AppColors.premiumBlue),
+                    Icon(Icons.date_range_rounded, size: 18, color: palette.accent),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       '기간',
-                      style: TextStyle(color: AppColors.darkHint, fontWeight: FontWeight.w900),
+                      style: TextStyle(color: palette.hint, fontWeight: FontWeight.w900),
                     ),
                     const Spacer(),
                     Text(
                       '${DateFormat('yy.MM.dd').format(_range.start)} ~ ${DateFormat('yy.MM.dd').format(_range.end)}',
-                      style: const TextStyle(color: AppColors.darkText, fontWeight: FontWeight.w900),
+                      style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -866,14 +884,14 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text(
+                Text(
                   '종일',
-                  style: TextStyle(color: AppColors.darkHint, fontWeight: FontWeight.w900),
+                  style: TextStyle(color: palette.hint, fontWeight: FontWeight.w900),
                 ),
                 const Spacer(),
                 Switch(
                   value: _isAllDay,
-                  activeThumbColor: AppColors.premiumBlue,
+                  activeThumbColor: palette.accent,
                   onChanged: (value) => setState(() => _isAllDay = value),
                 ),
               ],
@@ -881,9 +899,9 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
             const SizedBox(height: 12),
             TextField(
               controller: _noteCtrl,
-              cursorColor: AppColors.premiumBlue,
+              cursorColor: palette.accent,
               maxLines: 3,
-              style: const TextStyle(color: AppColors.darkText),
+              style: TextStyle(color: palette.text),
               decoration: _darkInputDecoration('메모(선택)'),
             ),
             const SizedBox(height: 20),
@@ -920,7 +938,7 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.premiumBlue,
+                  backgroundColor: palette.accent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
@@ -934,23 +952,26 @@ class _PersonalScheduleSheetContentState extends State<_PersonalScheduleSheetCon
   }
 
   InputDecoration _darkInputDecoration(String hintText) {
+    final palette = AppModePalette.fromMode(
+      context.read<TeamProvider>().currentThemeMode,
+    );
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: AppColors.darkHint, fontWeight: FontWeight.w700),
+      hintStyle: TextStyle(color: palette.hint, fontWeight: FontWeight.w700),
       filled: true,
-      fillColor: AppColors.darkSurface,
+      fillColor: palette.surfaceAlt,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.darkBorder),
+        borderSide: BorderSide(color: palette.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.darkBorder),
+        borderSide: BorderSide(color: palette.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppColors.premiumBlue, width: 1.8),
+        borderSide: BorderSide(color: palette.accent, width: 1.8),
       ),
     );
   }
